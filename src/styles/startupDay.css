@@ -2026,7 +2026,7 @@ a.sd-quien__logo:focus-visible {
 
 /* `brightness(0) invert(1)` lleva cualquier píxel opaco a blanco puro respetando el alfa — el
    mismo tratamiento que `.sd-quien__logo img`, y por la misma razón: sobre la card oscura, los
-   logos que vienen en negro (uin, TQe, Zettios) directamente no se veían. */
+   logos que vienen en negro (uin, TQe) directamente no se veían. */
 .sd-agenda__mark img {
   position: absolute;
   inset: 0;

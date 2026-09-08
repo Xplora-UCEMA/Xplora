@@ -164,7 +164,7 @@ export const SD_CHARLAS: readonly SdCharla[] = [
   { aula: 'm', from: '16:15', to: '17:00', name: 'Nerdearla', logo: 'nerdearla.png' },
   { aula: 'm', from: '17:00', to: '17:45', name: 'TQe', logo: 'tqe.webp' },
   { aula: 'm', from: '17:45', to: '18:30', name: 'Picante', logo: 'picante.png' },
-  { aula: 'm', from: '18:30', to: '19:00', name: 'Zettios', logo: 'zettios.png' },
+  { aula: 'm', from: '18:30', to: '19:00', name: 'hubeet', logo: 'hubeet.png' },
   { aula: 'm', from: '19:05', to: '19:15', name: 'FUD' },
   { aula: 'm', from: '19:30', to: '20:00', name: 'Resender', logo: 'resender-dev.png' },
 
