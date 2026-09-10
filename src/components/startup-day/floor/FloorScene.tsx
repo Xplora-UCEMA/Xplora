@@ -30,6 +30,7 @@ import { crearEntorno, crearTexturaPiso } from './materiales';
 import { Mobiliario } from './Mobiliario';
 import { Volumenes } from './Muros';
 import { Etiquetas } from './Etiquetas';
+import { Logos } from './Logos';
 
 /**
  * Piso con la textura de vinílico y la oclusión ambiental ya horneada.
@@ -108,8 +109,19 @@ function Realce({ sala }: { sala: Sala }) {
   );
 }
 
-/** Zonas sensibles al puntero, invisibles: dan el hover por sala sin ensuciar el render. */
-function Zonas({ onActivar }: { onActivar: (id: string | null) => void }) {
+/**
+ * Zonas sensibles al puntero, invisibles: dan el hover y el click por sala sin ensuciar el
+ * render. El click enfoca la sala; volver a clickearla vuelve al piso completo.
+ */
+function Zonas({
+  enfocada,
+  onActivar,
+  onEnfocar,
+}: {
+  enfocada: string | null;
+  onActivar: (id: string | null) => void;
+  onEnfocar: (id: string | null) => void;
+}) {
   return (
     <group>
       {SALAS.map((s) => {
@@ -123,6 +135,10 @@ function Zonas({ onActivar }: { onActivar: (id: string | null) => void }) {
               onActivar(s.id);
             }}
             onPointerOut={() => onActivar(null)}
+            onClick={(e) => {
+              e.stopPropagation();
+              onEnfocar(enfocada === s.id ? null : s.id);
+            }}
           >
             <boxGeometry args={[w, 0.8, d]} />
             <meshBasicMaterial visible={false} />
@@ -160,14 +176,62 @@ function LucesInteriores() {
   );
 }
 
+/** Encuadre del piso completo: el de siempre, y al que se vuelve al salir de una sala. */
+const CAMARA_PISO = new THREE.Vector3(2, 33, 21);
+/** Campo vertical de la cámara. Lo usa el `<Canvas>` y también el encuadre por sala. */
+const FOV = 42;
+
+/**
+ * Dirección de la cámara, la misma para el piso y para una sala.
+ *
+ * Que no cambie es lo que hace que el vuelo sea sólo un acercamiento: si además girara,
+ * OrbitControls tendría que recortar el ángulo contra sus topes en medio de la animación y el
+ * movimiento pegaría un tirón.
+ */
+const MIRADA = CAMARA_PISO.clone().normalize();
+const DURACION_S = 0.75;
+
+/**
+ * A dónde poner cámara y foco para ver una sala entera.
+ *
+ * La distancia sale de encajar el lado más largo en el campo vertical, con un margen que deja
+ * ver los muros. El foco va a 0,9 m de altura y no al piso: es donde flotan las insignias, y
+ * apuntando más abajo quedaban contra el borde de arriba del cuadro.
+ */
+function encuadre(sala: Sala | null, aspecto: number): { pos: THREE.Vector3; foco: THREE.Vector3 } {
+  if (!sala) return { pos: CAMARA_PISO.clone(), foco: new THREE.Vector3(0, 0, 0) };
+  const { cx, cz, w, d } = rectDeSala(sala);
+  const mitad = (Math.max(w, d) * 1.35) / 2;
+  const tanV = Math.tan(((FOV * Math.PI) / 180) / 2);
+  /* El campo horizontal sale del vertical por el aspecto. En mobile el viewport es 3/4, así
+     que el angosto pasa a ser el horizontal y es el que manda: encuadrar sólo por el vertical
+     cortaba las salas anchas. */
+  const tanH = tanV * aspecto;
+  const dist = Math.max(mitad / tanV, mitad / tanH);
+  const foco = new THREE.Vector3(cx, 0.9, cz);
+  return { pos: foco.clone().addScaledVector(MIRADA, dist), foco };
+}
+
 /**
  * OrbitControls acotado: no baja del piso, no se aleja de más y solo gira dentro de una
  * ventana angular. Se sacó la órbita automática: con el giro acotado tendría que rebotar
  * contra el tope, que se ve peor que dejar el modelo quieto.
+ *
+ * Con una sala enfocada la cámara vuela hasta encuadrarla y los topes de distancia se abren:
+ * hay que poder acercarse más de los 20 m del piso completo, que es la distancia a la que una
+ * insignia mide veinte píxeles y no se lee.
  */
-function Controles() {
-  const { camera, gl } = useThree();
+function Controles({ enfocada }: { enfocada: string | null }) {
+  const { camera, gl, size } = useThree();
+  const aspecto = size.width / Math.max(1, size.height);
   const ref = useRef<OrbitControls | null>(null);
+  const vuelo = useRef<{
+    t: number;
+    desdePos: THREE.Vector3;
+    desdeFoco: THREE.Vector3;
+    aPos: THREE.Vector3;
+    aFoco: THREE.Vector3;
+  } | null>(null);
 
   useEffect(() => {
     const c = new OrbitControls(camera, gl.domElement);
@@ -188,7 +252,43 @@ function Controles() {
     return () => c.dispose();
   }, [camera, gl]);
 
-  useFrame(() => ref.current?.update());
+  useEffect(() => {
+    const c = ref.current;
+    if (!c) return;
+    const sala = SALAS.find((s) => s.id === enfocada) ?? null;
+    const { pos, foco } = encuadre(sala, aspecto);
+    /* Los topes se abren ANTES de mover: si no, `update()` recorta el destino a mitad de vuelo. */
+    c.minDistance = sala ? 5 : 20;
+    c.maxDistance = sala ? 44 : 64;
+    /* Al montar, la cámara ya está donde tiene que estar: no hay nada que animar. */
+    if (camera.position.distanceTo(pos) < 0.01) return;
+    vuelo.current = {
+      t: 0,
+      desdePos: camera.position.clone(),
+      desdeFoco: c.target.clone(),
+      aPos: pos,
+      aFoco: foco,
+    };
+    /* Mientras vuela no se puede arrastrar: el arrastre pelearía contra la interpolación. */
+    c.enabled = false;
+  }, [enfocada, camera, aspecto]);
+
+  useFrame((_, dt) => {
+    const c = ref.current;
+    if (!c) return;
+    const v = vuelo.current;
+    if (v) {
+      v.t = Math.min(1, v.t + dt / DURACION_S);
+      const k = v.t < 0.5 ? 2 * v.t * v.t : 1 - Math.pow(-2 * v.t + 2, 2) / 2;
+      camera.position.lerpVectors(v.desdePos, v.aPos, k);
+      c.target.lerpVectors(v.desdeFoco, v.aFoco, k);
+      if (v.t >= 1) {
+        vuelo.current = null;
+        c.enabled = true;
+      }
+    }
+    c.update();
+  });
   return null;
 }
 
@@ -208,12 +308,18 @@ function Entorno() {
 
 function Escena({
   activa,
+  enfocada,
   onActivar,
+  onEnfocar,
 }: {
   activa: string | null;
+  enfocada: string | null;
   onActivar: (id: string | null) => void;
+  onEnfocar: (id: string | null) => void;
 }) {
-  const sala = SALAS.find((s) => s.id === activa) ?? null;
+  /* El hover manda mientras hay hover; sin él queda lo enfocado, que no se apaga solo. */
+  const senalada = activa ?? enfocada;
+  const sala = SALAS.find((s) => s.id === senalada) ?? null;
   return (
     <>
       {/* Igual que `.sd-piso__viewport` en `startupDay.css` (--sd-void): si divergen,
@@ -248,19 +354,24 @@ function Escena({
       <Mobiliario />
       <Etiquetas />
       {sala ? <Realce sala={sala} /> : null}
-      <Zonas onActivar={onActivar} />
+      <Logos activa={senalada} />
+      <Zonas enfocada={enfocada} onActivar={onActivar} onEnfocar={onEnfocar} />
 
-      <Controles />
+      <Controles enfocada={enfocada} />
     </>
   );
 }
 
 export default function FloorScene({
   activa,
+  enfocada,
   onActivar,
+  onEnfocar,
 }: {
   activa: string | null;
+  enfocada: string | null;
   onActivar: (id: string | null) => void;
+  onEnfocar: (id: string | null) => void;
 }) {
   return (
     <Canvas
@@ -268,14 +379,22 @@ export default function FloorScene({
       dpr={[1, 1.5]}
       gl={{ antialias: true }}
       /* Bien alta: con muros de 2,7 m, un ángulo bajo tapa las salas del fondo. */
-      camera={{ position: [2, 33, 21], fov: 42, near: 0.5, far: 250 }}
-      onPointerMissed={() => onActivar(null)}
+      camera={{ position: CAMARA_PISO.toArray(), fov: FOV, near: 0.5, far: 250 }}
+      onPointerMissed={() => {
+        onActivar(null);
+        onEnfocar(null);
+      }}
       onCreated={({ gl }) => {
         gl.toneMapping = THREE.ACESFilmicToneMapping;
         gl.toneMappingExposure = 0.9;
       }}
     >
-      <Escena activa={activa} onActivar={onActivar} />
+      <Escena
+        activa={activa}
+        enfocada={enfocada}
+        onActivar={onActivar}
+        onEnfocar={onEnfocar}
+      />
     </Canvas>
   );
 }

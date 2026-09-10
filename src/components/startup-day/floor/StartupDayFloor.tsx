@@ -12,7 +12,7 @@
  * plástico. La lista y el 3D se resaltan mutuamente.
  */
 import { Component, Suspense, lazy, useEffect, useRef, useState, type ReactNode } from 'react';
-import { SALAS, detalleDe, type Sala } from '../../../data/startupDayFloor';
+import { HALL, SALAS, detalleDe, mesasDeSala, type Sala } from '../../../data/startupDayFloor';
 
 /**
  * Un import dinámico que falla casi siempre falla por algo pasajero: un corte de red o —el
@@ -49,15 +49,47 @@ function hayWebGL(): boolean {
 }
 
 /**
- * La lista nombra los nueve espacios a los que se entra el día del evento. Sala de estar,
- * Recepción y los depósitos ya no existen en el modelo: se sacaron del piso.
+ * La lista nombra los espacios a los que se entra el día del evento. Sala de estar,
+ * Recepción, el depósito chico y el aula Q no existen en el modelo: se sacaron del piso.
  */
 const ORDEN: Record<Sala['tipo'], number> = {
   stands: 0,
   workshops: 1,
   nucleo: 2,
 };
-const SALAS_LISTADAS = [...SALAS].sort((a, b) => ORDEN[a.tipo] - ORDEN[b.tipo]);
+
+type Fila = { id: string; label: string; detalle: string; sinUso: boolean; sala: boolean };
+
+/**
+ * Las filas de la referencia: las salas más el hall.
+ *
+ * El hall no es una sala —no tiene rectángulo ni muros— pero sí tiene dieciséis mesas
+ * repartidas por los pasillos, y sin una fila propia esas marcas no tendrían desde dónde
+ * mostrarse: las insignias del render salen al señalar un grupo, y ese grupo acá es la fila.
+ */
+const FILAS: Fila[] = (() => {
+  const salas = [...SALAS].sort((a, b) => ORDEN[a.tipo] - ORDEN[b.tipo]);
+  const filas = salas.map((s) => ({
+    id: s.id,
+    label: s.label,
+    detalle: detalleDe(s),
+    sinUso: s.acceso === 'bloqueada',
+    sala: true,
+  }));
+  /* El hall no se puede enfocar: no tiene rectángulo, sus mesas están repartidas por todo
+     el piso y acercarse a ellas sería acercarse al piso entero. */
+  const hall = {
+    id: HALL,
+    label: 'Hall',
+    detalle: mesasDeSala(HALL) + ' stands',
+    sinUso: false,
+    sala: false,
+  };
+  /* Va después de las aulas de stands, antes de los workshops. */
+  const corte = filas.findIndex((f) => f.detalle === 'Workshops');
+  filas.splice(corte < 0 ? filas.length : corte, 0, hall);
+  return filas;
+})();
 
 /**
  * Si el chunk de three termina de fallar, la sección se queda sin render y punto: avisa hacia
@@ -86,10 +118,25 @@ export function StartupDayFloor() {
   const [webgl, setWebgl] = useState<boolean | null>(null);
   const [falló, setFalló] = useState(false);
   const [activa, setActiva] = useState<string | null>(null);
+  /**
+   * La sala que la cámara está mirando de cerca. Distinta de `activa`, que es sólo el hover:
+   * el foco no se apaga al sacar el puntero, se sale con Esc, con el botón, clickeando afuera
+   * o volviendo a clickear la misma sala.
+   */
+  const [enfocada, setEnfocada] = useState<string | null>(null);
 
   useEffect(() => {
     setWebgl(hayWebGL());
   }, []);
+
+  useEffect(() => {
+    if (!enfocada) return;
+    const alTeclado = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setEnfocada(null);
+    };
+    window.addEventListener('keydown', alTeclado);
+    return () => window.removeEventListener('keydown', alTeclado);
+  }, [enfocada]);
 
   useEffect(() => {
     const el = ref.current;
@@ -121,30 +168,50 @@ export function StartupDayFloor() {
           {cerca && webgl ? (
             <LimiteDeError onFallo={() => setFalló(true)}>
               <Suspense fallback={<p className="sd-piso__cargando">Cargando el piso…</p>}>
-                <FloorScene activa={activa} onActivar={setActiva} />
+                <FloorScene
+                  activa={activa}
+                  enfocada={enfocada}
+                  onActivar={setActiva}
+                  onEnfocar={setEnfocada}
+                />
               </Suspense>
             </LimiteDeError>
           ) : (
             <p className="sd-piso__cargando">Cargando el piso…</p>
           )}
+
+          {enfocada ? (
+            <button
+              type="button"
+              className="sd-piso__volver"
+              onClick={() => setEnfocada(null)}
+            >
+              Ver el piso completo
+            </button>
+          ) : null}
         </div>
       )}
 
       <ul className="sd-piso__ref">
-        {SALAS_LISTADAS.map((s) => (
-          <li key={s.id}>
+        {FILAS.map((f) => (
+          <li key={f.id}>
             <button
               type="button"
-              className={`sd-piso__ref-item${activa === s.id ? ' is-activa' : ''}${
-                s.acceso === 'bloqueada' ? ' is-sin-uso' : ''
-              }`}
-              onMouseEnter={() => setActiva(s.id)}
+              className={`sd-piso__ref-item${
+                activa === f.id || enfocada === f.id ? ' is-activa' : ''
+              }${enfocada === f.id ? ' is-enfocada' : ''}${f.sinUso ? ' is-sin-uso' : ''}`}
+              aria-pressed={f.sala ? enfocada === f.id : undefined}
+              onMouseEnter={() => setActiva(f.id)}
               onMouseLeave={() => setActiva(null)}
-              onFocus={() => setActiva(s.id)}
+              onFocus={() => setActiva(f.id)}
               onBlur={() => setActiva(null)}
+              onClick={() => {
+                if (!f.sala || sinRender) return;
+                setEnfocada(enfocada === f.id ? null : f.id);
+              }}
             >
-              <span className="sd-piso__ref-label">{s.label}</span>
-              <span className="sd-piso__ref-detalle">{detalleDe(s)}</span>
+              <span className="sd-piso__ref-label">{f.label}</span>
+              <span className="sd-piso__ref-detalle">{f.detalle}</span>
             </button>
           </li>
         ))}

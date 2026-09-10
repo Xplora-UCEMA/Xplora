@@ -7,8 +7,6 @@ export type StartupDayCompany = {
   /** Texto corto para destacadas; opcional en el carrusel. */
   blurb?: string;
   featured?: boolean;
-  /** Fondo claro del tile: para logos oscuros o de color que no se leen sobre la banda ink. */
-  tileLight?: boolean;
   website?: string;
   linkedin?: string;
   instagram?: string;
@@ -28,7 +26,7 @@ export type StartupDayPartner = {
 };
 
 /** Ruta pública de un logo. El `?v=` es el cache-buster; vive acá y sólo acá. */
-export const LOGO = (file: string) => `/logos/startup-day/${file}?v=18`;
+export const LOGO = (file: string) => `/logos/startup-day/${file}?v=19`;
 
 export const SD_EVENT = {
   title: 'Startup Day',
@@ -116,8 +114,8 @@ export const SD_DAY_STORY = {
  * (`startupDayFloor.ts`), donde M es "Acá se hacen los workshops" y K "la sala más grande".
  */
 export const SD_AULAS = [
-  { id: 'm', label: 'Aula M' },
   { id: 'k', label: 'Aula K' },
+  { id: 'm', label: 'Aula M' },
 ] as const;
 
 export type SdAula = (typeof SD_AULAS)[number]['id'];
@@ -135,6 +133,12 @@ export type SdCharla = {
   from: string;
   to: string;
   name: string;
+  /**
+   * Quién da la charla. La grilla lo muestra entre el logo y el horario: es el dato que
+   * distingue una fila de otra cuando dos marcas comparten franja, y sin él la card sólo dice
+   * "esta empresa habla en algún momento".
+   */
+  speaker?: string;
   /** Archivo dentro de `/logos/startup-day/`. Sin él la card cae al punto violeta. */
   logo?: string;
   /**
@@ -152,36 +156,44 @@ export type SdCharla = {
  * La grilla del día. Reemplazó a un borrador de una sola pista donde 6 de 10 filas decían
  * "Stands abiertos": el evento son dos aulas en paralelo.
  *
- * Faltan los archivos de logo de NEWTOPIA, Derecruiters, Picante y FUD. Cuando estén en
- * `src/public/logos/startup-day/` alcanza con sumarles la clave `logo:` acá.
+ * Falta el archivo de logo de FUD. Cuando esté en `src/public/logos/startup-day/` alcanza con
+ * sumarle la clave `logo:` acá; mientras tanto esa fila cae al nombre en texto.
  */
 /* Ojo con qué archivo se elige: la card los pinta con `brightness(0) invert(1)`, que sólo
    funciona sobre PNG/WebP con alfa. `endeavor.webp` viene sin canal alfa y salía como un
    rectángulo blanco; `resender.png` es el ícono cuadrado y no el wordmark; y `derecruiters.png`
    llegó con fondo negro macizo, así que se le quitó con `ffmpeg -vf colorkey`. */
 export const SD_CHARLAS: readonly SdCharla[] = [
-  { aula: 'm', from: '15:30', to: '16:15', name: 'Endeavor', logo: 'endeavor.png' },
-  { aula: 'm', from: '16:15', to: '17:00', name: 'Nerdearla', logo: 'nerdearla.png' },
-  { aula: 'm', from: '17:00', to: '17:45', name: 'TQe', logo: 'tqe.webp' },
-  { aula: 'm', from: '17:45', to: '18:30', name: 'Picante', logo: 'picante.png' },
-  { aula: 'm', from: '18:30', to: '19:00', name: 'Zettios', logo: 'zettios.png' },
-  { aula: 'm', from: '19:05', to: '19:15', name: 'FUD' },
-  { aula: 'm', from: '19:30', to: '20:00', name: 'Resender', logo: 'resender-dev.png' },
-
-  { aula: 'k', from: '15:30', to: '16:15', name: 'Derecruiters', logo: 'derecruiters.png' },
-  { aula: 'k', from: '16:15', to: '16:45', name: 'First Plug', logo: 'firstplug.png' },
-  { aula: 'k', from: '16:45', to: '17:15', name: 'uin', logo: 'uin.png' },
-  { aula: 'k', from: '17:30', to: '18:15', name: 'NEWTOPIA', logo: 'newtopia.png' },
-  { aula: 'k', from: '18:15', to: '18:45', name: 'Pasito', logo: 'quien/pasito.png' },
+  { aula: 'k', from: '15:30', to: '16:15', name: 'Derecruiters', speaker: 'Alan Gosiker', logo: 'derecruiters.png' },
+  { aula: 'k', from: '16:15', to: '16:45', name: 'First Plug', speaker: 'Santiago Sucari', logo: 'firstplug.png' },
+  { aula: 'k', from: '16:45', to: '17:15', name: 'uin', speaker: 'Manuel Heredia', logo: 'uin.png' },
+  {
+    aula: 'k',
+    from: '17:30',
+    to: '18:15',
+    name: 'NEWTOPIA',
+    speaker: 'Maika Basavilbasoh & Juan de Ezcurra',
+    logo: 'newtopia.png',
+  },
+  { aula: 'k', from: '18:15', to: '18:45', name: 'Pasito', speaker: 'Santiago Schamberg', logo: 'quien/pasito.png' },
   {
     aula: 'k',
     from: '18:45',
     to: '19:15',
     name: 'Meli',
+    speaker: 'Carolina Lamas',
     logo: 'mercado-libre.png',
     logoEnColor: true,
   },
-  { aula: 'k', from: '19:15', to: '20:00', name: 'Belo', logo: 'belo.png' },
+  { aula: 'k', from: '19:15', to: '20:00', name: 'Belo', speaker: 'Edwin Rager', logo: 'belo.png' },
+
+  { aula: 'm', from: '15:30', to: '16:15', name: 'Endeavor', speaker: 'Martina Laufer', logo: 'endeavor.png' },
+  { aula: 'm', from: '16:15', to: '17:00', name: 'Nerdearla', speaker: 'Ariel Jolo', logo: 'nerdearla.png' },
+  { aula: 'm', from: '17:00', to: '17:45', name: 'TQe', speaker: 'Pablo Mazzitelli', logo: 'tqe.webp' },
+  { aula: 'm', from: '17:45', to: '18:30', name: 'Picante', speaker: 'Federico Ades', logo: 'picante.png' },
+  { aula: 'm', from: '18:30', to: '19:00', name: 'hubeet', speaker: 'Gustavo Benítez', logo: 'hubeet.png' },
+  { aula: 'm', from: '19:00', to: '19:15', name: 'FUD', speaker: 'Marcos Lanzani', logo: 'fud.png' },
+  { aula: 'm', from: '19:30', to: '20:00', name: 'Resender', speaker: 'Lorna Suriano', logo: 'resender-dev.png' },
 ];
 
 export const SD_STANDS = {
@@ -196,7 +208,7 @@ export const SD_STARTUPS: StartupDayCompany[] = [
   {
     id: 'pasito',
     name: 'Pasito',
-    logoUrl: LOGO('pasito.webp'),
+    logoUrl: LOGO('pasito.png'),
     featured: true,
     blurb:
       'Producto en mercado. Van a contar cómo armaron equipo, distribución y ritmo de crecimiento desde Argentina.',
@@ -231,7 +243,7 @@ export const SD_STARTUPS: StartupDayCompany[] = [
   {
     id: 'datricas',
     name: 'Datricas',
-    logoUrl: LOGO('datricas.webp'),
+    logoUrl: LOGO('datricas.png'),
     blurb: 'Datos y producto. Stand abierto para hablar de stack y tracción.',
     website: 'https://www.datricas.com/',
   },
@@ -253,16 +265,15 @@ export const SD_STARTUPS: StartupDayCompany[] = [
   {
     id: 'cobrando',
     name: 'Cobrando',
-    logoUrl: LOGO('cobrando.webp'),
+    logoUrl: LOGO('cobrando.png'),
     website: 'https://cobrando.app/',
-    tileLight: true,
   },
   { id: 'plaude', name: 'Plaude', logoUrl: LOGO('plaude.png'), website: 'https://plaude.com/' },
   { id: 'kaizer', name: 'Kaizer', logoUrl: LOGO('kaizer.png'), website: 'https://kaizer.app/' },
   {
     id: 'piggywallet',
     name: 'Piggy Wallet',
-    logoUrl: LOGO('piggywallet.webp'),
+    logoUrl: LOGO('piggywallet.png'),
     website: 'https://www.piggywallet.app/',
   },
   { id: 'bata', name: 'Bata', logoUrl: LOGO('bata.png'), website: 'https://bataedu.com/' },
@@ -281,7 +292,6 @@ export const SD_STARTUPS: StartupDayCompany[] = [
     name: 'Certenza',
     logoUrl: LOGO('certenza.png'),
     website: 'https://certenza.com/',
-    tileLight: true,
   },
   { id: 'tuni', name: 'Tuni', logoUrl: LOGO('tuni.webp'), website: 'https://www.tuni.com.ar/' },
   {
@@ -295,18 +305,14 @@ export const SD_STARTUPS: StartupDayCompany[] = [
   {
     id: 'wipclub',
     name: 'WIP Club',
-    /** Isotipo azul sobre blanco: va en tile claro para que el fondo no corte la banda ink. */
-    logoUrl: LOGO('wipclub.webp'),
-    tileLight: true,
+    logoUrl: LOGO('wipclub.png'),
     instagram: 'https://www.instagram.com/wipclub.bsas/',
   },
   {
     id: 'startups-argentina',
     name: 'Startups Argentina',
-    /** Wordmark sobre fondo cream propio: va en tile claro para que no se recorte. */
-    logoUrl: LOGO('startups-argentina.webp'),
+    logoUrl: LOGO('startups-argentina.png'),
     website: 'https://www.startupsargentina.com/',
-    tileLight: true,
   },
   { id: 'fluxis', name: 'Fluxis', logoUrl: LOGO('fluxis.png'), website: 'https://fluxis.us/' },
   { id: 'divenuo', name: 'diVenuo', logoUrl: LOGO('divenuo.png'), website: 'https://divenuo.com/' },
@@ -323,7 +329,9 @@ export const SD_STARTUPS: StartupDayCompany[] = [
   { id: 'uin', name: 'UIN', logoUrl: LOGO('uin.png'), website: 'https://uin.tech/' },
   { id: 'extra', name: 'Extra', logoUrl: LOGO('extra.png'), website: 'https://extra.com.ar/' },
   { id: 'firstplug', name: 'First Plug', logoUrl: LOGO('firstplug.png'), website: 'https://firstplug.co/' },
-  { id: 'squads-ventures', name: 'Squads Ventures', logoUrl: LOGO('squads-ventures.svg') },
+  { id: 'squads-ventures', name: 'Squads Ventures', logoUrl: LOGO('squads-ventures.png') },
+  { id: 'lisaai', name: 'Lisa AI', logoUrl: LOGO('lisaai.png') },
+  { id: 'renderahouse', name: 'Renderahouse', logoUrl: LOGO('renderahouse.png') },
   { id: 'talopay', name: 'Talopay', logoUrl: LOGO('talopay.png') },
   { id: 'braja-finanzas', name: 'Brajá Finanzas', logoUrl: LOGO('braja-finanzas.png') },
   { id: 'luca', name: 'Luca Money', logoUrl: LOGO('luca.png') },
@@ -364,7 +372,7 @@ export const SD_EDITION_SPONSORS: StartupDayPartner[] = [
   {
     id: 'cobrando',
     name: 'Cobrando',
-    logoUrl: LOGO('cobrando.webp'),
+    logoUrl: LOGO('cobrando.png'),
     role: 'Sponsor de la primera edición',
     blurb: 'Sponsor de Startup Day y startup confirmada en el piso.',
     website: 'https://cobrando.app/',
