@@ -29,6 +29,8 @@ function Charla({ charla }: { charla: SdCharla }) {
         )}
       </span>
 
+      {charla.speaker ? <p className="sd-agenda__speaker">{charla.speaker}</p> : null}
+
       <p className="sd-agenda__when">
         <time dateTime={`${SD_EVENT.dateISO}T${charla.from}`}>{charla.from}</time>
         {' — '}

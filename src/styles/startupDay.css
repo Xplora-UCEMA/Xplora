@@ -1923,7 +1923,11 @@ a.sd-quien__logo:focus-visible {
    plomo sin `subgrid`. */
 .sd-agenda {
   --sd-agenda-cols: repeat(2, minmax(0, 1fr));
-  --sd-agenda-gap: clamp(10px, 1.6vw, 18px);
+  /* Las columnas van al ras (gap 0) y el aire lo pone el padding de cada celda: así la medianera
+     cae exactamente en el medio de la grilla. Con `column-gap` la línea quedaba pegada al borde
+     izquierdo de la segunda columna en vez de partir la tabla al medio. */
+  --sd-agenda-gap: 0px;
+  --sd-agenda-pad: clamp(10px, 1.6vw, 22px);
   --sd-agenda-rule: 1px solid rgb(var(--sd-purple-rgb) / 0.18);
   display: flex;
   flex-direction: column;
@@ -1961,14 +1965,22 @@ a.sd-quien__logo:focus-visible {
   column-gap: var(--sd-agenda-gap);
 }
 
+/* Rótulo de aula: en el afiche es un título propio —centrado, itálico, del mismo cuerpo que el
+   resto de la lámina— y no el rótulo mono chiquito que era antes. */
 .sd-agenda__col-head {
-  padding-left: var(--sd-agenda-gap);
-  font-family: var(--sd-font-mono);
-  font-size: clamp(0.72rem, 1vw, 0.85rem);
-  font-weight: 700;
-  letter-spacing: 0.16em;
+  padding: 0 var(--sd-agenda-pad) clamp(0.5rem, 1.4vh, 0.9rem);
+  font-family: var(--sd-font-body);
+  font-style: italic;
+  font-size: clamp(1rem, 2.1vh, 1.5rem);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  text-align: center;
   text-transform: uppercase;
-  color: var(--sd-purple-lift);
+  color: var(--sd-cream);
+}
+
+.sd-agenda__col-head + .sd-agenda__col-head {
+  border-left: var(--sd-agenda-rule);
 }
 
 .sd-agenda__grid {
@@ -1981,39 +1993,31 @@ a.sd-quien__logo:focus-visible {
   display: flex;
   flex-direction: column;
   margin: 0;
-  padding: 0 0 0 var(--sd-agenda-gap);
+  padding: 0 var(--sd-agenda-pad);
   list-style: none;
+}
+
+/* La única línea vertical es la medianera entre las dos aulas — el marco exterior del afiche no
+   se trae: en la página la sección ya está enmarcada por su propio ancho. */
+.sd-agenda__col + .sd-agenda__col {
   border-left: var(--sd-agenda-rule);
 }
 
-/* Cards pegadas: sin gap ni margin entre ellas. Los bordes se comparten con `margin-top: -1px`
-   —si no, cada seam quedaría con línea doble— y el redondeo va sólo en las puntas del bloque para
-   que la columna entera se lea como un panel único, no como cards sueltas. */
+/* Filas de tabla, no cards: el afiche no tiene cajas: cada charla se separa de la siguiente sólo
+   por una línea. Sin fondo, sin borde de caja y sin redondeo, el bloque se lee como una grilla
+   impresa y el logo queda como la única mancha de la fila. */
 .sd-agenda__card {
   display: flex;
   flex-direction: column;
+  align-items: center;
   gap: clamp(6px, 0.8vh, 10px);
-  padding: clamp(12px, 1.6vh, 18px) clamp(12px, 1.4vw, 18px);
-  border: 1px solid rgb(var(--sd-purple-rgb) / 0.22);
-  background: linear-gradient(
-    155deg,
-    rgb(var(--sd-purple-rgb) / 0.13),
-    rgb(var(--sd-purple-rgb) / 0.02)
-  );
-}
-
-.sd-agenda__card + .sd-agenda__card {
-  margin-top: -1px;
-}
-
-.sd-agenda__card:first-child {
-  border-top-left-radius: var(--sd-radius);
-  border-top-right-radius: var(--sd-radius);
+  padding: clamp(12px, 1.6vh, 18px) 0;
+  border-top: var(--sd-agenda-rule);
+  text-align: center;
 }
 
 .sd-agenda__card:last-child {
-  border-bottom-left-radius: var(--sd-radius);
-  border-bottom-right-radius: var(--sd-radius);
+  border-bottom: var(--sd-agenda-rule);
 }
 
 .sd-agenda__mark {
@@ -2022,6 +2026,7 @@ a.sd-quien__logo:focus-visible {
   height: clamp(52px, 8vw, 84px);
   display: flex;
   align-items: center;
+  justify-content: center;
 }
 
 /* `brightness(0) invert(1)` lleva cualquier píxel opaco a blanco puro respetando el alfa — el
@@ -2033,8 +2038,11 @@ a.sd-quien__logo:focus-visible {
   width: 100%;
   height: 100%;
   max-width: 190px;
+  /* `margin-inline: auto` con `left/right: 0` centra el logo dentro de la celda: el `max-width`
+     lo deja más angosto que la fila, y sin esto quedaba clavado a la izquierda. */
+  margin-inline: auto;
   object-fit: contain;
-  object-position: left center;
+  object-position: center;
   filter: brightness(0) invert(1);
   opacity: 0.92;
 }
@@ -2058,13 +2066,36 @@ a.sd-quien__logo:focus-visible {
   overflow-wrap: anywhere;
 }
 
+/* Orador — la línea gris entre el logo y el horario. En el afiche es el mismo cuerpo que la hora
+   y sólo cambia el color; acá baja un punto porque un nombre largo ("Maika Basavilbasoh & Juan
+   de Ezcurra") tiene que entrar en media fila sin romper la altura de la grilla. */
+.sd-agenda__speaker {
+  flex: 0 0 auto;
+  margin: 0;
+  font-family: var(--sd-font-body);
+  font-style: italic;
+  font-size: clamp(0.68rem, 0.92vw, 0.82rem);
+  font-weight: 400;
+  line-height: 1.25;
+  letter-spacing: -0.01em;
+  text-transform: uppercase;
+  color: rgb(var(--sd-cream-rgb) / 0.58);
+  text-wrap: balance;
+}
+
+/* El afiche pone la hora en `#5328d8`, que sobre este fondo no llega a contraste de texto chico
+   —el mismo motivo por el que existe `--sd-purple-lift`, ver el bloque de tokens—. Se mantiene
+   el rol (la hora es el dato violeta de la fila) con el violeta que sí se lee. */
 .sd-agenda__when {
   flex: 0 0 auto;
   margin: 0;
-  font-family: var(--sd-font-mono);
-  font-size: clamp(0.62rem, 0.78vw, 0.7rem);
+  font-family: var(--sd-font-body);
+  font-style: italic;
+  font-size: clamp(0.7rem, 0.95vw, 0.85rem);
+  font-weight: 500;
+  letter-spacing: -0.01em;
   font-variant-numeric: tabular-nums;
-  color: rgb(var(--sd-cream-rgb) / 0.55);
+  color: var(--sd-purple-lift);
   white-space: nowrap;
 }
 
@@ -2112,7 +2143,11 @@ a.sd-quien__logo:focus-visible {
   }
 
   .sd-agenda__col {
-    padding-left: 0;
+    padding-inline: 0;
+  }
+
+  /* En una sola columna no hay medianera que dibujar. */
+  .sd-agenda__col + .sd-agenda__col {
     border-left: 0;
   }
 
@@ -2120,12 +2155,14 @@ a.sd-quien__logo:focus-visible {
     content: attr(aria-label);
     display: block;
     margin-bottom: clamp(8px, 2vw, 12px);
-    font-family: var(--sd-font-mono);
-    font-size: 0.75rem;
-    font-weight: 700;
-    letter-spacing: 0.16em;
+    font-family: var(--sd-font-body);
+    font-style: italic;
+    font-size: 1.05rem;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    text-align: center;
     text-transform: uppercase;
-    color: var(--sd-purple-lift);
+    color: var(--sd-cream);
   }
 }
 
@@ -3240,6 +3277,42 @@ a.sd-partner__name:hover {
   color: rgb(var(--sd-cream-rgb) / 0.5);
 }
 
+/* Salida del zoom por sala. Va arriba a la derecha del canvas y no a la izquierda: el
+   encuadre general tiene el modelo corrido hacia ese lado y ahí lo taparía. El radio es
+   `--sd-radius` como todo lo demás — en esta landing no hay pills. */
+.sd-piso__volver {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 2;
+  padding: 8px 14px;
+  border: 1px solid rgb(var(--sd-cream-rgb) / 0.22);
+  border-radius: var(--sd-radius);
+  background: rgb(var(--sd-void-rgb) / 0.82);
+  font-family: var(--sd-font-body);
+  font-size: 0.76rem;
+  letter-spacing: 0.04em;
+  color: rgb(var(--sd-cream-rgb) / 0.82);
+  cursor: pointer;
+  transition: background 0.18s ease, border-color 0.18s ease, color 0.18s ease;
+}
+
+.sd-piso__volver:hover,
+.sd-piso__volver:focus-visible {
+  border-color: rgb(var(--sd-cream-rgb) / 0.4);
+  background: rgb(var(--sd-void-rgb) / 0.95);
+  color: var(--sd-cream);
+}
+
+@media (max-width: 640px) {
+  .sd-piso__volver {
+    top: 8px;
+    right: 8px;
+    padding: 7px 11px;
+    font-size: 0.72rem;
+  }
+}
+
 /* Referencia de salas: reemplaza al código de colores dentro del render */
 .sd-piso__ref {
   display: grid;
@@ -3276,6 +3349,13 @@ a.sd-partner__name:hover {
 .sd-piso__ref-item.is-activa {
   background: rgba(255, 255, 255, 0.06);
   border-color: rgba(255, 255, 255, 0.16);
+}
+
+/* La sala que la cámara está mirando de cerca: se sostiene sola, sin puntero encima, así que
+   necesita leerse más fuerte que el hover. */
+.sd-piso__ref-item.is-enfocada {
+  border-color: rgb(96 62 249 / 0.55);
+  background: rgb(96 62 249 / 0.14);
 }
 
 .sd-piso__ref-item.is-sin-uso {
@@ -4312,6 +4392,17 @@ a.sd-partner__name:hover {
     justify-content: center;
     gap: clamp(2px, 0.6vh, 6px);
     padding-block: clamp(4px, 0.8vh, 10px);
+  }
+
+  /* El orador suma una línea fija por fila (7 por columna), así que acá se aprieta el interlineado:
+     lo que gana el texto se lo saca al logo, que es el único elemento elástico de la card. */
+  .sd-agenda__speaker {
+    font-size: clamp(0.66rem, 1.35vh, 0.82rem);
+    line-height: 1.15;
+  }
+
+  .sd-agenda__when {
+    font-size: clamp(0.68rem, 1.4vh, 0.85rem);
   }
 
   .sd-agenda__mark {

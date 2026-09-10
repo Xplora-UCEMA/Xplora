@@ -1,12 +1,14 @@
 /**
  * 2º piso de Av. Alem 882 — geometría para el render 3D.
  *
- * Todo sale de `docs/piso/plano-2do-piso.png` (980×607 px), el croquis de Excalidraw que
- * el equipo confirmó como fiel a la distribución real.
+ * Los muros salen de `docs/piso/plano-2do-piso.png` (980×607 px), el croquis de Excalidraw
+ * que el equipo confirmó como fiel a la distribución real. Las mesas y el uso de cada sala
+ * salen del plano de montaje posterior, `docs/piso/plano-2do-piso-mesas.png`, que cambió
+ * dos cosas: el aula P pasó de depósito a sala de stands y el aula Q hizo lo inverso.
  *
  * Solo se modelan los espacios a los que se entra el día del evento. Sala de estar,
- * Recepción y los dos depósitos se sacaron, y con ellos el edificio se recorta: el
- * perímetro deja de ser un rectángulo y pasa a tener cuatro escotaduras donde estaban.
+ * Recepción, el depósito chico y el aula Q —que pasó a ser depósito— se sacaron, y con
+ * ellos el edificio se recorta: el perímetro deja de ser un rectángulo.
  *
  * Se guarda todo en píxeles del croquis y se convierte a metros con `M_POR_PX`. Si aparece
  * una medida real, se corrige esa constante y el modelo entero se reescala solo.
@@ -26,9 +28,6 @@ export const ALTURA_M = 2.7;
 
 /** Espesor de los muros. */
 export const MURO_M = 0.14;
-
-/** Stands por sala en L, N, O y Q. */
-export const STANDS_POR_SALA = 7;
 
 export type SalaTipo = 'stands' | 'workshops' | 'nucleo';
 
@@ -57,9 +56,14 @@ export type Sala = {
    * lados cortos, que es donde antes estaban por error las puertas de ascensor.
    */
   vidriado?: readonly Lado[];
+  /**
+   * Caras cuyo muro real no sigue al rectángulo y se dibujan a mano en `MUROS_SUELTOS_PX`.
+   * Sólo las usan O y P, por el vestíbulo que comparten: ver el comentario de esa tabla.
+   */
+  sinMuro?: readonly Lado[];
 };
 
-/** Las 9 salas que se usan. El uso de cada una lo dice el propio croquis. */
+/** Los 9 espacios que se usan. El uso de cada uno lo dice el plano de montaje. */
 export const SALAS: readonly Sala[] = [
   {
     id: 'l',
@@ -92,6 +96,8 @@ export const SALAS: readonly Sala[] = [
     acceso: 'abierta',
     px: { x: 785, y: 8, w: 160, h: 181 },
     nota: '7 stands de startups.',
+    /* O es una L, no un rectángulo: el vestíbulo le come la esquina suroeste. */
+    sinMuro: ['sur', 'oeste'],
   },
   {
     id: 'k',
@@ -117,13 +123,20 @@ export const SALAS: readonly Sala[] = [
     px: { x: 318, y: 324, w: 245, h: 140 },
     vidriado: ['este', 'oeste'],
   },
+  /**
+   * El aula P deja de ser depósito y pasa a ser sala de stands; el aula Q hace el camino
+   * inverso. Es el cambio que trajo `plano-2do-piso-mesas.png`: el volumen del edificio no
+   * se mueve, cambia el uso de los dos espacios de la derecha.
+   */
   {
-    id: 'q',
-    label: 'Q',
+    id: 'p',
+    label: 'P',
     tipo: 'stands',
     acceso: 'abierta',
-    px: { x: 739, y: 370, w: 206, h: 229 },
+    px: { x: 810, y: 190, w: 135, h: 180 },
     nota: '7 stands de startups.',
+    /* Su muro norte arranca recién en 831; lo que falta antes es la puerta. */
+    sinMuro: ['norte'],
   },
   {
     id: 'banos-sur',
@@ -155,20 +168,17 @@ export function rectDeSala(sala: Sala): RectM {
 /**
  * Contorno del edificio recortado, en píxeles del croquis y en sentido horario.
  *
- * No puede ser un rectángulo: el bounding box de lo que queda es el mismo que antes de
- * borrar las cuatro salas —K sostiene el borde izquierdo, la fila L–M–N–O el superior, y
- * O y Q el derecho y el inferior—, así que el recorte son cuatro escotaduras sobre los
- * bordes, donde estaban Sala de estar, P · Depósito, Depósito chico y Recepción.
+ * Lo que queda tras borrar los espacios que no se usan: K sostiene el borde izquierdo, la
+ * fila L–M–N–O el superior, O y P el derecho, y los baños el inferior. Son dos escotaduras
+ * sobre los bordes —Sala de estar y Depósito chico—, una más donde estaba Recepción, y el
+ * escalón de abajo a la derecha: el borde este baja derecho hasta el muro sur de P y ahí el
+ * edificio se corta, porque el aula Q quedó como depósito y no se modela.
  */
 const CONTORNO_PX: readonly (readonly [number, number])[] = [
   [258, 8],
   [945, 8],
-  [945, 190],
-  [810, 190],
-  [810, 370],
   [945, 370],
-  [945, 599],
-  [743, 599],
+  [743, 370],
   [743, 412],
   [659, 412],
   [659, 599],
@@ -189,9 +199,8 @@ const PISO_PX: readonly { x: number; y: number; w: number; h: number }[] = [
   { x: 258, y: 8, w: 133, h: 457 },
   { x: 391, y: 8, w: 268, h: 591 },
   { x: 659, y: 8, w: 84, h: 404 },
-  { x: 743, y: 8, w: 67, h: 591 },
-  { x: 810, y: 8, w: 135, h: 182 },
-  { x: 810, y: 370, w: 135, h: 229 },
+  { x: 743, y: 8, w: 67, h: 362 },
+  { x: 810, y: 8, w: 135, h: 362 },
 ];
 
 /** Bounding box del contorno: encuadre de cámara y mapeo UV de la textura del piso. */
@@ -233,17 +242,14 @@ type PuertaDef = { sala: string; lado: Lado; en: number };
 const PUERTAS: readonly PuertaDef[] = [
   { sala: 'l', lado: 'sur', en: 268 },
   { sala: 'm', lado: 'sur', en: 418 },
-  { sala: 'n', lado: 'sur', en: 601 },
   /**
-   * O abre en 798 y no más a la derecha: su muro sur va de 785 a 945, pero desde 810 en
-   * adelante linda con la escotadura donde estaba P · Depósito, así que una abertura ahí
-   * daría al exterior del edificio recortado. El tramo 785..810 es el único que mira al
-   * pasillo.
+   * N no da al pasillo: su muro sur va entero en el plano de montaje. Se entra por el
+   * tabique con O, que se corta a la altura del vestíbulo. O no lleva puerta de este lado:
+   * renunció a su cara oeste, así que el único muro ahí es el de N.
    */
-  { sala: 'o', lado: 'sur', en: 798 },
+  { sala: 'n', lado: 'este', en: 160 },
   { sala: 'k', lado: 'este', en: 193 },
   { sala: 'k', lado: 'este', en: 448 },
-  { sala: 'q', lado: 'norte', en: 799 },
   { sala: 'banos-norte', lado: 'norte', en: 401 },
   { sala: 'banos-norte', lado: 'norte', en: 476 },
   { sala: 'banos-sur', lado: 'norte', en: 644 },
@@ -298,11 +304,12 @@ export function murosDeSala(sala: Sala): Tramo[] {
   const x1 = cx + w / 2;
   const z0 = cz - d / 2;
   const z1 = cz + d / 2;
+  const lleva = (lado: Lado) => !sala.sinMuro?.includes(lado);
   return [
-    ...tramos(z0, x0, x1, true, huecosDe(sala.id, 'norte'), ALTURA_M),
-    ...tramos(z1, x0, x1, true, huecosDe(sala.id, 'sur'), ALTURA_M),
-    ...tramos(x0, z0, z1, false, huecosDe(sala.id, 'oeste'), ALTURA_M),
-    ...tramos(x1, z0, z1, false, huecosDe(sala.id, 'este'), ALTURA_M),
+    ...(lleva('norte') ? tramos(z0, x0, x1, true, huecosDe(sala.id, 'norte'), ALTURA_M) : []),
+    ...(lleva('sur') ? tramos(z1, x0, x1, true, huecosDe(sala.id, 'sur'), ALTURA_M) : []),
+    ...(lleva('oeste') ? tramos(x0, z0, z1, false, huecosDe(sala.id, 'oeste'), ALTURA_M) : []),
+    ...(lleva('este') ? tramos(x1, z0, z1, false, huecosDe(sala.id, 'este'), ALTURA_M) : []),
   ];
 }
 
@@ -328,9 +335,41 @@ export function murosPerimetrales(): Tramo[] {
   return out;
 }
 
-/** Todos los tramos del modelo: perímetro más las salas abiertas. */
+/**
+ * Muros que no salen del rectángulo de ninguna sala.
+ *
+ * Entre N, O y P el plano tiene un vestíbulo chico: el pasillo se ensancha en un cuadrado de
+ * unos 790..832 × 150..192 y de ahí salen las tres puertas. Eso no se arma con rectángulos
+ * —la sala O es una L y el vestíbulo le come la esquina suroeste—, así que O y P renuncian a
+ * la cara que no les corresponde (`sinMuro`) y los tres paños de alrededor van a mano acá.
+ *
+ * Las puertas no se marcan: son la ausencia de muro entre un paño y el siguiente. El hueco
+ * 815..832 después del primero es la entrada a O, y el 810..831 antes del tercero la de P.
+ *
+ * Cada entrada es `[x0, y0, x1, y1]` en píxeles del croquis, con un eje fijo.
+ */
+const MUROS_SUELTOS_PX: readonly (readonly [number, number, number, number])[] = [
+  [784, 150, 815, 150],
+  [832, 150, 832, 190],
+  [831, 190, 945, 190],
+];
+
+export function murosSueltos(): Tramo[] {
+  return MUROS_SUELTOS_PX.map(([x0, y0, x1, y1]) => {
+    if (y0 === y1) {
+      const a = mx(x0);
+      const b = mx(x1);
+      return { cx: (a + b) / 2, cz: mz(y0), w: b - a + MURO_M, d: MURO_M, alto: ALTURA_M, y: 0 };
+    }
+    const a = mz(y0);
+    const b = mz(y1);
+    return { cx: mx(x0), cz: (a + b) / 2, w: MURO_M, d: b - a + MURO_M, alto: ALTURA_M, y: 0 };
+  });
+}
+
+/** Todos los tramos del modelo: perímetro, salas abiertas y los paños del vestíbulo. */
 export function todosLosMuros(): Tramo[] {
-  return [...murosPerimetrales(), ...SALAS_ABIERTAS.flatMap(murosDeSala)];
+  return [...murosPerimetrales(), ...SALAS_ABIERTAS.flatMap(murosDeSala), ...murosSueltos()];
 }
 
 /**
@@ -429,64 +468,111 @@ export const MESA_M = { largo: 1.4, ancho: 0.7, alto: 0.74 } as const;
 export type Puesto = { x: number; z: number; rot: number };
 
 /**
- * Reparte exactamente `n` stands contra las paredes de la sala, parejo sobre el perímetro
- * y dejando el centro libre para circular — como están las mesas en
- * `docs/piso/foto-sala-pwc.png`.
+ * Las mesas, una por fila.
+ *
+ * Antes se generaban: siete por sala repartidas parejo sobre el perímetro. Ahora salen del
+ * plano de montaje (`docs/piso/plano-2do-piso-mesas.png`), que las trae dibujadas una por
+ * una con su identificador. Se guardan igual que el resto del modelo, en píxeles del
+ * croquis, y se sacaron midiendo el rectángulo de cada mesa sobre el plano.
+ *
+ * `rot` es sobre qué eje corre el tablón: `'x'` a lo ancho del croquis, `'z'` a lo alto.
+ * El tamaño no se guarda por mesa —todas son la misma `MESA_M`—; el del plano coincide
+ * (~36 × 18 px del croquis = 1,33 × 0,67 m).
+ *
+ * Los identificadores del hall son propios y no los del plano: ahí el plano repite `H08`
+ * en seis mesas distintas, así que no sirve como clave.
  */
-export function puestosDeSala(sala: Sala, n: number = STANDS_POR_SALA): Puesto[] {
-  const { cx, cz, w, d } = rectDeSala(sala);
-  const off = MESA_M.ancho / 2 + 0.5;
-  const iw = Math.max(0.1, w - off * 2);
-  const id = Math.max(0.1, d - off * 2);
-  const perimetro = 2 * (iw + id);
+/** Las mesas sueltas del hall no pertenecen a ninguna sala, pero sí a un grupo. */
+export const HALL = 'hall';
 
-  const out: Puesto[] = [];
-  for (let i = 0; i < n; i++) {
-    const t = ((i + 0.5) / n) * perimetro;
-    if (t < iw) {
-      out.push({ x: cx - iw / 2 + t, z: cz - d / 2 + off, rot: 0 });
-    } else if (t < iw + id) {
-      out.push({ x: cx + w / 2 - off, z: cz - id / 2 + (t - iw), rot: Math.PI / 2 });
-    } else if (t < iw * 2 + id) {
-      out.push({ x: cx + iw / 2 - (t - iw - id), z: cz + d / 2 - off, rot: 0 });
-    } else {
-      out.push({ x: cx - w / 2 + off, z: cz + id / 2 - (t - iw * 2 - id), rot: Math.PI / 2 });
-    }
-  }
-  return out;
-}
+type MesaDef = { id: string; sala: string; x: number; y: number; rot: 'x' | 'z' };
 
-/** Stands sueltos del hall: los rectángulos violetas que el croquis dibuja fuera de las salas. */
-const STANDS_LIBRES_PX: readonly { x: number; y: number; w: number; h: number }[] = [
-  { x: 438, y: 178, w: 45, h: 15 },
-  { x: 498, y: 178, w: 47, h: 15 },
-  { x: 640, y: 178, w: 46, h: 15 },
-  { x: 695, y: 177, w: 47, h: 16 },
-  { x: 793, y: 245, w: 15, h: 19 },
-  { x: 631, y: 258, w: 47, h: 16 },
-  { x: 793, y: 269, w: 15, h: 47 },
-  { x: 721, y: 367, w: 15, h: 31 },
-  { x: 657, y: 392, w: 37, h: 12 },
-  { x: 578, y: 445, w: 45, h: 16 },
+const MESAS_PX: readonly MesaDef[] = [
+  { id: 'l1', sala: 'l', x: 314, y: 32, rot: 'x' },
+  { id: 'l2', sala: 'l', x: 376, y: 32, rot: 'x' },
+  { id: 'l3', sala: 'l', x: 396, y: 64, rot: 'z' },
+  { id: 'l4', sala: 'l', x: 387, y: 144, rot: 'x' },
+  { id: 'l5', sala: 'l', x: 325, y: 144, rot: 'x' },
+  { id: 'l6', sala: 'l', x: 396, y: 108, rot: 'z' },
+  { id: 'l7', sala: 'l', x: 283, y: 63, rot: 'z' },
+
+  { id: 'n1', sala: 'n', x: 656, y: 32, rot: 'x' },
+  { id: 'n2', sala: 'n', x: 731, y: 32, rot: 'x' },
+  { id: 'n3', sala: 'n', x: 766, y: 71, rot: 'z' },
+  { id: 'n4', sala: 'n', x: 619, y: 111, rot: 'z' },
+  { id: 'n5', sala: 'n', x: 661, y: 150, rot: 'x' },
+  { id: 'n6', sala: 'n', x: 766, y: 115, rot: 'z' },
+  { id: 'n7', sala: 'n', x: 620, y: 68, rot: 'z' },
+
+  { id: 'o1', sala: 'o', x: 849, y: 32, rot: 'x' },
+  { id: 'o2', sala: 'o', x: 921, y: 32, rot: 'x' },
+  { id: 'o3', sala: 'o', x: 932, y: 68, rot: 'z' },
+  { id: 'o4', sala: 'o', x: 901, y: 168, rot: 'x' },
+  { id: 'o5', sala: 'o', x: 856, y: 167, rot: 'x' },
+  { id: 'o6', sala: 'o', x: 932, y: 121, rot: 'z' },
+  { id: 'o7', sala: 'o', x: 813, y: 68, rot: 'z' },
+
+  { id: 'p1', sala: 'p', x: 868, y: 218, rot: 'x' },
+  { id: 'p2', sala: 'p', x: 916, y: 219, rot: 'x' },
+  { id: 'p3', sala: 'p', x: 934, y: 281, rot: 'z' },
+  { id: 'p4', sala: 'p', x: 934, y: 323, rot: 'z' },
+  { id: 'p5', sala: 'p', x: 896, y: 355, rot: 'x' },
+  { id: 'p6', sala: 'p', x: 847, y: 355, rot: 'x' },
+  { id: 'p7', sala: 'p', x: 832, y: 296, rot: 'z' },
+
+  { id: 'h01', sala: HALL, x: 352, y: 186, rot: 'x' },
+  { id: 'h02', sala: HALL, x: 462, y: 187, rot: 'x' },
+  { id: 'h03', sala: HALL, x: 524, y: 187, rot: 'x' },
+  { id: 'h04', sala: HALL, x: 667, y: 187, rot: 'x' },
+  { id: 'h05', sala: HALL, x: 723, y: 187, rot: 'x' },
+  /* Las tres del pasillo van contra el muro oeste de P. El plano las dibuja pisándolo unos
+     centímetros; acá se corren a 799 para que apoyen contra el muro y no lo atraviesen. */
+  { id: 'h06', sala: HALL, x: 799, y: 247, rot: 'z' },
+  { id: 'h07', sala: HALL, x: 239, y: 255, rot: 'z' },
+  { id: 'h08', sala: HALL, x: 658, y: 266, rot: 'x' },
+  { id: 'h09', sala: HALL, x: 581, y: 281, rot: 'z' },
+  { id: 'h10', sala: HALL, x: 799, y: 283, rot: 'z' },
+  { id: 'h11', sala: HALL, x: 708, y: 308, rot: 'z' },
+  { id: 'h12', sala: HALL, x: 799, y: 319, rot: 'z' },
+  { id: 'h13', sala: HALL, x: 238, y: 366, rot: 'z' },
+  { id: 'h14', sala: HALL, x: 733, y: 383, rot: 'z' },
+  { id: 'h15', sala: HALL, x: 679, y: 398, rot: 'x' },
+  { id: 'h16', sala: HALL, x: 604, y: 454, rot: 'x' },
 ];
 
-export function puestosLibres(): Puesto[] {
-  return STANDS_LIBRES_PX.map((m) => ({
-    x: mx(m.x + m.w / 2),
-    z: mz(m.y + m.h / 2),
-    rot: m.w >= m.h ? 0 : Math.PI / 2,
+/**
+ * Un stand: la mesa ya en metros, con el id con el que se le cuelga una marca. El mapeo
+ * stand → startup vive aparte, en `startupDayStands.ts`: acá sólo está la geometría.
+ */
+export type Stand = Puesto & { id: string; sala: string };
+
+/** Todos los stands del piso, en el orden en que están escritos arriba. */
+export function standsDelPiso(): Stand[] {
+  return MESAS_PX.map((m) => ({
+    id: m.id,
+    sala: m.sala,
+    x: mx(m.x),
+    z: mz(m.y),
+    rot: m.rot === 'x' ? 0 : Math.PI / 2,
   }));
 }
 
-/** Todos los stands del piso: los de las salas más los del hall. */
+/** Los puestos para el mobiliario: los stands, sin la parte de identidad. */
 export function todosLosPuestos(): Puesto[] {
-  const enSalas = SALAS.filter((s) => s.tipo === 'stands').flatMap((s) => puestosDeSala(s));
-  return [...enSalas, ...puestosLibres()];
+  return standsDelPiso();
+}
+
+/** Cuántas mesas tiene una sala. */
+export function mesasDeSala(salaId: string): number {
+  return MESAS_PX.filter((m) => m.sala === salaId).length;
 }
 
 /** Qué se hace en la sala — reemplaza a mostrar medidas. */
 export function detalleDe(sala: Sala): string {
-  if (sala.tipo === 'stands') return STANDS_POR_SALA + ' stands';
+  if (sala.tipo === 'stands') {
+    const n = mesasDeSala(sala.id);
+    return n + (n === 1 ? ' stand' : ' stands');
+  }
   if (sala.tipo === 'workshops') return 'Workshops';
   return 'Servicios';
 }

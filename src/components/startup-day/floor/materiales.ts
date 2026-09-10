@@ -4,7 +4,7 @@
  * paredes de yeso blanco roto y columnas del mismo yeso.
  */
 import * as THREE from 'three';
-import { HUELLA_M, SALAS, rectDeSala } from '../../../data/startupDayFloor';
+import { HUELLA_M, SALAS, rectDeSala, type Lado } from '../../../data/startupDayFloor';
 
 /** Píxeles de textura por metro del piso. */
 const PX_POR_M = 26;
@@ -78,13 +78,16 @@ export function crearTexturaPiso(): THREE.CanvasTexture | null {
     const { cx, cz, w, d } = rectDeSala(sala);
     const a = aPx(cx - w / 2, cz - d / 2);
     const b = aPx(cx + w / 2, cz + d / 2);
-    const lados: [number, number, number, number, [number, number]][] = [
-      [a.px, a.py, b.px - a.px, AO, [0, 1]],
-      [a.px, b.py - AO, b.px - a.px, AO, [0, -1]],
-      [a.px, a.py, AO, b.py - a.py, [1, 0]],
-      [b.px - AO, a.py, AO, b.py - a.py, [-1, 0]],
+    /* Una cara sin muro no proyecta sombra de contacto: O y P renuncian a las que da el
+       vestíbulo, y sin este filtro quedaba una banda oscura contra el aire. */
+    const lados: [number, number, number, number, [number, number], Lado][] = [
+      [a.px, a.py, b.px - a.px, AO, [0, 1], 'norte'],
+      [a.px, b.py - AO, b.px - a.px, AO, [0, -1], 'sur'],
+      [a.px, a.py, AO, b.py - a.py, [1, 0], 'oeste'],
+      [b.px - AO, a.py, AO, b.py - a.py, [-1, 0], 'este'],
     ];
-    for (const [lx, ly, lw, lh, [dx, dy]] of lados) {
+    for (const [lx, ly, lw, lh, [dx, dy], lado] of lados) {
+      if (sala.sinMuro?.includes(lado)) continue;
       const g = x.createLinearGradient(
         lx + (dx < 0 ? lw : 0),
         ly + (dy < 0 ? lh : 0),
