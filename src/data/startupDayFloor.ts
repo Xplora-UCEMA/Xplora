@@ -482,8 +482,20 @@ export type Puesto = { x: number; z: number; rot: number };
  * Los identificadores del hall son propios y no los del plano: ahí el plano repite `H08`
  * en seis mesas distintas, así que no sirve como clave.
  */
-/** Las mesas sueltas del hall no pertenecen a ninguna sala, pero sí a un grupo. */
-export const HALL = 'hall';
+/**
+ * Los tramos de pasillo con mesas.
+ *
+ * El hall no es una sala —no tiene rectángulo ni muros— y sus dieciséis mesas están repartidas
+ * por todo el piso, así que como grupo único no sirve para nada: acercarse a él es acercarse al
+ * piso entero. Pero no están desparramadas al azar, se juntan solas en cuatro tramos, y cada uno
+ * de esos sí se puede mirar de cerca. El agrupamiento sale de mirar dónde caen en el plano.
+ */
+export const ZONAS_HALL: readonly { id: string; label: string }[] = [
+  { id: 'hall-norte', label: 'Pasillo norte' },
+  { id: 'hall-oeste', label: 'Pasillo oeste' },
+  { id: 'hall-centro', label: 'Hall central' },
+  { id: 'hall-este', label: 'Pasillo este' },
+];
 
 type MesaDef = { id: string; sala: string; x: number; y: number; rot: 'x' | 'z' };
 
@@ -520,24 +532,24 @@ const MESAS_PX: readonly MesaDef[] = [
   { id: 'p6', sala: 'p', x: 847, y: 355, rot: 'x' },
   { id: 'p7', sala: 'p', x: 832, y: 296, rot: 'z' },
 
-  { id: 'h01', sala: HALL, x: 352, y: 186, rot: 'x' },
-  { id: 'h02', sala: HALL, x: 462, y: 187, rot: 'x' },
-  { id: 'h03', sala: HALL, x: 524, y: 187, rot: 'x' },
-  { id: 'h04', sala: HALL, x: 667, y: 187, rot: 'x' },
-  { id: 'h05', sala: HALL, x: 723, y: 187, rot: 'x' },
+  { id: 'h01', sala: 'hall-norte', x: 352, y: 186, rot: 'x' },
+  { id: 'h02', sala: 'hall-norte', x: 462, y: 187, rot: 'x' },
+  { id: 'h03', sala: 'hall-norte', x: 524, y: 187, rot: 'x' },
+  { id: 'h04', sala: 'hall-norte', x: 667, y: 187, rot: 'x' },
+  { id: 'h05', sala: 'hall-norte', x: 723, y: 187, rot: 'x' },
   /* Las tres del pasillo van contra el muro oeste de P. El plano las dibuja pisándolo unos
      centímetros; acá se corren a 799 para que apoyen contra el muro y no lo atraviesen. */
-  { id: 'h06', sala: HALL, x: 799, y: 247, rot: 'z' },
-  { id: 'h07', sala: HALL, x: 239, y: 255, rot: 'z' },
-  { id: 'h08', sala: HALL, x: 658, y: 266, rot: 'x' },
-  { id: 'h09', sala: HALL, x: 581, y: 281, rot: 'z' },
-  { id: 'h10', sala: HALL, x: 799, y: 283, rot: 'z' },
-  { id: 'h11', sala: HALL, x: 708, y: 308, rot: 'z' },
-  { id: 'h12', sala: HALL, x: 799, y: 319, rot: 'z' },
-  { id: 'h13', sala: HALL, x: 238, y: 366, rot: 'z' },
-  { id: 'h14', sala: HALL, x: 733, y: 383, rot: 'z' },
-  { id: 'h15', sala: HALL, x: 679, y: 398, rot: 'x' },
-  { id: 'h16', sala: HALL, x: 604, y: 454, rot: 'x' },
+  { id: 'h06', sala: 'hall-este', x: 799, y: 247, rot: 'z' },
+  { id: 'h07', sala: 'hall-oeste', x: 239, y: 255, rot: 'z' },
+  { id: 'h08', sala: 'hall-centro', x: 658, y: 266, rot: 'x' },
+  { id: 'h09', sala: 'hall-centro', x: 581, y: 281, rot: 'z' },
+  { id: 'h10', sala: 'hall-este', x: 799, y: 283, rot: 'z' },
+  { id: 'h11', sala: 'hall-centro', x: 708, y: 308, rot: 'z' },
+  { id: 'h12', sala: 'hall-este', x: 799, y: 319, rot: 'z' },
+  { id: 'h13', sala: 'hall-oeste', x: 238, y: 366, rot: 'z' },
+  { id: 'h14', sala: 'hall-centro', x: 733, y: 383, rot: 'z' },
+  { id: 'h15', sala: 'hall-centro', x: 679, y: 398, rot: 'x' },
+  { id: 'h16', sala: 'hall-centro', x: 604, y: 454, rot: 'x' },
 ];
 
 /**
@@ -562,9 +574,45 @@ export function todosLosPuestos(): Puesto[] {
   return standsDelPiso();
 }
 
-/** Cuántas mesas tiene una sala. */
+/** Cuántas mesas tiene una sala o un tramo de pasillo. */
 export function mesasDeSala(salaId: string): number {
   return MESAS_PX.filter((m) => m.sala === salaId).length;
+}
+
+/**
+ * El rectángulo que representa a un grupo: una sala o un tramo de pasillo.
+ *
+ * Para una sala es su propio rectángulo, y `aire` no lo toca. Para un tramo no hay muros de
+ * donde sacarlo, así que se arma con la caja de sus mesas, ensanchada media mesa —para que
+ * ninguna quede cortada al ras— más el `aire` que pida quien llama.
+ *
+ * Ese parámetro existe porque los dos usos quieren cosas distintas. La cámara necesita aire
+ * alrededor o el tramo entra pegado al borde del cuadro. La caja del puntero y el realce del
+ * piso lo necesitan **mínimo**: con un metro de aire el tramo central se superpone con los
+ * baños y los ascensores y les roba el hover, porque su caja les pisa encima.
+ *
+ * Los tramos de una sola fila —el pasillo norte son cinco mesas en línea— quedarían con un
+ * lado de casi cero, así que hay un mínimo por lado.
+ */
+export function rectEnfocable(id: string, aire = 1): RectM | null {
+  const sala = SALAS.find((s) => s.id === id);
+  if (sala) return rectDeSala(sala);
+
+  const mesas = MESAS_PX.filter((m) => m.sala === id);
+  if (mesas.length === 0) return null;
+
+  const xs = mesas.map((m) => mx(m.x));
+  const zs = mesas.map((m) => mz(m.y));
+  const margen = MESA_M.largo / 2 + aire;
+  const MINIMO = 3.5;
+  const w = Math.max(MINIMO, Math.max(...xs) - Math.min(...xs) + margen * 2);
+  const d = Math.max(MINIMO, Math.max(...zs) - Math.min(...zs) + margen * 2);
+  return {
+    cx: (Math.min(...xs) + Math.max(...xs)) / 2,
+    cz: (Math.min(...zs) + Math.max(...zs)) / 2,
+    w,
+    d,
+  };
 }
 
 /** Qué se hace en la sala — reemplaza a mostrar medidas. */

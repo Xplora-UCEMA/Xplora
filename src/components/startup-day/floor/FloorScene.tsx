@@ -21,16 +21,45 @@ import {
   HUELLA_M,
   SALAS,
   SALAS_ABIERTAS,
+  MESA_M,
+  ZONAS_HALL,
   bloqueDeSala,
   losasDePiso,
   rectDeSala,
-  type Sala,
+  rectEnfocable,
+  standsDelPiso,
+  type RectM,
 } from '../../../data/startupDayFloor';
 import { crearEntorno, crearTexturaPiso } from './materiales';
 import { Mobiliario } from './Mobiliario';
 import { Volumenes } from './Muros';
 import { Etiquetas } from './Etiquetas';
 import { Logos } from './Logos';
+
+/**
+ * Los tramos de pasillo no se señalan con un rectángulo sino mesa por mesa.
+ *
+ * Un tramo no es un espacio con forma: es un conjunto de mesas contra una pared. Su caja
+ * envolvente es un rectángulo y el pasillo no lo es —el central dobla en L—, así que el paño
+ * violeta terminaba asomando sobre el recorte del edificio, flotando en el vacío. Un paño por
+ * mesa cae siempre donde hay piso, y de paso dice mejor qué se está señalando.
+ *
+ * Las cajas del puntero siguen el mismo criterio: así el tramo se agarra apuntando a sus mesas
+ * y no a los metros de aire que las rodean.
+ */
+const PAD_M = 0.35;
+
+function padsDeTramo(id: string): { x: number; z: number; w: number; d: number }[] {
+  return standsDelPiso()
+    .filter((s) => s.sala === id)
+    .map((s) => {
+      const largo = MESA_M.largo + PAD_M * 2;
+      const ancho = MESA_M.ancho + PAD_M * 2;
+      /* `rot` es 0 o 90°: el tablón corre sobre X o sobre Z, nunca en diagonal. */
+      const derecha = Math.abs(Math.cos(s.rot)) > 0.5;
+      return { x: s.x, z: s.z, w: derecha ? largo : ancho, d: derecha ? ancho : largo };
+    });
+}
 
 /**
  * Piso con la textura de vinílico y la oclusión ambiental ya horneada.
@@ -86,32 +115,47 @@ function Piso() {
 }
 
 /**
- * Realce de la sala señalada: el piso teñido de violeta de marca, suave.
+ * Realce del grupo señalado: el piso teñido de violeta de marca, suave.
  *
  * Va con `toneMapped={false}` para que el violeta no se apague contra el mapeo ACES de la
  * escena, y con opacidad baja para que se siga viendo la veta de la madera debajo. Cuando
  * la sala es un volumen macizo (los baños) el paño se apoya arriba del bloque.
+ *
+ * Un tramo de pasillo no se pinta entero sino mesa por mesa: ver `padsDeTramo`.
  */
-function Realce({ sala }: { sala: Sala }) {
-  const { cx, cz, w, d } = rectDeSala(sala);
-  const y = sala.acceso === 'bloqueada' ? bloqueDeSala(sala).alto + 0.015 : 0.025;
+function Realce({ id }: { id: string }) {
+  const sala = SALAS.find((s) => s.id === id) ?? null;
+  const panos = sala
+    ? [{ ...rectDeSala(sala), x: rectDeSala(sala).cx, z: rectDeSala(sala).cz }]
+    : padsDeTramo(id);
+  if (panos.length === 0) return null;
+  /* Sobre un volumen macizo el paño se apoya arriba; en el piso —salas abiertas y tramos de
+     pasillo— va apenas despegado de la madera. */
+  const y = sala?.acceso === 'bloqueada' ? bloqueDeSala(sala).alto + 0.015 : 0.025;
   return (
-    <mesh position={[cx, y, cz]} rotation={[-Math.PI / 2, 0, 0]} renderOrder={3}>
-      <planeGeometry args={[w, d]} />
-      <meshBasicMaterial
-        color="#603ef9"
-        transparent
-        opacity={0.19}
-        depthWrite={false}
-        toneMapped={false}
-      />
-    </mesh>
+    <group>
+      {panos.map((p, i) => (
+        <mesh key={i} position={[p.x, y, p.z]} rotation={[-Math.PI / 2, 0, 0]} renderOrder={3}>
+          <planeGeometry args={[p.w, p.d]} />
+          <meshBasicMaterial
+            color="#603ef9"
+            transparent
+            opacity={0.19}
+            depthWrite={false}
+            toneMapped={false}
+          />
+        </mesh>
+      ))}
+    </group>
   );
 }
 
 /**
- * Zonas sensibles al puntero, invisibles: dan el hover y el click por sala sin ensuciar el
- * render. El click enfoca la sala; volver a clickearla vuelve al piso completo.
+ * Zonas sensibles al puntero, invisibles: dan el hover y el click por grupo sin ensuciar el
+ * render. El click enfoca el grupo; volver a clickearlo vuelve al piso completo.
+ *
+ * Entran las salas y también los cuatro tramos de pasillo, para que las mesas del hall se
+ * puedan agarrar desde el 3D y no sólo desde la lista de al lado.
  */
 function Zonas({
   enfocada,
@@ -122,28 +166,37 @@ function Zonas({
   onActivar: (id: string | null) => void;
   onEnfocar: (id: string | null) => void;
 }) {
+  const grupos = [...SALAS.map((s) => s.id), ...ZONAS_HALL.map((z) => z.id)];
   return (
     <group>
-      {SALAS.map((s) => {
-        const { cx, cz, w, d } = rectDeSala(s);
-        return (
+      {grupos.map((id) => {
+        const sala = SALAS.find((s) => s.id === id) ?? null;
+        const cajas = sala
+          ? [{ ...rectDeSala(sala), x: rectDeSala(sala).cx, z: rectDeSala(sala).cz }]
+          : padsDeTramo(id);
+        /* Las cajas de los tramos van más bajas que las de las salas. Contra el muro oeste de P
+           y contra Baños sur, el pad de una mesa se mete unos centímetros dentro del rectángulo
+           de la sala, y ahí las dos cajas se pisan: con la cámara mirando desde arriba, el rayo
+           toca primero la más alta y la sala se queda con el hover, que es lo que corresponde. */
+        const alto = sala ? 0.8 : 0.5;
+        return cajas.map((c, i) => (
           <mesh
-            key={s.id}
-            position={[cx, 0.4, cz]}
+            key={id + '-' + i}
+            position={[c.x, alto / 2, c.z]}
             onPointerOver={(e) => {
               e.stopPropagation();
-              onActivar(s.id);
+              onActivar(id);
             }}
             onPointerOut={() => onActivar(null)}
             onClick={(e) => {
               e.stopPropagation();
-              onEnfocar(enfocada === s.id ? null : s.id);
+              onEnfocar(enfocada === id ? null : id);
             }}
           >
-            <boxGeometry args={[w, 0.8, d]} />
+            <boxGeometry args={[c.w, alto, c.d]} />
             <meshBasicMaterial visible={false} />
           </mesh>
-        );
+        ));
       })}
     </group>
   );
@@ -192,22 +245,32 @@ const MIRADA = CAMARA_PISO.clone().normalize();
 const DURACION_S = 0.75;
 
 /**
- * A dónde poner cámara y foco para ver una sala entera.
+ * A dónde poner cámara y foco para ver un grupo entero: una sala o un tramo de pasillo.
  *
  * La distancia sale de encajar el lado más largo en el campo vertical, con un margen que deja
  * ver los muros. El foco va a 0,9 m de altura y no al piso: es donde flotan las insignias, y
  * apuntando más abajo quedaban contra el borde de arriba del cuadro.
  */
-function encuadre(sala: Sala | null, aspecto: number): { pos: THREE.Vector3; foco: THREE.Vector3 } {
-  if (!sala) return { pos: CAMARA_PISO.clone(), foco: new THREE.Vector3(0, 0, 0) };
-  const { cx, cz, w, d } = rectDeSala(sala);
-  const mitad = (Math.max(w, d) * 1.35) / 2;
+function encuadre(rect: RectM | null, aspecto: number): { pos: THREE.Vector3; foco: THREE.Vector3 } {
+  if (!rect) return { pos: CAMARA_PISO.clone(), foco: new THREE.Vector3(0, 0, 0) };
+  const { cx, cz, w, d } = rect;
   const tanV = Math.tan(((FOV * Math.PI) / 180) / 2);
-  /* El campo horizontal sale del vertical por el aspecto. En mobile el viewport es 3/4, así
-     que el angosto pasa a ser el horizontal y es el que manda: encuadrar sólo por el vertical
-     cortaba las salas anchas. */
+  /* El campo horizontal sale del vertical por el aspecto. En mobile el viewport es 3/4 y el
+     angosto pasa a ser el horizontal, así que el aspecto tiene que entrar en la cuenta. */
   const tanH = tanV * aspecto;
-  const dist = Math.max(mitad / tanV, mitad / tanH);
+  /* El ancho cae sobre el eje horizontal de la pantalla y la profundidad sobre el vertical,
+     así que cada lado se mide contra SU campo. Medir los dos contra el más chico —que es lo
+     que hacía tomar `max(w, d)` para ambos— dejaba los grupos alargados demasiado lejos: el
+     pasillo norte son cinco mesas en línea, 17 m de ancho por 3,5 de fondo, y terminaba
+     encuadrado a 30 m, casi tan lejos como el piso entero.
+
+     La profundidad además se acorta en pantalla por el ángulo de la cámara: un metro sobre Z
+     ocupa `MIRADA.y` metros de alto, que es el seno de su elevación. */
+  const margen = 1.35;
+  const dist = Math.max(
+    (w * margen) / 2 / tanH,
+    (d * MIRADA.y * margen) / 2 / tanV,
+  );
   const foco = new THREE.Vector3(cx, 0.9, cz);
   return { pos: foco.clone().addScaledVector(MIRADA, dist), foco };
 }
@@ -255,11 +318,11 @@ function Controles({ enfocada }: { enfocada: string | null }) {
   useEffect(() => {
     const c = ref.current;
     if (!c) return;
-    const sala = SALAS.find((s) => s.id === enfocada) ?? null;
-    const { pos, foco } = encuadre(sala, aspecto);
+    const rect = enfocada ? rectEnfocable(enfocada) : null;
+    const { pos, foco } = encuadre(rect, aspecto);
     /* Los topes se abren ANTES de mover: si no, `update()` recorta el destino a mitad de vuelo. */
-    c.minDistance = sala ? 5 : 20;
-    c.maxDistance = sala ? 44 : 64;
+    c.minDistance = rect ? 5 : 20;
+    c.maxDistance = rect ? 44 : 64;
     /* Al montar, la cámara ya está donde tiene que estar: no hay nada que animar. */
     if (camera.position.distanceTo(pos) < 0.01) return;
     vuelo.current = {
@@ -319,7 +382,6 @@ function Escena({
 }) {
   /* El hover manda mientras hay hover; sin él queda lo enfocado, que no se apaga solo. */
   const senalada = activa ?? enfocada;
-  const sala = SALAS.find((s) => s.id === senalada) ?? null;
   return (
     <>
       {/* Igual que `.sd-piso__viewport` en `startupDay.css` (--sd-void): si divergen,
@@ -353,7 +415,7 @@ function Escena({
       <Volumenes />
       <Mobiliario />
       <Etiquetas />
-      {sala ? <Realce sala={sala} /> : null}
+      {senalada ? <Realce id={senalada} /> : null}
       <Logos activa={senalada} />
       <Zonas enfocada={enfocada} onActivar={onActivar} onEnfocar={onEnfocar} />
 
