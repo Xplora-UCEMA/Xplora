@@ -632,15 +632,6 @@ html.sd-coming-soon body {
   }
 }
 
-@keyframes sd-marquee {
-  from {
-    transform: translateX(0);
-  }
-  to {
-    transform: translateX(-50%);
-  }
-}
-
 @keyframes sd-drift {
   0%,
   100% {
@@ -1686,15 +1677,41 @@ html.sd-coming-soon body {
   bottom: 0;
 }
 
-/* La banda desfila hacia la izquierda con `sd-marquee`, que desplaza el track -50%: la fila va
-   duplicada en el componente para que el ciclo cierre sin salto. El keyframe venía del carrusel
-   de "Confirmadas" y, borrada esa sección, éste es su único uso. */
+/* La banda desfila sola hacia la izquierda, pero es un contenedor scrolleable de verdad: el
+   desplazamiento lo mueve `SdManifesto.tsx` sobre `scrollLeft`, no un `@keyframes` sobre
+   `transform`. Es lo que hace que la rueda, el trackpad, el swipe y el arrastre funcionen; con
+   `transform` la banda sólo se podía mirar pasar.
+
+   La barra de scroll se esconde: el difuminado de los bordes ya dice que la fila sigue, y una
+   barra debajo de los logos rompería la lámina. */
 .sd-quien__marquee {
-  overflow: hidden;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  /* Sin esto, seguir arrastrando en el borde dispara el gesto de "atrás" del navegador. */
+  overscroll-behavior-x: contain;
+  cursor: grab;
   /* Difuminado ancho: las marcas empiezan a desvanecerse bien antes del borde, así entran y salen
      de la banda en vez de aparecer y cortarse contra el filo del marco. */
   mask-image: linear-gradient(90deg, transparent 0, #000 20%, #000 80%, transparent 100%);
   -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 20%, #000 80%, transparent 100%);
+}
+
+.sd-quien__marquee::-webkit-scrollbar {
+  display: none;
+}
+
+.sd-quien__marquee.is-arrastrando {
+  cursor: grabbing;
+}
+
+/* Mientras se arrastra, el logo de abajo no debe iniciar un drag de imagen ni quedar
+   seleccionado a medias. */
+.sd-quien__marquee.is-arrastrando .sd-quien__logo,
+.sd-quien__marquee.is-arrastrando img {
+  user-select: none;
+  -webkit-user-drag: none;
 }
 
 /* En el Figma la fila es un flex con 33px entre TODOS los elementos, separadores incluidos. Acá
@@ -1710,14 +1727,9 @@ html.sd-coming-soon body {
   width: max-content;
   gap: calc(33 * var(--sd-quien-k));
   min-height: calc(137 * var(--sd-quien-k));
-  animation: sd-marquee var(--sd-quien-dur, 100s) linear infinite;
-}
-
-/* Sin esto los logos son un blanco móvil: al ser links hay que poder frenarlos para clickearlos.
-   `:focus-within` cubre el mismo caso llegando por teclado. */
-.sd-quien__marquee:hover .sd-quien__logo-row,
-.sd-quien__marquee:focus-within .sd-quien__logo-row {
-  animation-play-state: paused;
+  /* Es el `offsetParent` de las celdas: el foco necesita la posición de cada logo dentro del
+     track, y medida contra cualquier otro ancestro le entraría un corrimiento constante. */
+  position: relative;
 }
 
 .sd-quien__logo-cell {
@@ -1740,6 +1752,13 @@ html.sd-coming-soon body {
    sostiene una celda igual para todas. No es un alto común disfrazado: al topar por ancho O por
    alto, los wordmarks anchos terminan bajos y los isotipos cuadrados altos — la misma proporción
    relativa que tenían en el Figma. */
+/* `opacity` y el `transform` de cada celda los pisa `SdManifesto.tsx` cuadro a cuadro: la marca
+   que pasa por el centro de la banda se enciende y crece un poco, y todas se inclinan con la
+   velocidad del desfile. Lo de acá es el estado de reposo, que es el que queda con
+   `prefers-reduced-motion` —ahí el componente no pinta nada— y el que se ve el primer cuadro.
+
+   Sin `transition` a propósito: con una, cada escritura por cuadro se convertiría en una
+   interpolación hacia el valor siguiente y el efecto quedaría embarrado. */
 .sd-quien__logo {
   flex: 0 0 auto;
   display: flex;
@@ -1749,15 +1768,13 @@ html.sd-coming-soon body {
   height: calc(62 * var(--sd-quien-k));
   text-decoration: none;
   opacity: 0.82;
-  transition: opacity 0.2s ease, transform 0.2s ease;
 }
 
-/* Las marcas linkean al sitio de cada startup. En reposo van levemente apagadas para que la banda
-   no compita con el titular, y se encienden al pasar por encima. */
+/* Las marcas linkean al sitio de cada startup. El hover lo resuelve el componente junto con el
+   foco —el estilo en línea le gana a esta regla—, así que esto cubre el caso sin movimiento. */
 a.sd-quien__logo:hover,
 a.sd-quien__logo:focus-visible {
   opacity: 1;
-  transform: translateY(-2px);
 }
 
 a.sd-quien__logo:focus-visible {
@@ -4316,16 +4333,13 @@ a.sd-partner__name:hover {
   .sd-text-shine,
   .sd-loader__logo,
   .sd-loader__orbit,
-  .sd-quien__logo-row,
   .sd-pulse-dot {
     animation: none !important;
   }
 
-  /* Sin animación el track sigue siendo una sola línea más ancha que la pantalla, así que se
-     entrega el scroll al usuario en vez de recortar marcas. */
-  .sd-quien__marquee {
-    overflow-x: auto;
-  }
+  /* El desfile solo lo frena el propio componente, que mira este mismo media query. La banda
+     sigue siendo scrolleable a mano: el track es más ancho que la pantalla y recortar marcas
+     sería peor que dejar que el usuario las corra. */
   /* Entrada con `transition` (no `animation`) que quedaba sin cobertura. */
   .sd-sponsor-strip__logo {
     transition: none !important;

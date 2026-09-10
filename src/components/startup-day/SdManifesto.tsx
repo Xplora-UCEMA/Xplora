@@ -21,88 +21,72 @@
  * final y el timeline sólo toca opacity/transform. Sin JS — mobile, `prefers-reduced-motion`, o
  * el primer frame — la lámina ya está completa. Dispara una vez con IntersectionObserver.
  */
-import { useLayoutEffect, useRef } from 'react';
+import { useEffect, useLayoutEffect, useRef } from 'react';
 import gsap from 'gsap';
 
-import { SD_STARTUPS, sdInscripcionUrl } from '../../data/startupDay';
-
-const ASSET = (file: string) => `/logos/startup-day/quien/${file}?v=1`;
-
-/**
- * Marcas que el evento no muestra en esta banda: son sponsors y empresas invitadas, no startups
- * del piso. Hoy ninguna está en `SD_STARTUPS` —sólo aparecen como texto en la agenda—, pero el
- * filtro queda explícito para que la banda no las levante si mañana se suman a la lista.
- */
-const EXCLUIDAS = new Set(['endeavor', 'mercadolibre', 'mercado-libre', 'globant', 'picante', 'newtopia']);
+import { sdInscripcionUrl } from '../../data/startupDay';
+import { standsConMarca } from '../../data/startupDayStands';
 
 /**
- * Assets con placa de fondo propia: el logo no es sólo el glifo, trae una tarjeta detrás, así que
- * blanquearlo por filtro fundiría placa y glifo en un bloque macizo. Se muestra tal cual — el
- * mismo tratamiento que el diseño le da a Berry, que en el Figma viene sobre una placa blanca.
+ * Las marcas de la banda: exactamente las que tienen mesa en el piso, en el orden del
+ * recorrido —las aulas L, N, O y P primero, después las sueltas del hall— y con el mismo
+ * archivo de logo que muestran las insignias del render 3D.
  *
- * Al resto de las marcas con placa (Piggy Wallet, WIP Club, Startups Argentina) se les generó una
- * versión monocroma sobre transparente en `quien/`, que entra por `OVERRIDE`.
+ * Antes salía de `SD_STARTUPS` con una lista de exclusiones a mano y un mapa de reemplazos
+ * `quien/*`. Las dos cosas sobran ahora: la lista de exclusiones porque la fuente ya es el
+ * piso —una marca sin mesa no aparece—, y los reemplazos porque existían para esquivar
+ * assets con placa de fondo, y los monocromos nuevos no la traen.
  *
- * Berry y Luca Money salieron de este set: sus logos actuales (isotipo + wordmark) vienen sobre
- * transparente, así que ya blanquean bien con el filtro general.
+ * Una marca con dos mesas entra una sola vez.
  */
-const CON_CHIP = new Set<string>([]);
+const MARCAS = (() => {
+  const vistas = new Set<string>();
+  return standsConMarca()
+    .map((s) => s.marca)
+    .filter((m) => {
+      if (vistas.has(m.id)) return false;
+      vistas.add(m.id);
+      return true;
+    });
+})();
 
 /**
- * Reemplazos del logo de `SD_STARTUPS` para esta banda, que es monocroma sobre negro y necesita
- * el glifo en blanco sobre transparente.
+ * Las que el blanqueo por filtro arruinaría, y que por eso se muestran tal cual sobre su chip:
+ * Datricas es bitono —su círculo se aplastaría contra el wordmark— y Renderahouse trae fondo
+ * negro propio, que quedaría como un bloque blanco.
  *
- * Los de `quien/` se derivaron del asset del repo quitándole la placa de fondo: el alfa sale de la
- * distancia al color de la placa —no de un umbral duro— para que los bordes antialiaseados no
- * queden dentados, con un piso que elimina el velo residual sobre la superficie de la tarjeta.
- * WIP Club es el caso especial: su marca es texto blanco calado sobre un disco azul, así que lo
- * que se elimina es el blanco de afuera y queda el disco en blanco con las letras caladas.
+ * Salió de medir alfa y luminancia de los 42 archivos del piso, no de mirarlos: el resto ya es
+ * blanco sobre transparente, o es oscuro y se blanquea sin perder nada.
  */
-const OVERRIDE: Record<string, string> = {
-  /** El del repo es un wordmark negro sobre amarillo a sangre; éste es el export del Figma. */
-  paisanos: ASSET('paisanos.svg'),
-  /**
-   * El logo del repo es la ilustración del regador, con el wordmark "PASITO" adentro a 66×19px y
-   * pisado por el dibujo: recortarlo de ahí no daba una letra usable a este tamaño. Éste es el
-   * wordmark suelto que pasó el cliente, sólo recortado al contenido.
-   */
-  pasito: ASSET('pasito.png'),
-  /** El mismo que ya usa la tira de sponsors: blanco sobre transparente, sin retoque. */
-  resender: '/logos/startup-day/resender-dev.png?v=12',
-  piggywallet: ASSET('piggywallet.png'),
-  /** Reemplazo pasado por el cliente: birrete + wordmark, ya en claro sobre transparente. */
-  tuni: ASSET('tuni.png'),
-  /**
-   * Isotipo monocromo. Va como override y no reemplazando el asset general porque el del repo
-   * —isotipo + wordmark a color— lo siguen usando la tira de sponsors y el carrusel de
-   * confirmadas, donde ese logo funciona.
-   */
-  coworkeando: ASSET('coworkeando.png'),
-  wipclub: ASSET('wipclub.png'),
-  'startups-argentina': ASSET('startups-argentina.png'),
-};
+const SIN_BLANQUEO = new Set(['datricas', 'renderahouse']);
 
-/**
- * Toda la grilla de startups, en el orden de la data. Se blanquean por filtro
- * (`brightness(0) invert(1)`, que lleva cualquier píxel opaco a blanco respetando el alfa) porque
- * la banda es monocroma sobre negro; las de `CON_CHIP` quedan afuera de esa regla.
- *
- * A diferencia de la versión anterior —7 logos con la caja exacta del Figma— acá la caja es
- * uniforme: el diseño sólo definió geometría para esas 7, y para la grilla entera lo que
- * sostiene el ritmo es una celda igual para todas con `object-fit: contain`. Los wordmarks anchos
- * terminan topando contra el ancho y los isotipos cuadrados contra el alto, que es justamente la
- * proporción que tenían en el diseño.
- */
-const LOGOS = SD_STARTUPS.filter((c) => !EXCLUIDAS.has(c.id)).map((c) => ({
-  id: c.id,
-  name: c.name,
-  /** Vacío para las confirmadas que todavía no tienen archivo: se cae al nombre en texto. */
-  src: OVERRIDE[c.id] ?? c.logoUrl,
-  chip: CON_CHIP.has(c.id),
-  href: c.website || c.instagram || c.linkedin,
+const LOGOS = MARCAS.map((m) => ({
+  id: m.id,
+  name: m.name,
+  /** Vacío para las que todavía no tienen archivo: se cae al nombre en texto. */
+  src: m.logoUrl,
+  chip: SIN_BLANQUEO.has(m.id),
+  href: m.href,
 }));
 
-/** Duplicada: el keyframe `sd-marquee` desplaza el track -50%, así que el ciclo cierra sin salto. */
+/**
+ * Cuántos segundos tarda el track en recorrerse solo, media vuelta. Escala con la cantidad de
+ * marcas para que la velocidad de paso no dependa de cuántas haya en la data.
+ */
+const SEGUNDOS_POR_VUELTA = LOGOS.length * 3.2;
+
+/**
+ * Radio del foco, en fracción del ancho visible: a esa distancia del centro la marca ya está
+ * apagada del todo. Con 0,32 hay siempre dos o tres encendiéndose y apagándose a la vez, que es
+ * lo que hace que la banda parezca viva y no una fila que pasa.
+ */
+const RADIO_FOCO = 0.32;
+/** Grados que se inclina una marca a velocidad de tirón fuerte. */
+const INCLINACION_MAX = 5;
+/** Velocidad (px/s) a partir de la cual la inclinación ya está al tope. */
+const VELOCIDAD_TOPE = 2600;
+
+/** Duplicada: el desfile devuelve el scroll media vuelta al pasar de largo, y así cierra sin salto. */
 const LOOP = [...LOGOS, ...LOGOS];
 
 const HEADLINE = 'No importa quién sos. Importa quién querés ser.';
@@ -159,6 +143,211 @@ export function SdManifesto() {
   const actionsRef = useRef<HTMLDivElement>(null);
   const marqueeRef = useRef<HTMLDivElement>(null);
   const firedRef = useRef(false);
+
+  /**
+   * Desfile de la banda y arrastre.
+   *
+   * Antes era un `@keyframes` que corría el track con `transform: translateX(-50%)`. Se pasó a
+   * mover `scrollLeft` cuadro a cuadro porque eso lo convierte en un contenedor scrolleable de
+   * verdad: la rueda horizontal, el trackpad y el swipe táctil pasan a funcionar solos, con la
+   * inercia nativa del navegador, y el arrastre con el mouse se agrega acá. Con `transform` nada
+   * de eso existía — la banda sólo se podía mirar pasar.
+   *
+   * El track va duplicado, así que el ciclo cierra devolviendo `scrollLeft` media vuelta cuando
+   * se pasa de largo. Se controla en los dos sentidos: arrastrando hacia atrás también se da la
+   * vuelta, en vez de topar contra el cero.
+   */
+  useEffect(() => {
+    const el = marqueeRef.current;
+    if (!el) return;
+
+    const quieto = window.matchMedia('(prefers-reduced-motion: reduce)');
+    /* Pausa mientras el puntero está encima o el foco adentro: los logos son links y hay que
+       poder alcanzarlos. Antes lo hacía `animation-play-state` desde el CSS. */
+    let detenida = false;
+    let arrastrando = false;
+    let inercia = 0;
+    let ultimoT = performance.now();
+
+    const media = () => el.scrollWidth / 2;
+    const envolver = () => {
+      const m = media();
+      if (m <= 0) return;
+      if (el.scrollLeft >= m) el.scrollLeft -= m;
+      else if (el.scrollLeft < 0) el.scrollLeft += m;
+    };
+
+    /**
+     * Foco e inclinación.
+     *
+     * El foco enciende a la marca que está pasando por el centro de la banda y apaga a las de
+     * los costados, así que el efecto viaja solo con el desfile: sin tocar nada, siempre hay
+     * algo cambiando. La inclinación va con la velocidad y es lo que hace que un tirón se
+     * sienta — a velocidad de crucero es de una fracción de grado, imperceptible.
+     *
+     * Se escribe `transform` y `opacity`, las dos propiedades que el compositor resuelve sin
+     * recalcular layout, y sólo sobre las celdas que están a tiro de la ventana. Las demás se
+     * apagan una vez y no se vuelven a tocar hasta que entran.
+     */
+    const celdas = Array.from(el.querySelectorAll<HTMLElement>('.sd-quien__logo'));
+    let centros: number[] = [];
+    const apagadas = new Array<boolean>(celdas.length).fill(false);
+    const medir = () => {
+      centros = celdas.map((c) => c.offsetLeft + c.offsetWidth / 2);
+    };
+    medir();
+
+    /* El hover sigue encendiendo la marca. Va por acá y no por CSS porque el estilo en línea de
+       cada cuadro le gana a cualquier regla de clase, así que la del hover quedaría muerta. */
+    let encima: HTMLElement | null = null;
+    const sobre = (e: PointerEvent) => {
+      encima = (e.target as Element | null)?.closest<HTMLElement>('.sd-quien__logo') ?? null;
+    };
+
+    const pintar = (velocidad: number) => {
+      if (quieto.matches || centros.length !== celdas.length) return;
+      const centro = el.scrollLeft + el.clientWidth / 2;
+      const radio = el.clientWidth * RADIO_FOCO;
+      const alcance = el.clientWidth * 0.75;
+      const inclinacion =
+        Math.max(-1, Math.min(1, velocidad / VELOCIDAD_TOPE)) * -INCLINACION_MAX;
+      for (let i = 0; i < celdas.length; i++) {
+        const d = Math.abs(centros[i]! - centro);
+        if (d > alcance) {
+          if (!apagadas[i]) {
+            celdas[i]!.style.opacity = '';
+            celdas[i]!.style.transform = '';
+            apagadas[i] = true;
+          }
+          continue;
+        }
+        apagadas[i] = false;
+        const k = celdas[i] === encima ? 1 : Math.max(0, 1 - d / radio);
+        const c = celdas[i]!;
+        c.style.opacity = String(0.58 + 0.42 * k);
+        c.style.transform = `skewX(${inclinacion.toFixed(2)}deg) scale(${(1 + 0.08 * k).toFixed(
+          3,
+        )}) translateY(${(-5 * k).toFixed(1)}px)`;
+      }
+    };
+
+    /* El ancho de las celdas cambia con `--sd-quien-k`, que está atado a `vw`. */
+    const ro = new ResizeObserver(medir);
+    ro.observe(el);
+
+    let raf = requestAnimationFrame(function paso(t: number) {
+      /* Techo al delta: al volver de una pestaña en segundo plano, el salto acumulado movería
+         la banda media vuelta de un cuadro al otro. */
+      const dt = Math.min(0.05, (t - ultimoT) / 1000);
+      ultimoT = t;
+      const previo = el.scrollLeft;
+      if (inercia !== 0) {
+        el.scrollLeft += inercia * dt;
+        inercia *= Math.pow(0.02, dt);
+        if (Math.abs(inercia) < 6) inercia = 0;
+      } else if (!detenida && !quieto.matches) {
+        el.scrollLeft += media() / SEGUNDOS_POR_VUELTA * dt;
+      }
+      /* La velocidad se mide sobre lo que efectivamente se movió, no sobre lo que se pidió: así
+         entra también lo que mueven la rueda, el trackpad y el arrastre, que tocan `scrollLeft`
+         por fuera de este loop. */
+      const corrido = el.scrollLeft - previo;
+      envolver();
+      pintar(dt > 0 ? corrido / dt : 0);
+      raf = requestAnimationFrame(paso);
+    });
+
+    /* Sólo el mouse se arrastra a mano. En touch el navegador ya scrollea el contenedor y le
+       pone su propia inercia; interceptarlo sería pelearle y perder. */
+    let ultimaX = 0;
+    let ultimaVT = 0;
+    let velocidad = 0;
+    let recorrido = 0;
+
+    const abajo = (e: PointerEvent) => {
+      detenida = true;
+      inercia = 0;
+      if (e.pointerType !== 'mouse' || e.button !== 0) return;
+      arrastrando = true;
+      recorrido = 0;
+      velocidad = 0;
+      ultimaX = e.clientX;
+      ultimaVT = performance.now();
+      el.setPointerCapture(e.pointerId);
+      el.classList.add('is-arrastrando');
+    };
+
+    const mover = (e: PointerEvent) => {
+      if (!arrastrando) return;
+      const dx = e.clientX - ultimaX;
+      /* Incremental y no contra el punto de partida: si en el medio del arrastre el track da la
+         vuelta, un cálculo absoluto pegaría un salto de media banda. */
+      el.scrollLeft -= dx;
+      recorrido += Math.abs(dx);
+      const t = performance.now();
+      const dt = (t - ultimaVT) / 1000;
+      if (dt > 0.008) {
+        velocidad = -dx / dt;
+        ultimaVT = t;
+      }
+      ultimaX = e.clientX;
+      envolver();
+    };
+
+    const arriba = (e: PointerEvent) => {
+      detenida = false;
+      if (!arrastrando) return;
+      arrastrando = false;
+      el.releasePointerCapture(e.pointerId);
+      el.classList.remove('is-arrastrando');
+      /* Tope a la inercia: un tirón corto y rápido puede dar miles de px/s y la banda se
+         volvería ilegible. */
+      inercia = Math.max(-4000, Math.min(4000, velocidad));
+    };
+
+    /* Un arrastre que empieza sobre un logo no tiene que terminar abriendo su sitio. */
+    const alClick = (e: MouseEvent) => {
+      if (recorrido > 6) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+      recorrido = 0;
+    };
+
+    const entra = () => {
+      detenida = true;
+    };
+    const sale = () => {
+      if (!arrastrando) detenida = false;
+      encima = null;
+    };
+
+    el.addEventListener('pointerover', sobre);
+    el.addEventListener('pointerdown', abajo);
+    el.addEventListener('pointermove', mover);
+    el.addEventListener('pointerup', arriba);
+    el.addEventListener('pointercancel', arriba);
+    el.addEventListener('click', alClick, true);
+    el.addEventListener('pointerenter', entra);
+    el.addEventListener('pointerleave', sale);
+    el.addEventListener('focusin', entra);
+    el.addEventListener('focusout', sale);
+
+    return () => {
+      cancelAnimationFrame(raf);
+      ro.disconnect();
+      el.removeEventListener('pointerover', sobre);
+      el.removeEventListener('pointerdown', abajo);
+      el.removeEventListener('pointermove', mover);
+      el.removeEventListener('pointerup', arriba);
+      el.removeEventListener('pointercancel', arriba);
+      el.removeEventListener('click', alClick, true);
+      el.removeEventListener('pointerenter', entra);
+      el.removeEventListener('pointerleave', sale);
+      el.removeEventListener('focusin', entra);
+      el.removeEventListener('focusout', sale);
+    };
+  }, []);
 
   /* `useLayoutEffect`: el timeline se crea pausado y GSAP aplica su estado "from" apenas se
      construye (immediateRender) — tiene que pasar antes del primer paint o se ve la lámina
@@ -264,14 +453,9 @@ export function SdManifesto() {
           className="sd-quien__marquee"
           ref={marqueeRef}
           role="group"
-          aria-label="Startups confirmadas"
+          aria-label="Marcas en el piso"
         >
-          {/* La duración escala con la cantidad de marcas para que la velocidad de paso no
-              dependa de cuántas haya en la data. */}
-          <ul
-            className="sd-quien__logo-row"
-            style={{ ['--sd-quien-dur' as string]: `${LOGOS.length * 3.2}s` }}
-          >
+          <ul className="sd-quien__logo-row">
             {LOOP.map((logo, i) => {
               /* La segunda vuelta es la copia que cierra el loop: se esconde de lectores de
                  pantalla y se saca del tabulado para no repetir las 35 marcas dos veces. */

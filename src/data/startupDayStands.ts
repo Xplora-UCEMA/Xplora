@@ -17,8 +17,12 @@ import {
 } from './startupDay';
 import { standsDelPiso, type Stand } from './startupDayFloor';
 
-/** Lo mínimo que necesita una insignia del render. */
-export type MarcaDeStand = { id: string; name: string; logoUrl: string };
+/**
+ * Lo mínimo que necesita una insignia del render. `href` no lo usa el 3D —una placa flotando
+ * en la escena no se clickea— pero sí la banda de marcas de "No importa quién sos", que sale
+ * de esta misma lista y linkea cada logo al sitio de la startup.
+ */
+export type MarcaDeStand = { id: string; name: string; logoUrl: string; href?: string };
 
 /**
  * Marcas con mesa que no salen de las listas de la landing.
@@ -95,10 +99,24 @@ export type StandConMarca = Stand & { marca: MarcaDeStand };
  * Coworkeando y Tuni son sponsors *y* startups— se quede con el logo de `SD_STARTUPS`.
  */
 const POR_ID = new Map<string, MarcaDeStand>();
-for (const grupo of [SD_XPLORA_PARTNERS, SD_EDITION_SPONSORS]) {
-  for (const m of grupo) if (m.logoUrl) POR_ID.set(m.id, { id: m.id, name: m.name, logoUrl: m.logoUrl });
-}
-for (const m of SD_STARTUPS) POR_ID.set(m.id, { id: m.id, name: m.name, logoUrl: m.logoUrl });
+const guardar = (m: {
+  id: string;
+  name: string;
+  logoUrl?: string;
+  website?: string;
+  instagram?: string;
+  linkedin?: string;
+}) => {
+  if (!m.logoUrl) return;
+  POR_ID.set(m.id, {
+    id: m.id,
+    name: m.name,
+    logoUrl: m.logoUrl,
+    href: m.website || m.instagram || m.linkedin,
+  });
+};
+for (const grupo of [SD_XPLORA_PARTNERS, SD_EDITION_SPONSORS]) for (const m of grupo) guardar(m);
+for (const m of SD_STARTUPS) guardar(m);
 for (const m of PROPIAS) POR_ID.set(m.id, m);
 
 /** Los stands con marca conocida y logo disponible, con la marca ya resuelta. */
