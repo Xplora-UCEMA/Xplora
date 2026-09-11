@@ -12,7 +12,13 @@
  * plástico. La lista y el 3D se resaltan mutuamente.
  */
 import { Component, Suspense, lazy, useEffect, useRef, useState, type ReactNode } from 'react';
-import { HALL, SALAS, detalleDe, mesasDeSala, type Sala } from '../../../data/startupDayFloor';
+import {
+  SALAS,
+  ZONAS_HALL,
+  detalleDe,
+  mesasDeSala,
+  type Sala,
+} from '../../../data/startupDayFloor';
 
 /**
  * Un import dinámico que falla casi siempre falla por algo pasajero: un corte de red o —el
@@ -58,36 +64,35 @@ const ORDEN: Record<Sala['tipo'], number> = {
   nucleo: 2,
 };
 
-type Fila = { id: string; label: string; detalle: string; sinUso: boolean; sala: boolean };
+type Fila = { id: string; label: string; detalle: string; sinUso: boolean; enfocable: boolean };
 
 /**
- * Las filas de la referencia: las salas más el hall.
+ * Las filas de la referencia: las salas más los tramos de pasillo con mesas.
  *
- * El hall no es una sala —no tiene rectángulo ni muros— pero sí tiene dieciséis mesas
- * repartidas por los pasillos, y sin una fila propia esas marcas no tendrían desde dónde
- * mostrarse: las insignias del render salen al señalar un grupo, y ese grupo acá es la fila.
+ * Los tramos entran uno por uno y no como un único "Hall" porque las insignias del render
+ * salen al señalar un grupo, y ese grupo acá es la fila: con las dieciséis mesas del hall en
+ * una sola fila no había forma de mirar de cerca ninguna, porque su caja es casi el piso
+ * entero. Partido en cuatro, cada tramo se encuadra como un aula.
  */
 const FILAS: Fila[] = (() => {
   const salas = [...SALAS].sort((a, b) => ORDEN[a.tipo] - ORDEN[b.tipo]);
-  const filas = salas.map((s) => ({
+  const filas: Fila[] = salas.map((s) => ({
     id: s.id,
     label: s.label,
     detalle: detalleDe(s),
     sinUso: s.acceso === 'bloqueada',
-    sala: true,
+    enfocable: true,
   }));
-  /* El hall no se puede enfocar: no tiene rectángulo, sus mesas están repartidas por todo
-     el piso y acercarse a ellas sería acercarse al piso entero. */
-  const hall = {
-    id: HALL,
-    label: 'Hall',
-    detalle: mesasDeSala(HALL) + ' stands',
+  const pasillos: Fila[] = ZONAS_HALL.map((z) => ({
+    id: z.id,
+    label: z.label,
+    detalle: mesasDeSala(z.id) + ' stands',
     sinUso: false,
-    sala: false,
-  };
-  /* Va después de las aulas de stands, antes de los workshops. */
+    enfocable: true,
+  }));
+  /* Van después de las aulas de stands, antes de los workshops. */
   const corte = filas.findIndex((f) => f.detalle === 'Workshops');
-  filas.splice(corte < 0 ? filas.length : corte, 0, hall);
+  filas.splice(corte < 0 ? filas.length : corte, 0, ...pasillos);
   return filas;
 })();
 
@@ -200,13 +205,13 @@ export function StartupDayFloor() {
               className={`sd-piso__ref-item${
                 activa === f.id || enfocada === f.id ? ' is-activa' : ''
               }${enfocada === f.id ? ' is-enfocada' : ''}${f.sinUso ? ' is-sin-uso' : ''}`}
-              aria-pressed={f.sala ? enfocada === f.id : undefined}
+              aria-pressed={f.enfocable ? enfocada === f.id : undefined}
               onMouseEnter={() => setActiva(f.id)}
               onMouseLeave={() => setActiva(null)}
               onFocus={() => setActiva(f.id)}
               onBlur={() => setActiva(null)}
               onClick={() => {
-                if (!f.sala || sinRender) return;
+                if (!f.enfocable || sinRender) return;
                 setEnfocada(enfocada === f.id ? null : f.id);
               }}
             >
