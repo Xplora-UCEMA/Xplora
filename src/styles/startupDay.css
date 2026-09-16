@@ -119,7 +119,27 @@
   /* Mismo tipo que `--sd-font-display`: sigue siendo un título, sólo que del afiche. Variable
      aparte por si el afiche necesita divergir más adelante. */
   --sd-font-poster: 'Glacial Indifference', sans-serif;
-  --sd-radius: 10px; /* unificado: nada circular / pill */
+  /* ── Rejilla de encuadre ──
+     Las dos hairlines verticales que encajonan el contenido de punta a punta de la página, más el
+     divisor horizontal entre secciones y una marca de cruz en cada intersección. Es el lenguaje
+     que ya tenía la lámina "No importa quién sos" (marco de hairlines + marcas de registro),
+     extendido a todas las secciones.
+
+     Un token para la línea y otro para la cruz, así la densidad de la rejilla se gobierna desde
+     un solo lugar: subirle la opacidad acá la endurece en toda la página de una. */
+  --sd-rejilla: rgb(var(--sd-cream-rgb) / 0.11);
+  /* Las verticales van POR FUERA del contenido, no encima. Colgaban de `--sd-pad-x`, que es justo
+     donde arranca el texto, así que quedaban pegadas a las letras. El colchón va explícito y no
+     "lo que sobre de ancho": `--sd-pad-x` colapsa al gutter por debajo de `--sd-shell` y ahí no
+     sobraría nada. El `max()` impide que en pantallas angostas la línea se salga de cuadro. */
+  --sd-rejilla-x: max(14px, calc(var(--sd-pad-x) - clamp(28px, 4vw, 72px)));
+  --sd-rejilla-cruz: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='17' height='17'%3E%3Cpath d='M8.5 0v17M0 8.5h17' stroke='%23faf8f5' stroke-opacity='.45' stroke-width='1'/%3E%3C/svg%3E");
+  /* A canto vivo, como el resto de la página. Los 10px que había eran lo único redondeado contra
+     una rejilla que es toda recta: rieles, divisores y cruces. El token sigue existiendo —lo usan
+     botones, fotos, videos, inputs y la isla del header— así que el cambio es de una sola línea y
+     no hay que perseguir 43 declaraciones. Los `border-radius: 50%` literales no lo usan y siguen
+     redondos. */
+  --sd-radius: 0px;
 
   /* ── Un solo tamaño para todos los títulos de sección ──
      La medida sale del manifiesto ("No importa quién sos…"), que es la referencia. Antes cada
@@ -770,7 +790,9 @@ html.sd-coming-soon body {
   background: rgb(var(--sd-void-rgb) / 0.92);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  border-color: rgb(var(--sd-purple-rgb) / 0.4);
+  /* El mismo gris que los rieles y las cruces. Era violeta a 0,4 y el header quedaba como la única
+     pieza con color propio arriba de todo. */
+  border-color: var(--sd-rejilla);
   box-shadow:
     0 14px 40px rgba(0, 0, 0, 0.4),
     0 0 0 1px rgba(255, 255, 255, 0.04);
@@ -874,14 +896,7 @@ html.sd-coming-soon body {
   flex-shrink: 0;
   transition:
     background 0.25s ease,
-    color 0.25s ease,
-    padding var(--sd-nav-dur) var(--sd-nav-ease),
-    font-size var(--sd-nav-dur) var(--sd-nav-ease);
-}
-
-.sd-nav-shell.is-island .sd-top__cta {
-  padding: 7px 12px;
-  font-size: 0.76rem;
+    color 0.25s ease;
 }
 
 .sd-top__cta:hover {
@@ -895,20 +910,11 @@ html.sd-coming-soon body {
     padding-left: env(safe-area-inset-left);
     padding-right: env(safe-area-inset-right);
   }
-  .sd-nav-shell.is-island {
-    padding: 10px max(12px, env(safe-area-inset-left)) 0
-      max(12px, env(safe-area-inset-right));
-  }
   .sd-top {
     border-radius: 0;
     padding: 12px 14px;
     max-width: 100%;
     gap: 8px 10px;
-  }
-  .sd-nav-shell.is-island .sd-top {
-    max-width: 100%;
-    border-radius: var(--sd-radius);
-    padding: 6px 8px;
   }
   .sd-top__cta {
     display: none;
@@ -929,10 +935,6 @@ html.sd-coming-soon body {
     font-size: 0.74rem;
     padding: 6px 8px;
     white-space: nowrap;
-  }
-  .sd-nav-shell.is-island .sd-tabs button,
-  .sd-nav-shell.is-island .sd-tabs a {
-    padding: 5px 7px;
   }
 }
 
@@ -1010,6 +1012,59 @@ html.sd-coming-soon body {
   justify-self: end;
 }
 
+/* ── Las dos manchas ASCII de las diagonales ──
+   Arriba a la izquierda y abajo a la derecha, en las dos esquinas que quedan vacías: el wordmark
+   arranca bien abajo del borde superior y el disco no llega al pie. Se van a sangre contra el
+   borde de la pantalla —el hero recorta— para que se lean como algo que sigue afuera del cuadro y
+   no como dos recuadros pegados.
+
+   `z-index: 0` las deja debajo de `.sd-hero__grid` (que está en 3), así que nunca compiten con el
+   wordmark ni con el reloj. Y una máscara las desvanece hacia adentro, que es lo que las vuelve
+   atmósfera: sin eso el rectángulo del canvas se nota. */
+/* Selector compuesto, y no `.sd-hero__campo` a secas: el componente pone `sd-ascii` en el MISMO
+   div, y `.sd-ascii { position: relative }` se declara más abajo con la misma especificidad, así
+   que le ganaba y los dos campos terminaban como items del flex del hero — uno debajo del otro,
+   achatados a 85px y pegados arriba a la izquierda. Con las dos clases juntas el modificador pesa
+   más que la base, que es lo que corresponde. */
+.sd-ascii.sd-hero__campo {
+  position: absolute;
+  z-index: 0;
+  width: clamp(240px, 34vw, 560px);
+  height: clamp(200px, 38vh, 460px);
+  pointer-events: none;
+}
+
+/* Arranca debajo del header: pisándolo, los caracteres se cruzaban con el logo y el menú. */
+.sd-hero__campo--no {
+  top: clamp(56px, 8vh, 92px);
+  left: 0;
+  -webkit-mask-image: radial-gradient(ellipse at 0% 0%, #000 8%, transparent 78%);
+  mask-image: radial-gradient(ellipse at 0% 0%, #000 8%, transparent 78%);
+}
+
+/* Espejada en los dos ejes. Los patrones de `ascii.ts` tienen su origen en la esquina superior
+   izquierda de su caja —`onda` sale de ahí— y acá el campo tiene que emanar de la esquina de
+   ABAJO A LA DERECHA. Dando vuelta la caja, el origen del dibujo cae donde va sin necesidad de un
+   segundo patrón que sea el mismo al revés.
+
+   Es `transform` sobre un canvas estático de fondo: no cuesta nada y no hay texto adentro que
+   pudiera salir espejado. */
+.sd-hero__campo--se {
+  right: 0;
+  bottom: 0;
+  transform: scale(-1);
+  -webkit-mask-image: radial-gradient(ellipse at 0% 0%, #000 8%, transparent 78%);
+  mask-image: radial-gradient(ellipse at 0% 0%, #000 8%, transparent 78%);
+}
+
+/* En pantallas angostas el hero ya está apretado —wordmark, lede, dos botones y el reloj en
+   100dvh— y dos manchas más lo ensucian en vez de darle aire. */
+@media (max-width: 720px) {
+  .sd-hero__campo {
+    display: none;
+  }
+}
+
 /* `SdAsciiDisc` pone `sd-ascii` y la clase de sitio en el MISMO div, así que acá no se declara
    ni ancho ni alto: la caja la define quien lo usa (`.sd-hero__disc`, `.sd-soon__disc`). */
 .sd-ascii {
@@ -1031,8 +1086,12 @@ html.sd-coming-soon body {
    color plano (`var(--sd-void)`) hardcodeado, que tapaba el glow violeta del fondo entero en el cuarto
    donde vive el disco. Transparente: el canvas ya desvanece su propio trazo cerca del borde
    (`smoothstep` en `SdAsciiDisc`), así que esto sólo necesita afinar esa transición, no pintar
-   encima de lo que hay atrás. */
-.sd-ascii::after {
+   encima de lo que hay atrás.
+
+   Cuelga de las dos clases del DISCO y no de `.sd-ascii`, que ahora también la usa `SdAsciiCampo`:
+   es una viñeta circular y sobre un campo rectangular dibujaría un óvalo oscuro sin motivo. */
+.sd-hero__disc::after,
+.sd-soon__disc::after {
   content: '';
   position: absolute;
   inset: 0;
@@ -1116,7 +1175,7 @@ html.sd-coming-soon body {
      haya más arriba y los dos lados de la costura podrían no dar el mismo color. */
   isolation: isolate;
   background: var(--sd-void);
-  padding: clamp(32px, 6vw, 52px) var(--sd-pad-x) clamp(48px, 8vw, 72px);
+  padding: clamp(20px, 3.4vw, 32px) var(--sd-pad-x) clamp(24px, 4vw, 40px);
 }
 
 /* Cola del wash del hero, no un degradado nuevo: misma elipse, mismo `screen`, mismas paradas. El
@@ -1177,37 +1236,6 @@ html.sd-coming-soon body {
 
 /* Sólo fecha y ciudad — el resto (horario, dirección completa, entrada) vive en el CTA, en la
    agenda y en el pie de página, no hace falta repetirlo acá. */
-.sd-hero__facts {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
-  max-width: 300px;
-  margin-bottom: 1.75rem;
-  opacity: 0;
-}
-
-.sd-hero__facts > div {
-  padding: 12px 0;
-  border-top: 1px solid rgba(255, 255, 255, 0.14);
-}
-
-.sd-hero__fact-k {
-  display: block;
-  margin-bottom: 4px;
-  font-size: 0.7rem;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: rgb(var(--sd-cream-rgb) / 0.45);
-}
-
-.sd-hero__facts strong {
-  font-family: var(--sd-font-display);
-  font-size: 1.05rem;
-  font-weight: 700;
-  color: #fff;
-}
-
 .sd-hero__actions {
   display: flex;
   flex-wrap: wrap;
@@ -1215,31 +1243,39 @@ html.sd-coming-soon body {
   opacity: 0;
 }
 
-.sd-hero__scroll {
+/* ── Barra del reloj, al pie del hero ──
+   Ocupa el lugar que tenía el "Seguí bajando" y reemplaza a los dos hitos con fechas que estaban
+   dentro del bloque de texto: un dato vivo en vez de dos muertos.
+
+   `position: absolute` para quedar FUERA del flujo de `.sd-hero`, que es un flex centrado: como
+   hijo normal empujaría el bloque de texto hacia arriba y descentraría el hero. Además la
+   costura con `.sd-sponsor-band` exige que el hero mida exactamente `100dvh`, así que esto no
+   puede sumar alto.
+
+   `left`/`right` cuelgan de `--sd-pad-x` y no del borde de la ventana: la barra queda a plomo con
+   el titular, igual que lo hacía el scroll hint. */
+.sd-hero__reloj {
   position: absolute;
   z-index: 3;
-  /* Cuelga de la grilla, no del borde de la ventana: queda a plomo con el titular del hero. */
   left: var(--sd-pad-x);
-  bottom: 28px;
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  color: rgb(var(--sd-cream-rgb) / 0.55);
-  font-size: 0.8rem;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  text-decoration: none;
-  opacity: 0;
+  right: var(--sd-pad-x);
+  bottom: clamp(20px, 4vh, 40px);
+  display: flex;
+  justify-content: center;
+  /* Sin línea arriba: el reloj es parte del hero, no un pie separado. */
+  padding-top: clamp(12px, 2vh, 20px);
+  opacity: 0; /* la enciende `.sd-root.is-loaded` — ver el bloque de entrada */
 }
 
-.sd-hero__scroll span {
-  display: block;
-  width: 1px;
-  height: 28px;
-  background: linear-gradient(180deg, rgba(255,255,255,0.55), transparent);
-  animation: sd-scroll-line 1.6s ease-in-out infinite;
+/* El ticker compartido, acá sin marco: el borde superior de la barra ya lo encuadra, y el marco
+   propio sumaba una caja dentro de otra. */
+.sd-hero__reloj .sd-cd__ticker {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
 }
+
 
 /* ── Entrada del hero ──
    Todo cuelga de `.sd-root.is-loaded`, que `SdShell` prende recién cuando termina el barrido:
@@ -1264,37 +1300,21 @@ html.sd-coming-soon body {
   animation: sd-fade-up 0.9s 0.18s ease both;
 }
 
-.sd-root.is-loaded .sd-hero__facts {
-  animation: sd-fade-up 0.9s 0.28s ease both;
-}
-
 .sd-root.is-loaded .sd-hero__actions {
   animation: sd-fade-up 0.9s 0.38s ease both;
 }
 
-.sd-root.is-loaded .sd-hero__scroll {
+/* La barra del reloj ocupa el turno que tenía el "Seguí bajando" en la secuencia. */
+.sd-root.is-loaded .sd-hero__reloj {
   animation: sd-fade-up 1s 0.6s ease both;
-}
-
-@keyframes sd-scroll-line {
-  0%, 100% { transform: scaleY(0.45); opacity: 0.4; transform-origin: top; }
-  50% { transform: scaleY(1); opacity: 1; transform-origin: top; }
-}
-
-@media (max-width: 639px) {
-  .sd-hero__facts {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    max-width: 320px;
-  }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .sd-hero__title,
   .sd-hero__eyebrow,
   .sd-hero__lede,
-  .sd-hero__facts,
   .sd-hero__actions,
-  .sd-hero__scroll,
+  .sd-hero__reloj,
   .sd-loader__logo,
   .sd-loader__orbit,
   .sd-loader__glow--a,
@@ -1305,9 +1325,8 @@ html.sd-coming-soon body {
   .sd-hero__title,
   .sd-hero__eyebrow,
   .sd-hero__lede,
-  .sd-hero__facts,
   .sd-hero__actions,
-  .sd-hero__scroll {
+  .sd-hero__reloj {
     opacity: 1;
     transform: none;
     transition: none !important;
@@ -1394,8 +1413,8 @@ html.sd-coming-soon body {
      ver `padding-bottom`: esa proporción es la de una lámina suelta y en la página se lee como
      hueco. */
   --sd-quien-bottom: clamp(28px, 6vh, 72px);
-  --sd-quien-k: clamp(0.3px, 0.052vw, 0.8px);
-  --sd-quien-hair: rgba(107, 107, 107, 0.29);
+  /* Unificada con la rejilla: la página no puede tener unas líneas grises y otras violetas. */
+  --sd-quien-hair: var(--sd-rejilla);
   /* Cuánto tardan las capas de atmósfera en entrar y salir en los bordes de la sección. Ver
      `--sd-quien-edge-fade`. */
   --sd-quien-edge: clamp(120px, 16vh, 210px);
@@ -1414,7 +1433,10 @@ html.sd-coming-soon body {
 
   position: relative;
   isolation: isolate;
-  overflow: hidden;
+  /* `clip` con margen, no `hidden`: el recorte sigue conteniendo los glows, pero deja salir los
+     pocos píxeles que las cruces de la rejilla necesitan para cruzar el borde enteras. */
+  overflow: clip;
+  overflow-clip-margin: var(--sd-cruz-aire);
   /* La lámina ocupa una pantalla entera, como en el Figma.
 
      Ojo con la geometría, que es la que hace que el aire de esta sección se comporte raro: la
@@ -1423,8 +1445,9 @@ html.sd-coming-soon body {
      la pantalla se inyecta ARRIBA de ella—. Con el contenido real (unos 580px a 1440×900) eso
      son ~320px de sobrante, y dónde caen los decide el `align-content` del `__body`. Ver
      `.sd-quien__body`. */
-  min-height: 100vh;
-  min-height: 100dvh;
+  /* Sin `min-height: 100dvh`. La lámina se diseñó como diapositiva suelta, que ocupa una
+     pantalla entera; dentro de la página eso la despegaba de la banda de sponsors y dejaba un
+     hueco grande arriba del titular. Ahora mide lo que mide su contenido, como el resto. */
   display: flex;
   flex-direction: column;
   /* Centra el GRUPO entero —bloque de texto + banda de logos— en la pantalla. Antes el `__body`
@@ -1454,7 +1477,9 @@ html.sd-coming-soon body {
      composición (la banda cierra, después el marco, después la sección) con una fracción del
      aire. Ojo: la sección mantiene `min-height: 100dvh` y centra su contenido, así que recortar
      acá no la achica — corre el grupo centrado un poco más abajo. */
-  padding-bottom: calc(var(--sd-quien-bottom) + clamp(24px, 5vh, 72px));
+  /* Sin aire extra abajo: los números cierran contra el borde de la sección, que es la línea
+     que dibuja la rejilla. Antes había acá ~144px de vacío entre la última línea y el corte. */
+  padding-bottom: 0;
 }
 
 /* El compás de Xplora tramado en ASCII, al 20% sobre negro. La caja del Figma (−15,1% a los lados,
@@ -1603,8 +1628,9 @@ html.sd-coming-soon body {
      esta caja, así que capar el ancho acá movía el contenido hacia adentro. */
   max-width: 100%;
   margin: 0 auto;
-  padding: calc(var(--sd-quien-top) + clamp(28px, 8vh, 102px)) var(--sd-quien-x)
-    clamp(28px, 6vh, 72px);
+  /* El `--sd-quien-top` de la diapositiva original sumaba ~186px acá arriba. Con la sección ya
+     sin `min-height`, ese aire es el hueco que se veía contra "Nos apoyan". */
+  padding: clamp(40px, 7vh, 88px) var(--sd-quien-x) clamp(28px, 6vh, 72px);
   display: grid;
   grid-template-columns: minmax(0, 601fr) minmax(0, 541fr);
   align-items: end;
@@ -1654,177 +1680,124 @@ html.sd-coming-soon body {
   gap: 14px;
 }
 
-/* ── Banda de logos ── */
-.sd-quien__logos {
+/* ── Cifras del recap ──
+   Van donde antes desfilaba la banda de logos, entre las mismas dos reglas a sangre. La banda
+   necesitaba 190 líneas de JS y un bloque de CSS parecido para sentirse viva; los números no se
+   mueven, así que esto es una grilla y nada más. */
+.sd-quien__cifras {
   position: relative;
   z-index: 2;
   flex: 0 0 auto;
 }
 
-.sd-quien__rule--band-top,
-.sd-quien__rule--band-bottom {
-  left: 0;
-  right: 0;
+/* La regla que encuadra los números por arriba. Va a sangre, como las dos que cierran la lámina:
+   abajo no lleva par propio —cierra el divisor de la sección siguiente—, así los números quedan
+   entre dos líneas y no entre cuatro. Declara su propio tamaño porque es la única de su clase:
+   cuando compartía bloque con una `--band-bottom` que ya no existe, quedarse sin él la dejaba en
+   una caja de 0×0 y la línea desaparecía sin que nada lo cantara.
+
+   Los rieles los toma con `--sd-rejilla-x`, y eso vale porque su contenedor —`__cifras`— mide lo
+   mismo que la sección: `--sd-pad-x` lleva un `100%` adentro y se resuelve contra la caja donde
+   se usa. Si algún día `.sd-quien` toma padding horizontal, esta línea se corre. */
+.sd-quien__rule--band-top {
+  top: 0;
+  left: var(--sd-rejilla-x);
+  right: var(--sd-rejilla-x);
   height: 1px;
   transform-origin: 50% 50%;
 }
 
-.sd-quien__rule--band-top {
-  top: 0;
-}
+/* La fila de números (`SdStats`). Vive acá y no en un bloque propio porque la lámina es su único
+   consumidor: el recap no tiene sección aparte.
 
-.sd-quien__rule--band-bottom {
-  bottom: 0;
-}
-
-/* La banda desfila sola hacia la izquierda, pero es un contenedor scrolleable de verdad: el
-   desplazamiento lo mueve `SdManifesto.tsx` sobre `scrollLeft`, no un `@keyframes` sobre
-   `transform`. Es lo que hace que la rueda, el trackpad, el swipe y el arrastre funcionen; con
-   `transform` la banda sólo se podía mirar pasar.
-
-   La barra de scroll se esconde: el difuminado de los bordes ya dice que la fila sigue, y una
-   barra debajo de los logos rompería la lámina. */
-.sd-quien__marquee {
-  overflow-x: auto;
-  overflow-y: hidden;
-  scrollbar-width: none;
-  -ms-overflow-style: none;
-  /* Sin esto, seguir arrastrando en el borde dispara el gesto de "atrás" del navegador. */
-  overscroll-behavior-x: contain;
-  cursor: grab;
-  /* Difuminado ancho: las marcas empiezan a desvanecerse bien antes del borde, así entran y salen
-     de la banda en vez de aparecer y cortarse contra el filo del marco. */
-  mask-image: linear-gradient(90deg, transparent 0, #000 20%, #000 80%, transparent 100%);
-  -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 20%, #000 80%, transparent 100%);
-}
-
-.sd-quien__marquee::-webkit-scrollbar {
-  display: none;
-}
-
-.sd-quien__marquee.is-arrastrando {
-  cursor: grabbing;
-}
-
-/* Mientras se arrastra, el logo de abajo no debe iniciar un drag de imagen ni quedar
-   seleccionado a medias. */
-.sd-quien__marquee.is-arrastrando .sd-quien__logo,
-.sd-quien__marquee.is-arrastrando img {
-  user-select: none;
-  -webkit-user-drag: none;
-}
-
-/* En el Figma la fila es un flex con 33px entre TODOS los elementos, separadores incluidos. Acá
-   ese 33 aparece dos veces —el `gap` de la fila y el de cada celda— y da justo el mismo ritmo:
-   logo ·33· separador ·33· logo. */
-.sd-quien__logo-row {
-  list-style: none;
+   Tres columnas fijas. Eran cinco o seis y el bloque se leía como planilla: a esa cantidad cada
+   número tenía que achicarse para entrar, y ninguno terminaba pesando. Con tres entran a escala
+   de titular, que es lo que hace que se recuerden. */
+.sd-quien__cifras .sd-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   margin: 0;
-  padding: 0;
+  padding: clamp(34px, 6vh, 64px) var(--sd-quien-x);
+  gap: clamp(20px, 3vw, 48px);
+  list-style: none;
+  border: 0; /* la regla de arriba la pone `--band-top`; abajo cierra el borde de la sección */
+}
+
+.sd-quien__cifras .sd-stats__item {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  /* `max-content` en vez de envolver: el track tiene que ser una sola línea para poder correrlo. */
-  width: max-content;
-  gap: calc(33 * var(--sd-quien-k));
-  min-height: calc(137 * var(--sd-quien-k));
-  /* Es el `offsetParent` de las celdas: el foco necesita la posición de cada logo dentro del
-     track, y medida contra cualquier otro ancestro le entraría un corrimiento constante. */
-  position: relative;
+  text-align: center;
+  gap: clamp(0.5rem, 1vh, 0.9rem);
+  min-width: 0;
 }
 
-.sd-quien__logo-cell {
-  display: flex;
-  align-items: center;
-  gap: calc(33 * var(--sd-quien-k));
-}
-
-.sd-quien__logo-sep {
-  flex: 0 0 auto;
-  width: 1px;
-  /* Alto de la banda entera, no el del logo vecino: en el diseño los separadores cortan de
-     hairline a hairline. */
-  height: calc(137 * var(--sd-quien-k));
-  background: rgba(107, 107, 107, 0.62);
-}
-
-/* Celda uniforme para todas las marcas. El diseño definía una caja propia por logo, pero sólo
-   para las 7 que dibujó; con la grilla entera de startups eso no existe, así que el ritmo lo
-   sostiene una celda igual para todas. No es un alto común disfrazado: al topar por ancho O por
-   alto, los wordmarks anchos terminan bajos y los isotipos cuadrados altos — la misma proporción
-   relativa que tenían en el Figma. */
-/* `opacity` y el `transform` de cada celda los pisa `SdManifesto.tsx` cuadro a cuadro: la marca
-   que pasa por el centro de la banda se enciende y crece un poco, y todas se inclinan con la
-   velocidad del desfile. Lo de acá es el estado de reposo, que es el que queda con
-   `prefers-reduced-motion` —ahí el componente no pinta nada— y el que se ve el primer cuadro.
-
-   Sin `transition` a propósito: con una, cada escritura por cuadro se convertiría en una
-   interpolación hacia el valor siguiente y el efecto quedaría embarrado. */
-.sd-quien__logo {
-  flex: 0 0 auto;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: calc(180 * var(--sd-quien-k));
-  height: calc(62 * var(--sd-quien-k));
-  text-decoration: none;
-  opacity: 0.82;
-}
-
-/* Las marcas linkean al sitio de cada startup. El hover lo resuelve el componente junto con el
-   foco —el estilo en línea le gana a esta regla—, así que esto cubre el caso sin movimiento. */
-a.sd-quien__logo:hover,
-a.sd-quien__logo:focus-visible {
-  opacity: 1;
-}
-
-a.sd-quien__logo:focus-visible {
-  outline: 1px solid rgba(255, 255, 255, 0.7);
-  outline-offset: calc(6 * var(--sd-quien-k));
-}
-
-/* Fallback para las confirmadas que todavía no tienen archivo de logo: el nombre en la misma
-   tipografía de titulares, para que la celda no quede vacía. */
-.sd-quien__logo-text {
+.sd-quien__cifras .sd-stats__value {
   font-family: var(--sd-font-display);
   font-weight: 700;
-  font-size: calc(19 * var(--sd-quien-k));
-  letter-spacing: 0.01em;
+  /* Escala de titular, no de dato: por encima de `--sd-title` a propósito, porque en esta
+     sección el número ES el titular y la frase del Figma quedó arriba como remate. */
+  font-size: clamp(3rem, 7vw, 6.5rem);
+  line-height: 0.95;
+  color: var(--sd-cream);
+  /* El contador sube de 0 al valor final: con dígitos de ancho variable la columna late. */
+  font-variant-numeric: tabular-nums;
+}
+
+/* Signo y unidad comparten tratamiento: más chicos que la cifra y en el violeta claro, para que
+   el número siga siendo lo que se lee primero. El `+` de "+500" va pegado y sin margen izquierdo
+   —es parte del token, no un operador suelto—. */
+.sd-quien__cifras .sd-stats__prefix,
+.sd-quien__cifras .sd-stats__suffix {
+  font-size: 0.6em;
+  color: var(--sd-purple-lift);
+}
+
+/* El `+` sube a la altura de mayúscula. Apoyado en la línea de base —que es donde cae por
+   defecto, al ser más chico que la cifra— se lee como subíndice y parece caído respecto del
+   500. La unidad (`h` de "5h") sí va en la base, que es donde corresponde. */
+.sd-quien__cifras .sd-stats__prefix {
+  vertical-align: 0.42em;
+}
+
+.sd-quien__cifras .sd-stats__suffix {
+  margin-left: 0.06em;
+}
+
+.sd-quien__cifras .sd-stats__label {
+  font-size: clamp(0.68rem, 0.8vw, 0.84rem);
+  font-weight: 700;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
-  color: #fff;
-  text-align: center;
-  line-height: 1.1;
+  line-height: 1.35;
+  color: rgb(var(--sd-cream-rgb) / 0.6);
+  max-width: 14ch;
 }
 
-/* `brightness(0) invert(1)` lleva cualquier píxel opaco a blanco puro respetando el alfa. No
-   sirve `grayscale`, que sobre un azul o un verde saturado deja un gris medio. */
-.sd-quien__logo img {
-  display: block;
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-  filter: brightness(0) invert(1);
+/* ── Kicker y cierre, las dos piezas que sumó el recap ── */
+
+/* El dato que fecha la lámina. Va arriba del titular porque es lo primero que tiene que leerse:
+   sin él, "importa quién querés ser" sigue sonando a invitación a algo que todavía no pasó. */
+.sd-quien__kicker {
+  margin: 0 0 clamp(12px, 1.6vh, 20px);
+  font-family: var(--sd-font-display);
+  font-size: clamp(0.68rem, 0.78vw, 0.8rem);
+  font-weight: 400;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--sd-purple-lift);
 }
 
-/* Las que traen fondo opaco propio: blanquearlas daría un bloque sólido, así que se muestran tal
-   cual, sobre su chip. Mismo tratamiento que el diseño le da al isotipo de Berry. */
-.sd-quien__logo--chip img {
-  filter: none;
-  border-radius: calc(10 * var(--sd-quien-k));
-}
 
 /* ── Angosto ──
-   El marco y la banda son el sistema gráfico, no una grilla de datos, así que abajo de 900px
-   basta con apilar las dos columnas y dejar que la fila de logos envuelva. Los separadores se van:
-   entre líneas envueltas cortarían en falso. Es el mismo ancho al que `SdManifesto.tsx` decide no
-   montar el timeline, así que acá la lámina siempre se ve completa y quieta. */
+   El marco es el sistema gráfico, no una grilla de datos, así que abajo de 900px basta con
+   apilar las dos columnas y dejar que la fila de cifras envuelva sola. Es el mismo ancho al que
+   `SdManifesto.tsx` decide no montar el timeline, así que acá la lámina siempre se ve completa
+   y quieta. */
 @media (max-width: 900px) {
   .sd-quien {
-    /* Un piso más alto para `k`: atado sólo a `vw`, a 480px daría 0,25px y los logos quedarían
-       ilegibles —entran los 7 en una línea justamente porque son minúsculos—. Con 0,55px pasan a
-       medir lo suficiente como para no entrar todos, que es lo que los hace envolver. */
-    --sd-quien-k: 0.55px;
-    /* El marco tiene que cerrar POR DEBAJO de la banda: con el valor de escritorio (14,4vh) el
-       borde inferior le caía encima. */
+    /* El marco tiene que cerrar POR DEBAJO de las cifras: con el valor de escritorio (14,4vh)
+       el borde inferior les caía encima. */
     --sd-quien-bottom: clamp(20px, 5vh, 44px);
     padding-bottom: clamp(32px, 10vh, 96px);
   }
@@ -1834,8 +1807,16 @@ a.sd-quien__logo:focus-visible {
     align-items: start;
   }
 
-  .sd-quien__logo-row {
-    padding-block: clamp(14px, 3vw, 22px);
+  /* Las tres columnas se sostienen hasta acá; abajo de 560px se apilan (ver el bloque de 560). */
+}
+
+/* Tres cifras de este cuerpo no entran en una pantalla de teléfono: a 390px cada columna daría
+   ~110px y el número tendría que bajar a la mitad, que es perder justo lo que se ganó. Apiladas
+   mantienen la escala y la sección se recorre con el pulgar, que es como se lee ahí. */
+@media (max-width: 560px) {
+  .sd-quien__cifras .sd-stats {
+    grid-template-columns: minmax(0, 1fr);
+    gap: clamp(22px, 4vh, 34px);
   }
 }
 
@@ -1850,337 +1831,483 @@ a.sd-quien__logo:focus-visible {
   }
 }
 
-/* Agenda bloqueada — ver SD_AGENDA_LOCKED en data/startupDay.ts */
-.sd-agenda-locked {
-  display: grid;
-  justify-items: start;
-  gap: 1.15rem;
-  width: 100%;
-  padding: clamp(1.75rem, 4vw, 2.75rem);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: var(--sd-radius);
-  background:
-    radial-gradient(120% 140% at 0% 0%, rgb(var(--sd-purple-rgb) / 0.2), transparent 62%),
-    rgba(255, 255, 255, 0.03);
+
+/* ── Slider de marcas (`SdMarcas`) ─────────────────────────────────────────────────────────
+   La banda que vivía al pie de la lámina "No importa quién sos", recuperada como sección propia.
+   El CSS es el mismo del original, con el prefijo cambiado: el markup ya no está dentro de
+   `.sd-quien`, y dejarle ese nombre haría que las reglas mientan sobre dónde viven.
+
+   `--sd-marcas-k` es el factor de escala de todas las medidas del Figma (la banda se diseñó
+   sobre 1920px). Atado a `vw` para que la fila crezca con la ventana sin romper proporciones. */
+.sd-marcas {
+  --sd-marcas-k: clamp(0.3px, 0.052vw, 0.8px);
+  /* El track mide `max-content`: sin recorte la página scrollea de costado. `clip` en vez de
+     `hidden` para poder abrirle un margen: las cruces de la rejilla se dibujan a caballo del
+     borde de la sección y `hidden` les comía la mitad de arriba. Ver `--sd-cruz-aire`. */
+  overflow: clip;
+  overflow-clip-margin: var(--sd-cruz-aire);
 }
 
-.sd-agenda-locked__icon {
-  display: grid;
-  place-items: center;
-  width: 42px;
-  height: 42px;
-  border-radius: var(--sd-radius);
-  background: var(--sd-purple);
-  color: #fff;
+.sd-marcas__head {
+  margin-bottom: clamp(28px, 5vw, 56px);
 }
 
-.sd-agenda-locked__icon svg {
-  width: 22px;
-  height: 22px;
-}
-
-.sd-agenda-locked__title {
-  margin: 0;
-  font-family: var(--sd-font-display);
-  font-size: clamp(1.6rem, 4vw, 2.35rem);
-  line-height: 1.1;
-  max-width: 16ch;
-}
-
-.sd-agenda-locked__copy {
-  margin: 0;
-  font-size: clamp(1rem, 2vw, 1.1rem);
-  line-height: 1.65;
-  max-width: 44ch;
-  color: rgb(var(--sd-cream-rgb) / 0.72);
-}
-
-.sd-agenda-locked__fact {
+/* Sólo el título: la regla que corría a su derecha se sacó, así que acá no queda nada que
+   repartir. */
+.sd-marcas__masthead {
   display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: 0.35rem 0.85rem;
-  width: 100%;
-  margin: 0;
-  padding-top: 1.15rem;
-  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  align-items: center;
 }
 
-.sd-agenda-locked__fact-k {
-  font-size: 0.72rem;
-  font-weight: 700;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--sd-purple-lift);
-}
-
-.sd-agenda-locked__fact-v {
-  font-family: var(--sd-font-display);
-  font-size: clamp(1rem, 2.2vw, 1.15rem);
-  font-weight: 600;
-  letter-spacing: 0.02em;
-  color: var(--sd-cream);
-}
-
-
-/* ── Grilla de la agenda ──────────────────────────────────────────────
-   Antes esto era una línea de tiempo de una sola pista, con una "espina" cuya altura se calculaba
-   leyendo el `getBoundingClientRect()` de cada fila en un `useLayoutEffect` y en un listener de
-   `resize`. Después pasó a ser el horario real convertido en grid-row (huecos = filas vacías, alto
-   ∝ duración). Ahora es lo más simple de las tres: cada aula es una columna con sus cards apiladas
-   una pegada a la otra, en el orden de la data — sin riel, sin huecos. El horario de cada charla
-   vive adentro de su propia card.
-
-   Acá abajo es el layout base (mobile-first): las cards crecen a su alto natural y la sección
-   scrollea como cualquier otra. De 720px para arriba (ver el media query más abajo) la sección
-   pasa a medir `100dvh` fijo y todo el interior reparte ese alto por flex, así entra entera sin
-   scrollear — con 14 cards no cabía scrollear en +/- 90px de mobile.
-
-   `--sd-agenda-cols` la comparten el encabezado y la grilla para que las dos columnas queden a
-   plomo sin `subgrid`. */
-.sd-agenda {
-  --sd-agenda-cols: repeat(2, minmax(0, 1fr));
-  /* Las columnas van al ras (gap 0) y el aire lo pone el padding de cada celda: así la medianera
-     cae exactamente en el medio de la grilla. Con `column-gap` la línea quedaba pegada al borde
-     izquierdo de la segunda columna en vez de partir la tabla al medio. */
-  --sd-agenda-gap: 0px;
-  --sd-agenda-pad: clamp(10px, 1.6vw, 22px);
-  --sd-agenda-rule: 1px solid rgb(var(--sd-purple-rgb) / 0.18);
-  display: flex;
-  flex-direction: column;
-  gap: clamp(0.75rem, 2vh, 1.15rem);
-}
-
-.sd-agenda__head {
-  margin-bottom: clamp(1.25rem, 3vh, 2rem);
-}
-
-.sd-agenda__title {
-  margin: 0;
+.sd-marcas__title {
   font-family: var(--sd-font-display);
   font-size: var(--sd-title);
-  font-weight: 800;
-  line-height: 0.98;
-  letter-spacing: -0.035em;
+  line-height: 1.05;
+  margin: 0;
   text-transform: uppercase;
   color: var(--sd-cream);
-}
-
-.sd-agenda__sub {
-  margin: clamp(0.75rem, 1.6vh, 1.1rem) 0 0;
-  max-width: 46ch;
-  font-family: var(--sd-font-body);
-  font-weight: 300;
-  font-size: clamp(0.95rem, 1.04vw, 1.25rem);
-  line-height: 1.5;
-  color: rgb(var(--sd-cream-rgb) / 0.62);
-}
-
-.sd-agenda__cols {
-  display: grid;
-  grid-template-columns: var(--sd-agenda-cols);
-  column-gap: var(--sd-agenda-gap);
-}
-
-/* Rótulo de aula: en el afiche es un título propio —centrado, itálico, del mismo cuerpo que el
-   resto de la lámina— y no el rótulo mono chiquito que era antes. */
-.sd-agenda__col-head {
-  padding: 0 var(--sd-agenda-pad) clamp(0.5rem, 1.4vh, 0.9rem);
-  font-family: var(--sd-font-body);
-  font-style: italic;
-  font-size: clamp(1rem, 2.1vh, 1.5rem);
-  font-weight: 600;
-  letter-spacing: -0.02em;
-  text-align: center;
-  text-transform: uppercase;
-  color: var(--sd-cream);
-}
-
-.sd-agenda__col-head + .sd-agenda__col-head {
-  border-left: var(--sd-agenda-rule);
-}
-
-.sd-agenda__grid {
-  display: grid;
-  grid-template-columns: var(--sd-agenda-cols);
-  column-gap: var(--sd-agenda-gap);
-}
-
-.sd-agenda__col {
-  display: flex;
-  flex-direction: column;
-  margin: 0;
-  padding: 0 var(--sd-agenda-pad);
-  list-style: none;
-}
-
-/* La única línea vertical es la medianera entre las dos aulas — el marco exterior del afiche no
-   se trae: en la página la sección ya está enmarcada por su propio ancho. */
-.sd-agenda__col + .sd-agenda__col {
-  border-left: var(--sd-agenda-rule);
-}
-
-/* Filas de tabla, no cards: el afiche no tiene cajas: cada charla se separa de la siguiente sólo
-   por una línea. Sin fondo, sin borde de caja y sin redondeo, el bloque se lee como una grilla
-   impresa y el logo queda como la única mancha de la fila. */
-.sd-agenda__card {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: clamp(6px, 0.8vh, 10px);
-  padding: clamp(12px, 1.6vh, 18px) 0;
-  border-top: var(--sd-agenda-rule);
-  text-align: center;
-}
-
-.sd-agenda__card:last-child {
-  border-bottom: var(--sd-agenda-rule);
-}
-
-.sd-agenda__mark {
-  position: relative;
-  width: 100%;
-  height: clamp(52px, 8vw, 84px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-/* `brightness(0) invert(1)` lleva cualquier píxel opaco a blanco puro respetando el alfa — el
-   mismo tratamiento que `.sd-quien__logo img`, y por la misma razón: sobre la card oscura, los
-   logos que vienen en negro (uin, TQe) directamente no se veían. */
-.sd-agenda__mark img {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  max-width: 190px;
-  /* `margin-inline: auto` con `left/right: 0` centra el logo dentro de la celda: el `max-width`
-     lo deja más angosto que la fila, y sin esto quedaba clavado a la izquierda. */
-  margin-inline: auto;
-  object-fit: contain;
-  object-position: center;
-  filter: brightness(0) invert(1);
-  opacity: 0.92;
-}
-
-/* Ver `logoEnColor` en `SdCharla`: las marcas macizas se aplanan a una mancha blanca. */
-.sd-agenda__mark img.is-color {
-  filter: none;
-  opacity: 1;
-}
-
-
-/* Sólo para las charlas sin archivo de logo: ocupa el lugar del logo, no se suma a él. */
-.sd-agenda__name {
-  margin: 0;
-  font-family: var(--sd-font-display);
-  font-size: clamp(0.82rem, 1.15vw, 0.98rem);
-  font-weight: 700;
-  line-height: 1.15;
-  letter-spacing: -0.01em;
-  color: var(--sd-cream);
-  overflow-wrap: anywhere;
-}
-
-/* Orador — la línea gris entre el logo y el horario. En el afiche es el mismo cuerpo que la hora
-   y sólo cambia el color; acá baja un punto porque un nombre largo ("Maika Basavilbasoh & Juan
-   de Ezcurra") tiene que entrar en media fila sin romper la altura de la grilla. */
-.sd-agenda__speaker {
-  flex: 0 0 auto;
-  margin: 0;
-  font-family: var(--sd-font-body);
-  font-style: italic;
-  font-size: clamp(0.68rem, 0.92vw, 0.82rem);
-  font-weight: 400;
-  line-height: 1.25;
-  letter-spacing: -0.01em;
-  text-transform: uppercase;
-  color: rgb(var(--sd-cream-rgb) / 0.58);
-  text-wrap: balance;
-}
-
-/* El afiche pone la hora en `#5328d8`, que sobre este fondo no llega a contraste de texto chico
-   —el mismo motivo por el que existe `--sd-purple-lift`, ver el bloque de tokens—. Se mantiene
-   el rol (la hora es el dato violeta de la fila) con el violeta que sí se lee. */
-.sd-agenda__when {
-  flex: 0 0 auto;
-  margin: 0;
-  font-family: var(--sd-font-body);
-  font-style: italic;
-  font-size: clamp(0.7rem, 0.95vw, 0.85rem);
-  font-weight: 500;
-  letter-spacing: -0.01em;
-  font-variant-numeric: tabular-nums;
-  color: var(--sd-purple-lift);
   white-space: nowrap;
 }
 
-.sd-agenda__note {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.5rem 0.75rem;
-  margin: clamp(0.5rem, 1.5vh, 1rem) 0 0;
-  padding-top: clamp(0.85rem, 2vh, 1.15rem);
-  border-top: var(--sd-agenda-rule);
-  font-size: clamp(0.78rem, 1vw, 0.88rem);
-  color: rgb(var(--sd-cream-rgb) / 0.5);
+.sd-marcas__lead {
+  margin: clamp(12px, 2vh, 20px) 0 0;
+  font-size: clamp(0.95rem, 1.8vw, 1.05rem);
+  line-height: 1.65;
+  color: rgb(var(--sd-cream-rgb) / 0.62);
+  max-width: 42rem;
 }
 
-.sd-agenda__note-icon {
+/* La banda desfila sola hacia la izquierda, pero es un contenedor scrolleable de verdad: el
+   desplazamiento lo mueve `SdMarcas.tsx` sobre `scrollLeft`, no un `@keyframes` sobre
+   `transform`. Es lo que hace que la rueda, el trackpad, el swipe y el arrastre funcionen.
+
+   La barra de scroll se esconde: el difuminado de los bordes ya dice que la fila sigue. */
+.sd-marcas__marquee {
+  overflow-x: auto;
+  /* Encuadrada dentro de la rejilla. Antes iba a sangre y las verticales de la rejilla le pasaban
+     por encima a los logos, que quedaba pésimo. El difuminado de los bordes sigue haciendo su
+     trabajo dentro de este ancho: la banda se sigue leyendo como infinita, pero respeta el marco
+     como todo lo demás de la página. */
+  margin-inline: var(--sd-pad-x);
+  overflow-y: hidden;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  /* Sin esto, seguir arrastrando en el borde dispara el gesto de "atrás" del navegador. */
+  overscroll-behavior-x: contain;
+  cursor: grab;
+  /* Difuminado ancho: las marcas empiezan a desvanecerse bien antes del borde, así entran y salen
+     de la banda en vez de aparecer y cortarse contra el filo. */
+  mask-image: linear-gradient(90deg, transparent 0, #000 12%, #000 88%, transparent 100%);
+  -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 12%, #000 88%, transparent 100%);
+}
+
+.sd-marcas__marquee::-webkit-scrollbar {
+  display: none;
+}
+
+.sd-marcas__marquee.is-arrastrando {
+  cursor: grabbing;
+}
+
+/* Mientras se arrastra, el logo de abajo no debe iniciar un drag de imagen ni quedar
+   seleccionado a medias. */
+.sd-marcas__marquee.is-arrastrando .sd-marcas__logo,
+.sd-marcas__marquee.is-arrastrando img {
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+/* El `gap` bajó de 76 a 24 al agrandar la celda: como cada logo ahora ocupa sólo la fracción que
+   le toca de una caja más grande (ver `startupDayEscalas.ts`), el aire que los separa ya viene
+   adentro de la celda. Manteniendo 76 encima entraban tres logos por pantalla y la banda se veía
+   vacía. */
+.sd-marcas__row {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  /* `max-content` en vez de envolver: el track tiene que ser una sola línea para poder correrlo. */
+  width: max-content;
+  gap: calc(24 * var(--sd-marcas-k));
+  min-height: calc(150 * var(--sd-marcas-k));
+  /* Es el `offsetParent` de las celdas: el foco necesita la posición de cada logo dentro del
+     track, y medida contra cualquier otro ancestro le entraría un corrimiento constante. */
+  position: relative;
+}
+
+.sd-marcas__cell {
+  display: flex;
+  align-items: center;
+}
+
+/* Celda uniforme para todas las marcas. Al topar por ancho O por alto, los wordmarks anchos
+   terminan bajos y los isotipos cuadrados altos — la misma proporción relativa del Figma.
+
+   `opacity` y el `transform` de cada celda los pisa `SdMarcas.tsx` cuadro a cuadro: la marca que
+   pasa por el centro se enciende y crece un poco, y todas se inclinan con la velocidad del
+   desfile. Lo de acá es el estado de reposo, que es el que queda con `prefers-reduced-motion`
+   —ahí el componente no pinta nada— y el que se ve el primer cuadro.
+
+   Sin `transition` a propósito: con una, cada escritura por cuadro se convertiría en una
+   interpolación hacia el valor siguiente y el efecto quedaría embarrado. */
+.sd-marcas__logo {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* La caja creció 1,75× respecto del Figma, que es el factor con el que se normalizaron las
+     escalas de `startupDayEscalas.ts`: todas son ≤ 1 para que ninguna desborde la celda, así que
+     el tamaño real lo pone esta caja y cada logo ocupa la fracción que le toca. */
+  width: calc(376 * var(--sd-marcas-k));
+  height: calc(130 * var(--sd-marcas-k));
+  text-decoration: none;
+  opacity: 0.82;
+}
+
+/* El hover lo resuelve el componente junto con el foco —el estilo en línea le gana a esta
+   regla—, así que esto cubre el caso sin movimiento. */
+a.sd-marcas__logo:hover,
+a.sd-marcas__logo:focus-visible {
+  opacity: 1;
+}
+
+a.sd-marcas__logo:focus-visible {
+  outline: 1px solid rgba(255, 255, 255, 0.7);
+  outline-offset: calc(6 * var(--sd-marcas-k));
+}
+
+/* Fallback para las marcas sin archivo de logo: el nombre en la tipografía de titulares, para
+   que la celda no quede vacía. */
+.sd-marcas__logo-text {
+  font-family: var(--sd-font-display);
+  font-weight: 700;
+  font-size: calc(19 * var(--sd-marcas-k));
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
+  color: #fff;
+  text-align: center;
+  line-height: 1.1;
+}
+
+/* `brightness(0) invert(1)` lleva cualquier píxel opaco a blanco puro respetando el alfa. No
+   sirve `grayscale`, que sobre un azul o un verde saturado deja un gris medio. */
+.sd-marcas__logo img {
   display: block;
-  width: 16px;
+  /* La corrección óptica (`--escala`, ver `startupDayEscalas.ts`) va acá y no en un `transform`
+     del contenedor: el efecto de foco escribe `transform` inline sobre `.sd-marcas__logo` cuadro a
+     cuadro y se pisarían. Achicando la caja del <img>, `object-fit: contain` reencaja el logo
+     dentro y el resultado es el mismo sin tocar transformaciones. */
+  width: calc(100% * var(--escala, 1));
+  height: calc(100% * var(--escala, 1));
+  margin: auto;
+  object-fit: contain;
+  filter: brightness(0) invert(1);
+}
+
+/* Las que traen fondo opaco propio: blanquearlas daría un bloque sólido, así que se muestran tal
+   cual, sobre su chip. */
+.sd-marcas__logo--chip img {
+  filter: none;
+  border-radius: calc(10 * var(--sd-marcas-k));
+}
+
+@media (max-width: 900px) {
+  .sd-marcas {
+    /* Un piso más alto para `k`: atado sólo a `vw`, a 480px daría 0,25px y los logos quedarían
+       ilegibles. Con 0,55px pasan a medir lo suficiente para leerse. */
+    --sd-marcas-k: 0.55px;
+  }
+
+  .sd-marcas__masthead {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  /* La regla horizontal no tiene a qué acompañar cuando el título está solo en su línea. */
+}
+
+
+/* ── Media partners y galería (`SdMedia`) ─────────────────────────────────────────────────
+   Se probó en banda clara (`--sd-band--cream`) para cortar el violeta de la página y quedó mal:
+   el blanco peleaba con todo lo demás en vez de dar respiro. Vuelve a oscuro, pero **no al mismo
+   `--sd-ink` que sus vecinas**: va en `--sd-void`, el negro profundo del hero, más una viñeta
+   interior. El corte ahora es por profundidad y no por color, que era lo que se buscaba. */
+
+/* La viñeta: sombra interior en los cuatro bordes, que hunde la sección respecto de las de al
+   lado. `inset` y no un degradado de fondo para que no pelee con el color base. */
+.sd-media {
+  /* Cuánto dura el pase de `--sd-ink` a `--sd-void`. Lo comparten el degradado del fondo y la
+     máscara de la viñeta, así que mover este número mueve la costura entera de una pieza. */
+  --sd-media-pase: clamp(140px, 20vh, 300px);
+
+  /* El corte de `--sd-ink` (la sección de arriba) a `--sd-void` era a filo y se leía como un
+     tajo. El degradado entra desde el color de la vecina y recién después asienta en el negro,
+     misma técnica que usan `.sd-quien` y `.sd-cd` para sus propias costuras. */
+  background: linear-gradient(
+    to bottom,
+    var(--sd-ink) 0,
+    var(--sd-void) var(--sd-media-pase),
+    var(--sd-void) 100%
+  );
+}
+
+/* ── La costura con `#marcas` ──
+   El degradado de arriba resuelve el color, pero solo no alcanzaba: la viñeta iba como
+   `box-shadow: inset 0 0 … / .55` de la sección entera y un inset pinta a fuerza plena contra
+   TODOS los bordes, el de arriba incluido. O sea que justo donde `#marcas` llega en `--sd-ink`
+   claro, esta sección arrancaba con su punto más oscuro: un escalón de tono, que es el tajo que
+   se veía. Dos capas lo arreglan. */
+
+/* 1. El disuelto. Una trama de puntos del color de ESTA sección que se come el final de la
+      anterior: arranca invisible arriba y llega opaca a la costura, donde el degradado del fondo
+      la releva. El efecto es el de un dithering —la misma familia que el ASCII del hero— y no
+      cuesta nada: son dos gradientes de CSS. */
+.sd-media__disuelto {
+  left: 0;
+  right: 0;
+  /* Monta entera POR ENCIMA del borde de la sección: lo que trama es el pie de `#marcas`. */
+  bottom: 100%;
+  height: clamp(120px, 18vh, 240px);
+  background-image: radial-gradient(
+    circle at 50% 50%,
+    rgb(var(--sd-void-rgb) / 0.95) 0.9px,
+    transparent 1.1px
+  );
+  background-size: 5px 5px;
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 100%);
+  mask-image: linear-gradient(to bottom, transparent 0, #000 100%);
+}
+
+/* 2. La viñeta, ya sin morder el borde de arriba: la máscara la deja entrar recién cuando el
+      degradado del fondo terminó de asentar en `--sd-void`. */
+.sd-media__vineta {
+  inset: 0;
+  box-shadow: inset 0 0 clamp(60px, 9vw, 130px) rgb(0 0 0 / 0.55);
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 var(--sd-media-pase));
+  mask-image: linear-gradient(to bottom, transparent 0, #000 var(--sd-media-pase));
+}
+
+.sd-media__head {
+  margin-bottom: clamp(24px, 4vw, 44px);
+}
+
+/* Sólo el título: la regla que corría a su derecha se sacó, así que acá no queda nada que
+   repartir. */
+.sd-media__masthead {
+  display: flex;
+  align-items: center;
+}
+
+.sd-media__title {
+  font-family: var(--sd-font-display);
+  font-size: var(--sd-title);
+  line-height: 1.05;
+  margin: 0;
+  text-transform: uppercase;
+  color: var(--sd-cream);
+  white-space: nowrap;
+}
+
+/* Grilla pareja. Las fotos vienen casi todas apaisadas y una vertical; `aspect-ratio` + `cover`
+   las iguala sin deformar ninguna, que es lo que hacía falta para que la grilla no se escalone. */
+/* Sin regla arriba. La tenía, y era la única línea de la página que no llegaba a los rieles:
+   arrancaba en el borde de CONTENIDO de la sección, unos 58px adentro del marco, y se leía como
+   una línea suelta. Llevarla a los rieles desde acá adentro no se puede sin repetir la fórmula
+   de `--sd-pad-x`: esa variable tiene un `100%` —el centrado del shell— que se resuelve contra
+   la caja donde se usa, así que adentro de la galería, más angosta que la sección, da otro
+   número. Los ~130px de aire que quedan separan igual los créditos de las fotos. */
+.sd-media__galeria {
+  margin-top: clamp(48px, 7vw, 84px);
+  padding-top: clamp(28px, 4vw, 44px);
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: clamp(8px, 1vw, 14px);
+}
+
+.sd-media__foto {
+  margin: 0;
+  overflow: hidden;
+  border-radius: var(--sd-radius);
+  background: rgb(var(--sd-ink-rgb) / 0.6);
+}
+
+.sd-media__foto img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  aspect-ratio: 3 / 2;
+  object-fit: cover;
+  /* Apagadas de base y a color al pasar por encima: la grilla entera a full saturación compite
+     con el resto de la página. */
+  opacity: 0.86;
+  transition: opacity 0.3s ease, transform 0.4s ease;
+}
+
+.sd-media__foto:hover img {
+  opacity: 1;
+  transform: scale(1.03);
+}
+
+/* ── Créditos ── */
+
+/* Los partners abren la sección: sin borde ni margen arriba, que era lo que los separaba de la
+   galería cuando iban debajo. Esa separación se mudó a `__galeria`. */
+.sd-media__partners {
+  margin-top: clamp(4px, 1vw, 12px);
+}
+
+.sd-media__partners-title {
+  margin: 0 0 clamp(20px, 3vw, 32px);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
   color: var(--sd-purple-lift);
 }
 
-.sd-agenda__note-icon svg {
+.sd-media__lista {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
+  gap: clamp(24px, 3vw, 40px);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.sd-media__partner {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.6rem;
+}
+
+/* Los tres logos llegaron blancos sobre transparente, así que sobre fondo oscuro se ven solos —
+   sin filtro y sin placa. La placa existió mientras la sección fue clara, donde desaparecían.
+
+   Se topa por ALTO y no por ancho: las proporciones van de 3,3:1 a 0,75:1 y limitando el ancho
+   SLA salía al triple que los otros. */
+.sd-media__partner-logo {
+  height: clamp(34px, 3.4vw, 44px);
+  width: auto;
+  max-width: 170px;
+  object-fit: contain;
+  display: block;
+}
+
+.sd-media__partner-nombre {
+  font-family: var(--sd-font-display);
+  font-weight: 700;
+  font-size: clamp(1.15rem, 1.9vw, 1.5rem);
+  text-transform: uppercase;
+  letter-spacing: 0.01em;
+  color: var(--sd-cream);
+}
+
+.sd-media__partner-aporte {
+  margin: 0;
+  font-size: 0.92rem;
+  line-height: 1.6;
+  color: rgb(var(--sd-cream-rgb) / 0.6);
+}
+
+/* La card del video: miniatura local con el botón de play encima y link a YouTube. */
+.sd-media__video {
+  display: block;
+  margin-top: 0.4rem;
+  text-decoration: none;
+  width: 100%;
+}
+
+.sd-media__video-img {
+  position: relative;
+  display: block;
+  overflow: hidden;
+  border-radius: var(--sd-radius);
+  border: 1px solid rgb(var(--sd-cream-rgb) / 0.14);
+}
+
+.sd-media__video-img img {
   display: block;
   width: 100%;
   height: auto;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  opacity: 0.82;
+  transition: opacity 0.25s ease;
 }
 
-.sd-agenda__note-sep {
-  width: 1px;
-  height: 0.9em;
-  background: rgb(var(--sd-purple-rgb) / 0.35);
+.sd-media__video:hover .sd-media__video-img img,
+.sd-media__video:focus-visible .sd-media__video-img img {
+  opacity: 1;
+}
+
+.sd-media__play {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.sd-media__play svg {
+  width: clamp(38px, 5vw, 52px);
+  height: clamp(38px, 5vw, 52px);
+  padding: 8px;
+  color: #fff;
+  background: rgb(var(--sd-purple-rgb) / 0.88);
+  border-radius: 50%; /* única excepción a "nada circular": es el glifo universal de play */
+  transition: transform 0.25s ease, background 0.25s ease;
+}
+
+.sd-media__video:hover .sd-media__play svg {
+  transform: scale(1.08);
+  background: var(--sd-purple);
+}
+
+.sd-media__video-titulo {
+  display: block;
+  margin-top: 0.6rem;
+  font-size: 0.88rem;
+  line-height: 1.45;
+  color: rgb(var(--sd-cream-rgb) / 0.78);
+}
+
+.sd-media__video:hover .sd-media__video-titulo {
+  color: var(--sd-cream);
+}
+
+.sd-media__video:focus-visible .sd-media__video-img {
+  outline: 2px solid var(--sd-purple-lift);
+  outline-offset: 3px;
+}
+
+@media (max-width: 900px) {
+  .sd-media__masthead {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .sd-media__galeria {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 520px) {
+  /* Una por fila: a dos columnas en 390px cada foto mide 180px y no se distingue qué pasa. */
+  .sd-media__galeria {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 /* ── Angosto: se cae el paralelismo ──
    Dos columnas de cards no entran en un teléfono, así que cada aula pasa a ser una lista apilada
    con su propio rótulo (el encabezado de dos columnas deja de tener sentido en una sola). */
 @media (max-width: 719px) {
-  .sd-agenda__cols {
-    display: none;
-  }
-
-  .sd-agenda__grid {
-    grid-template-columns: minmax(0, 1fr);
-    row-gap: clamp(1.5rem, 5vw, 2.25rem);
-  }
-
-  .sd-agenda__col {
-    padding-inline: 0;
-  }
-
   /* En una sola columna no hay medianera que dibujar. */
-  .sd-agenda__col + .sd-agenda__col {
-    border-left: 0;
-  }
-
-  .sd-agenda__col::before {
-    content: attr(aria-label);
-    display: block;
-    margin-bottom: clamp(8px, 2vw, 12px);
-    font-family: var(--sd-font-body);
-    font-style: italic;
-    font-size: 1.05rem;
-    font-weight: 600;
-    letter-spacing: -0.02em;
-    text-align: center;
-    text-transform: uppercase;
-    color: var(--sd-cream);
-  }
 }
 
 .sd-btn {
@@ -2959,179 +3086,138 @@ a.sd-partner__name:hover {
 }
 
 
-/* ── Las cuatro filas ──
-   Cada fila es una grilla de cuatro columnas y sus tres piezas comparten la primera línea: el
-   botón toma las columnas 1-2 (número + nombre), la descripción la 3 y la flecha la 4. La
-   descripción es HERMANA del botón, no hija: así arranca a la altura del nombre en vez de caer
-   debajo, y el nombre accesible del botón sigue siendo sólo "Stands" y no el párrafo entero.
+/* ── El bento ──
+   Cuatro celdas con pesos distintos: 7/5 arriba y 5/7 abajo sobre una grilla de 12. Cuatro cajas
+   iguales se leen como una tabla; alternando el ancho la grilla tiene ritmo y la vista entra por
+   la celda grande de cada fila.
 
-   El botón repite el ancho de la primera columna en su propia grilla en vez de usar `subgrid`:
-   son dos tracks y de esta forma el número queda a plomo con el resto sin depender de él. */
-.sd-exp__list {
-  --sd-exp-num-col: clamp(3.2rem, 5vw, 4.5rem);
-  --sd-exp-arrow-size: clamp(18px, 2vw, 24px);
-  --sd-exp-name-size: clamp(1.5rem, 3.4vw, 2.6rem);
-  --sd-exp-gap: clamp(12px, 2vw, 28px);
-  --sd-exp-rule: 1px solid rgb(var(--sd-purple-rgb) / 0.18);
-}
-
-.sd-exp__row {
+   Las hairlines salen del `gap`, no de un `border` por celda: con bordes, dos celdas vecinas
+   apoyan uno contra otro y la línea del medio sale de 2px mientras las del contorno miden 1. Un
+   `gap` de 1px sobre un fondo gris deja el fondo a la vista, y eso es exactamente una retícula de
+   líneas de 1px parejas — el mismo gris que los rieles de la página. */
+.sd-exp__bento {
   display: grid;
-  grid-template-columns:
-    var(--sd-exp-num-col) minmax(0, 1fr) minmax(0, 1.05fr) var(--sd-exp-arrow-size);
-  gap: var(--sd-exp-gap);
-  /* Anclado arriba: cuando una fila se abre, el número, el nombre y la flecha se quedan en la
-     primera línea en vez de irse al centro de la caja alta. */
-  align-items: start;
-  padding: clamp(18px, 2.6vh, 30px) 0;
-  border-top: var(--sd-exp-rule);
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: 1px;
+  background: var(--sd-rejilla);
+  border: 1px solid var(--sd-rejilla);
 }
 
-.sd-exp__row:last-child {
-  border-bottom: var(--sd-exp-rule);
+.sd-exp__celda {
+  position: relative;
+  overflow: hidden;
+  /* Tapa el fondo gris de la grilla: lo único que queda a la vista de ese fondo es el `gap`. */
+  background: var(--sd-ink);
+  min-height: clamp(200px, 26vh, 290px);
+  /* Flex para que el cuerpo estire hasta el pie de la celda. Con `height: 100%` en el cuerpo no
+     alcanzaba: la celda tiene `min-height` y no `height`, así que el porcentaje se resuelve contra
+     una altura auto —o sea, contra nada— y el copy se quedaba pegado al título. */
+  display: flex;
 }
 
-.sd-exp__trigger {
-  grid-column: 1 / 3;
-  display: grid;
-  grid-template-columns: var(--sd-exp-num-col) minmax(0, 1fr);
-  gap: var(--sd-exp-gap);
-  align-items: center;
-  width: 100%;
-  margin: 0;
-  padding: 0;
-  border: 0;
-  background: none;
-  text-align: left;
-  /* La landing fuerza `cursor: none` con el cursor custom (ver `html.sd-cursor-on`): un
-     `cursor: pointer` acá no se vería y sólo pelearía con esa regla. */
-  cursor: inherit;
-  color: inherit;
-  font: inherit;
+.sd-exp__celda--1,
+.sd-exp__celda--4 {
+  grid-column: span 7;
+}
+
+.sd-exp__celda--2,
+.sd-exp__celda--3 {
+  grid-column: span 5;
+}
+
+/* El campo de ASCII, de fondo. `inset: 0` y no un tamaño propio: llena la celda y la celda lo
+   recorta.
+
+   La máscara lo empuja contra el borde DERECHO y lo desvanece antes de llegar al texto, que en
+   estas celdas va siempre a la izquierda (título arriba, copy al pie). Sin eso la trama cruzaba el
+   copy por el medio y no se podía leer: un fondo que compite con su propio texto no es un fondo. */
+.sd-ascii.sd-exp__campo {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  -webkit-mask-image: linear-gradient(to left, #000 0, rgb(0 0 0 / 0.35) 34%, transparent 62%);
+  mask-image: linear-gradient(to left, #000 0, rgb(0 0 0 / 0.35) 34%, transparent 62%);
+}
+
+.sd-exp__celda-cuerpo {
+  position: relative;
+  z-index: 1;
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: clamp(20px, 2.6vw, 36px);
 }
 
 .sd-exp__num {
   font-family: var(--sd-font-mono);
-  font-size: clamp(0.78rem, 1vw, 0.9rem);
-  letter-spacing: 0.08em;
-  color: rgb(var(--sd-purple-lift-rgb) / 0.6);
-  transition: color 0.3s ease;
+  font-size: 0.72rem;
+  letter-spacing: 0.18em;
+  color: var(--sd-purple-lift);
 }
 
 .sd-exp__name {
+  margin: clamp(10px, 1.6vh, 18px) 0 0;
   font-family: var(--sd-font-display);
-  font-size: var(--sd-exp-name-size);
-  font-weight: 700;
+  font-size: clamp(1.5rem, 3vw, 2.4rem);
+  font-weight: 800;
   line-height: 1;
-  letter-spacing: -0.025em;
+  letter-spacing: -0.03em;
   text-transform: uppercase;
-  color: rgb(var(--sd-cream-rgb) / 0.72);
-  transition: color 0.3s ease;
-}
-
-.sd-exp__row.is-open .sd-exp__num {
-  color: var(--sd-purple-lift);
-}
-
-.sd-exp__row.is-open .sd-exp__name {
   color: var(--sd-cream);
 }
 
-/* Flecha: una sola ↗ dibujada, girada 90° cuando la fila está cerrada (queda ↘). El
-   `margin-top` la centra ópticamente contra la caja del nombre, que es bastante más alta. */
-.sd-exp__arrow {
-  grid-column: 4 / 5;
-  display: block;
-  width: var(--sd-exp-arrow-size);
-  margin-top: calc((var(--sd-exp-name-size) - var(--sd-exp-arrow-size)) / 2);
-  color: var(--sd-purple-lift);
-}
-
-.sd-exp__arrow-svg {
-  display: block;
-  width: 100%;
-  height: auto;
-  transform: rotate(90deg);
-  transition: transform 0.35s ease;
-}
-
-.sd-exp__row.is-open .sd-exp__arrow-svg {
-  transform: rotate(0deg);
-}
-
-/* ── Cuerpo desplegable ──
-   `grid-template-rows: 0fr → 1fr` en vez de `height`: no hace falta medir nada en JS. El
-   `visibility` es lo que saca el contenido cerrado del árbol de accesibilidad, y a diferencia de
-   `display: none` se puede animar. */
-.sd-exp__body {
-  grid-column: 3 / 4;
-  display: grid;
-  grid-template-rows: 0fr;
-  visibility: hidden;
-  transition:
-    grid-template-rows 0.4s ease,
-    visibility 0.4s;
-}
-
-.sd-exp__row.is-open .sd-exp__body {
-  grid-template-rows: 1fr;
-  visibility: visible;
-}
-
-/* Mismo cuerpo que la bajada de "No importa quién sos" (`.sd-quien__lede`). El margen negativo
-   compensa el medio interlineado de la primera línea, para que su altura de mayúscula empiece a
-   la par del nombre de la fila y no un par de píxeles más abajo. */
+/* Pegado al pie de la celda: así los cuatro copys quedan a la misma altura por más que los
+   títulos midan distinto, y la celda respira en el medio en vez de arriba. */
 .sd-exp__copy {
-  min-height: 0;
-  overflow: hidden;
-  margin: -0.25em 0 0;
-  max-width: 44ch;
+  margin: auto 0 0;
+  padding-top: clamp(14px, 2vh, 22px);
+  max-width: 42ch;
   font-family: var(--sd-font-body);
   font-weight: 300;
-  font-size: clamp(0.95rem, 1.04vw, 1.25rem);
-  line-height: 1.5;
-  color: #fff;
+  font-size: clamp(0.9rem, 1vw, 1.02rem);
+  line-height: 1.55;
+  color: rgb(var(--sd-cream-rgb) / 0.72);
 }
 
-/* ── Cierre: el mismo par de botones que cierra "No importa quién sos" ── */
+/* A partir de acá la grilla de 12 no entra: dos celdas de 5 columnas dejan el copy en cuatro
+   palabras por renglón. Pasan a dos de ancho completo y después a una sola columna. */
+@media (max-width: 900px) {
+  .sd-exp__celda--1,
+  .sd-exp__celda--2,
+  .sd-exp__celda--3,
+  .sd-exp__celda--4 {
+    grid-column: span 6;
+  }
+}
+
+@media (max-width: 640px) {
+  .sd-exp__celda--1,
+  .sd-exp__celda--2,
+  .sd-exp__celda--3,
+  .sd-exp__celda--4 {
+    grid-column: span 12;
+  }
+
+  .sd-exp__celda {
+    min-height: 0;
+  }
+
+  /* A una columna el copy usa casi todo el ancho de la celda, así que la trama tiene que retirarse
+     mucho más: si no, el texto termina leyéndose encima de ella. */
+  .sd-ascii.sd-exp__campo {
+    -webkit-mask-image: linear-gradient(to left, #000 0, transparent 40%);
+    mask-image: linear-gradient(to left, #000 0, transparent 40%);
+  }
+}
+
 .sd-exp__actions {
   display: flex;
   flex-wrap: wrap;
   gap: 14px;
   margin-top: clamp(2rem, 5vh, 3.25rem);
-}
-
-/* ── Angosto: tres columnas (número + resto + flecha) y la descripción debajo del nombre ──
-   Acá las filas van EXPLÍCITAS. El cuerpo pasa a ocupar las columnas 2-3, o sea que pisa al
-   botón, y con auto-placement eso empuja la flecha a una tercera fila: quedaba colgada abajo
-   del todo. Fijando `grid-row` cada pieza cae donde tiene que caer. El `row-gap: 0` es por lo
-   mismo: con el cuerpo colapsado a `0fr` el gap seguía separando y las filas cerradas quedaban
-   con un hueco muerto; el aire de la descripción abierta lo pone su propio `margin-top`. */
-@media (max-width: 719px) {
-  .sd-exp__row {
-    grid-template-columns: var(--sd-exp-num-col) minmax(0, 1fr) var(--sd-exp-arrow-size);
-    row-gap: 0;
-  }
-
-  .sd-exp__trigger {
-    grid-column: 1 / 3;
-    grid-row: 1;
-  }
-
-  .sd-exp__arrow {
-    grid-column: 3 / 4;
-    grid-row: 1;
-  }
-
-  .sd-exp__body {
-    grid-column: 2 / 4;
-    grid-row: 2;
-  }
-
-  .sd-exp__copy {
-    margin-top: clamp(10px, 2.5vw, 16px);
-    max-width: none;
-  }
 }
 
 @media (max-width: 520px) {
@@ -3145,336 +3231,141 @@ a.sd-partner__name:hover {
   }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .sd-exp__body,
-  .sd-exp__arrow-svg,
-  .sd-exp__num,
-  .sd-exp__name {
-    transition: none;
-  }
+/* El contenido real va explícitamente por encima del glow (z-index 0): sin esto, cualquier
+   elemento posicionado con z-index auto/0 pinta DESPUÉS del flujo normal y el glow taparía el
+   texto. Mismo patrón que `.sd-quien__body` (z-index 2) sobre `.sd-quien__glow` (z-index 0). */
+/* ── "Qué dijeron" (#testimonios) — los posteos de X y LinkedIn ──────
+   Tarjetas propias, no los embeds de cada red: ver el encabezado de `SdTestimonios`.
+
+   Las columnas van con `columns` y no con `grid`. Las citas miden distinto —hay tuits de un
+   renglón y posteos de LinkedIn de ocho— y en una grilla eso deja filas del alto del más largo,
+   con tres cuartos de aire muerto en las tarjetas cortas. Con columnas cada una mide lo suyo y se
+   acomodan como un muro. El precio es que el orden de lectura pasa a ser por columna en vez de por
+   fila, y para testimonios sueltos eso da igual: no hay un orden que respetar. */
+.sd-testi {
+  scroll-margin-top: clamp(72px, 12vh, 120px);
 }
 
-/* ── El lugar: masthead + render 3D del piso ──────────────────────────
-   La sección venía sin regla propia: heredaba el padding de `.sd-band` y arrancaba con un kicker
-   chico. Como "La experiencia", su vecina de arriba, también es `--sd-band--ink`, las dos se
-   fundían en una sola mancha. Ahora abre con una hairline a todo el ancho y bastante más aire
-   encima, que es el corte que faltaba. */
-.sd-piso {
-  position: relative;
-  padding-top: clamp(80px, 13vh, 150px);
+.sd-testi__head {
+  margin-bottom: clamp(28px, 4.5vw, 52px);
 }
 
-.sd-piso::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: var(--sd-pad-x);
-  right: var(--sd-pad-x);
-  height: 1px;
-  background: rgb(var(--sd-purple-rgb) / 0.18);
-}
-
-.sd-piso__head {
-  margin-bottom: clamp(2.5rem, 6vh, 4rem);
-}
-
-/* Título pesado a la izquierda, la regla corriendo el hueco y la dirección en mono a la derecha,
-   los tres apoyados en la misma línea de base. Es el idioma de "La experiencia" —display grande,
-   hairlines, mono violeta— con el eje espejado, así riman sin repetirse. */
-.sd-piso__masthead {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
-  align-items: baseline;
-  gap: clamp(16px, 2.5vw, 32px);
-}
-
-.sd-piso__title {
+.sd-testi__title {
   margin: 0;
   font-family: var(--sd-font-display);
   font-size: var(--sd-title);
-  font-weight: 800;
-  line-height: 0.92;
-  letter-spacing: -0.035em;
+  line-height: 1.05;
   text-transform: uppercase;
   color: var(--sd-cream);
 }
 
-/* Va sobre la línea de base del título, no en su centro: en `align-items: baseline` un elemento
-   sin texto se alinea por su borde de abajo, que es justo donde lo queremos. */
-.sd-piso__rule {
-  height: 1px;
-  background: rgb(var(--sd-purple-rgb) / 0.18);
-}
-
-
-.sd-piso__lead {
-  margin: clamp(1.25rem, 3vh, 2rem) 0 0;
-  max-width: 46ch;
+.sd-testi__lead {
+  margin: clamp(10px, 1.4vw, 16px) 0 0;
   font-family: var(--sd-font-body);
   font-weight: 300;
-  font-size: clamp(0.95rem, 1.04vw, 1.25rem);
-  line-height: 1.5;
+  font-size: clamp(0.95rem, 1.05vw, 1.1rem);
   color: rgb(var(--sd-cream-rgb) / 0.62);
 }
 
-@media (max-width: 719px) {
-  .sd-piso__masthead {
-    grid-template-columns: minmax(0, 1fr);
-    gap: 0.75rem;
-  }
-
-  .sd-piso__rule {
-    display: none;
-  }
+.sd-testi__grid {
+  columns: 3;
+  column-gap: clamp(12px, 1.4vw, 20px);
 }
 
-.sd-piso__layout {
-  display: grid;
-  gap: clamp(14px, 2vw, 22px);
-  width: 100%;
+.sd-testi__card {
+  /* Sin esto una tarjeta se parte al final de la columna y sigue en la siguiente. */
+  break-inside: avoid;
+  margin: 0 0 clamp(12px, 1.4vw, 20px);
+  border: 1px solid var(--sd-rejilla);
+  background: rgb(var(--sd-void-rgb) / 0.45);
+  transition: border-color 0.25s ease, background 0.25s ease;
 }
 
-@media (min-width: 900px) {
-  .sd-piso__layout {
-    grid-template-columns: minmax(0, 1fr) 15rem;
-    align-items: stretch;
-  }
-
-  /* Sin render 3D no hay primera columna que sostener: la lista de salas se queda con todo
-     el ancho en vez de dejar el hueco de la maqueta. */
-  .sd-piso__layout--sin-render {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  /* A todo el ancho, una sala por fila dejaría el label y el detalle en dos puntas opuestas
-     de la pantalla. Se reparte en columnas, como ya hace la lista en mobile. */
-  .sd-piso__layout--sin-render .sd-piso__ref {
-    grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr));
-    gap: 4px 12px;
-  }
+.sd-testi__card:hover,
+.sd-testi__card:focus-within {
+  border-color: rgb(var(--sd-purple-rgb) / 0.55);
+  background: rgb(var(--sd-void-rgb) / 0.75);
 }
 
-.sd-piso__viewport {
-  position: relative;
-  width: 100%;
-  aspect-ratio: 4 / 3;
-  /* La caja nunca debe pasar el alto de la ventana: si no, su borde inferior cae abajo
-     del pliegue. `min-height` gana sobre `max-height`, así que se deja chico a propósito. */
-  max-height: 78vh;
-  min-height: 320px;
-  display: grid;
-  place-items: center;
-  overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: var(--sd-radius);
-  background: var(--sd-void);
-}
-
-@media (max-width: 640px) {
-  .sd-piso__viewport {
-    aspect-ratio: 3 / 4;
-    max-height: none;
-  }
-}
-
-.sd-piso__viewport canvas {
+.sd-testi__link {
   display: block;
-  touch-action: pan-y;
-  cursor: grab;
+  padding: clamp(18px, 1.8vw, 26px);
+  text-decoration: none;
+  color: inherit;
 }
 
-.sd-piso__viewport canvas:active {
-  cursor: grabbing;
+.sd-testi__link:focus-visible {
+  outline: 1px solid var(--sd-purple-lift);
+  outline-offset: -3px;
 }
 
-.sd-piso__cargando {
-  margin: 0;
-  font-size: 0.86rem;
-  letter-spacing: 0.04em;
+.sd-testi__red {
+  display: block;
+  width: 16px;
+  height: 16px;
+  color: rgb(var(--sd-cream-rgb) / 0.45);
+}
+
+.sd-testi__texto {
+  margin: clamp(14px, 1.6vw, 20px) 0 0;
+  font-family: var(--sd-font-body);
+  font-weight: 300;
+  font-size: clamp(0.92rem, 1vw, 1.02rem);
+  line-height: 1.55;
+  color: rgb(var(--sd-cream-rgb) / 0.88);
+  /* Las comillas las pone el CSS y no el dato: así el texto guardado es exactamente el que se
+     posteó, y se puede comparar con el original sin tener que descontar los signos. */
+  quotes: '“' '”';
+}
+
+.sd-testi__texto::before {
+  content: open-quote;
+}
+
+.sd-testi__texto::after {
+  content: close-quote;
+}
+
+.sd-testi__pie {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: clamp(16px, 1.8vw, 22px);
+  padding-top: clamp(12px, 1.4vw, 16px);
+  border-top: 1px solid var(--sd-rejilla);
+}
+
+.sd-testi__autor {
+  font-family: var(--sd-font-display);
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: var(--sd-cream);
+}
+
+.sd-testi__meta {
+  font-family: var(--sd-font-mono);
+  font-size: 0.72rem;
   color: rgb(var(--sd-cream-rgb) / 0.5);
 }
 
-/* Salida del zoom por sala. Va arriba a la derecha del canvas y no a la izquierda: el
-   encuadre general tiene el modelo corrido hacia ese lado y ahí lo taparía. El radio es
-   `--sd-radius` como todo lo demás — en esta landing no hay pills. */
-.sd-piso__volver {
-  position: absolute;
-  top: 12px;
-  right: 12px;
-  z-index: 2;
-  padding: 8px 14px;
-  border: 1px solid rgb(var(--sd-cream-rgb) / 0.22);
-  border-radius: var(--sd-radius);
-  background: rgb(var(--sd-void-rgb) / 0.82);
-  font-family: var(--sd-font-body);
-  font-size: 0.76rem;
-  letter-spacing: 0.04em;
-  color: rgb(var(--sd-cream-rgb) / 0.82);
-  cursor: pointer;
-  transition: background 0.18s ease, border-color 0.18s ease, color 0.18s ease;
+.sd-testi__fecha {
+  margin-top: 4px;
+  font-family: var(--sd-font-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  color: rgb(var(--sd-cream-rgb) / 0.35);
 }
 
-.sd-piso__volver:hover,
-.sd-piso__volver:focus-visible {
-  border-color: rgb(var(--sd-cream-rgb) / 0.4);
-  background: rgb(var(--sd-void-rgb) / 0.95);
-  color: var(--sd-cream);
-}
-
-@media (max-width: 640px) {
-  .sd-piso__volver {
-    top: 8px;
-    right: 8px;
-    padding: 7px 11px;
-    font-size: 0.72rem;
+@media (max-width: 900px) {
+  .sd-testi__grid {
+    columns: 2;
   }
 }
 
-/* Referencia de salas: reemplaza al código de colores dentro del render */
-.sd-piso__ref {
-  display: grid;
-  align-content: start;
-  gap: 4px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-@media (max-width: 899px) {
-  .sd-piso__ref {
-    grid-template-columns: repeat(auto-fill, minmax(9.5rem, 1fr));
+@media (max-width: 600px) {
+  .sd-testi__grid {
+    columns: 1;
   }
-}
-
-.sd-piso__ref-item {
-  display: flex;
-  align-items: baseline;
-  gap: 0.6rem;
-  width: 100%;
-  padding: 9px 12px;
-  border: 1px solid transparent;
-  border-radius: var(--sd-radius);
-  background: none;
-  font-family: var(--sd-font-body);
-  text-align: left;
-  cursor: pointer;
-  transition: background 0.18s ease, border-color 0.18s ease;
-}
-
-.sd-piso__ref-item:hover,
-.sd-piso__ref-item:focus-visible,
-.sd-piso__ref-item.is-activa {
-  background: rgba(255, 255, 255, 0.06);
-  border-color: rgba(255, 255, 255, 0.16);
-}
-
-/* La sala que la cámara está mirando de cerca: se sostiene sola, sin puntero encima, así que
-   necesita leerse más fuerte que el hover. */
-.sd-piso__ref-item.is-enfocada {
-  border-color: rgb(96 62 249 / 0.55);
-  background: rgb(96 62 249 / 0.14);
-}
-
-.sd-piso__ref-item.is-sin-uso {
-  opacity: 0.5;
-}
-
-.sd-piso__ref-label {
-  flex: 0 0 auto;
-  font-family: var(--sd-font-display);
-  font-size: 0.98rem;
-  font-weight: 700;
-  color: var(--sd-cream);
-}
-
-.sd-piso__ref-detalle {
-  flex: 1 1 auto;
-  font-size: 0.78rem;
-  line-height: 1.35;
-  text-align: right;
-  color: rgb(var(--sd-cream-rgb) / 0.55);
-}
-
-/* "El lugar" ya no termina en el plano 3D: la agenda vive adentro de la misma sección/banda,
-   pero con un fondo propio — más oscuro que el `--sd-ink` plano de "El lugar" y de "¿Venís?",
-   como el `--sd-void` de "No importa quién sos". Se rompe el padding de `.sd-band` con el margen
-   negativo de siempre para que el fondo llegue de punta a punta, no sólo del ancho del contenido.
-
-   El degradado ENTRA y SALE en el mismo `--sd-ink` de sus vecinos (arriba "El lugar", abajo
-   "¿Venís?"): no hay salto de color en la costura, sólo un pozo de `--sd-void` en el medio. El
-   glow va en una capa aparte (`.sd-piso__agenda-glow`) enmascarada con el mismo `edge-fade` que
-   usa `.sd-quien`, así el brillo se apaga antes de tocar el borde en vez de quedar cortado en
-   seco contra el límite de la sección. */
-.sd-piso__agenda {
-  --sd-piso-agenda-fade: clamp(64px, 11vh, 140px);
-  /* Mismo problema que el `margin-inline` de acá abajo, ahora del lado del padding: `--sd-pad-x`
-     trae un `%` adentro (`(100% - shell) / 2`) que se resuelve contra el ancho del elemento QUE
-     LO USA. Sobre `.sd-piso__agenda` eso significa el ancho de `.sd-piso` —ya angosto por SU
-     propio padding—, no el del viewport, así que el título quedaba corrido a la izquierda del
-     resto de las secciones. Repetimos la cuenta a mano con `100vw` en vez de `100%` para que
-     resuelva contra el viewport real, igual que el `--sd-pad-x` de todas las demás secciones. */
-  --sd-piso-agenda-pad-x: calc(var(--sd-gutter) + max(0px, (100vw - var(--sd-shell)) / 2));
-  position: relative;
-  isolation: isolate;
-  overflow: hidden;
-  scroll-margin-top: clamp(72px, 12vh, 120px);
-  margin-top: clamp(56px, 9vw, 96px);
-  /* Full-bleed real: `--sd-pad-x` no sirve acá porque es un `calc()` con `%` adentro, y ese `%`
-     se resuelve contra el ancho del propio elemento donde se USA la variable — en un hijo más
-     angosto que la sección (ya inset por el padding del padre), da un valor mucho más chico que
-     el de `.sd-piso`, y el margen negativo no llegaba a compensar el padding real: quedaba una
-     franja del fondo viejo entre el borde del contenido y el borde de la pantalla. `50% - 50vw`
-     no depende de ningún ancestro: siempre llega al borde real del viewport. */
-  margin-inline: calc(50% - 50vw);
-  padding-inline: var(--sd-piso-agenda-pad-x);
-  padding-block: clamp(48px, 8vw, 88px) clamp(36px, 6vw, 64px);
-  background: linear-gradient(
-    to bottom,
-    var(--sd-ink) 0%,
-    var(--sd-void) 22%,
-    var(--sd-void) 78%,
-    var(--sd-ink) 100%
-  );
-}
-
-.sd-piso__agenda-glow {
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
-  background: radial-gradient(
-      ellipse 46% 55% at 18% 28%,
-      rgb(var(--sd-purple-rgb) / 0.26) 0%,
-      transparent 68%
-    ),
-    radial-gradient(
-      ellipse 50% 60% at 84% 74%,
-      rgb(var(--sd-purple-rgb) / 0.2) 0%,
-      transparent 70%
-    );
-  -webkit-mask-image: linear-gradient(
-    to bottom,
-    transparent 0,
-    #000 var(--sd-piso-agenda-fade),
-    #000 calc(100% - var(--sd-piso-agenda-fade)),
-    transparent 100%
-  );
-  mask-image: linear-gradient(
-    to bottom,
-    transparent 0,
-    #000 var(--sd-piso-agenda-fade),
-    #000 calc(100% - var(--sd-piso-agenda-fade)),
-    transparent 100%
-  );
-}
-
-/* El contenido real va explícitamente por encima del glow (z-index 0): sin esto, cualquier
-   elemento posicionado con z-index auto/0 pinta DESPUÉS del flujo normal y el glow taparía el
-   texto. Mismo patrón que `.sd-quien__body` (z-index 2) sobre `.sd-quien__glow` (z-index 0). */
-.sd-piso__agenda > .sd-agenda__head,
-.sd-piso__agenda > .sd-agenda {
-  position: relative;
-  z-index: 1;
 }
 
 /* ── Inscripción ── */
@@ -4193,10 +4084,6 @@ a.sd-partner__name:hover {
     opacity: 0.32;
   }
 
-  .sd-hero__scroll {
-    left: max(16px, env(safe-area-inset-left));
-  }
-
   .sd-reserve {
     gap: 1.75rem;
   }
@@ -4211,10 +4098,6 @@ a.sd-partner__name:hover {
   .sd-hero__lede {
     font-size: 1.02rem;
     max-width: 28rem;
-  }
-
-  .sd-hero__scroll {
-    display: none;
   }
 
   .sd-modal {
@@ -4348,88 +4231,705 @@ a.sd-partner__name:hover {
   }
 }
 
-/* ── Ancho: la sección de agenda entra entera en una pantalla ──
-   Va al final del archivo a propósito: la definición base de `.sd-piso__agenda` (más arriba, con
-   el fondo y el padding) tiene la misma especificidad que este media query, así que sin importar
-   dónde esté el `@media`, gana la que quede última en el orden de cascada — y tiene que ser ésta.
 
-   De 720px para arriba hay lugar para las dos columnas en paralelo, así que la sección pasa a
-   medir `100dvh` fijo y reparte ese alto por flex en cascada (sección → `.sd-agenda` → grilla →
-   columna → card → logo) en vez de dejar que cada card crezca a su alto natural. Con 7 cards por
-   aula eso no entraba en una pantalla sin scrollear, que es justo lo que se evita acá. Sólo a
-   partir de 720px: en mobile una sola columna con 14 cards apiladas necesita su propio scroll
-   natural, y forzarla a 100dvh las hubiera dejado ilegibles. */
-@media (min-width: 720px) {
-  .sd-piso__agenda {
-    display: flex;
-    flex-direction: column;
-    height: 100vh;
-    height: 100dvh;
-    padding-block: clamp(20px, 3vh, 36px);
+/* ═══════════════════════════════════════════════════════════════════════════════════════════
+   MODO POST-EVENTO — cuenta regresiva y números.
+
+   Se sumó al cerrar la primera edición. Sale entero de los tokens de `.sd-root` (violeta único
+   vía `rgb(var(--sd-purple-rgb) / α)`, los dos oscuros, `--sd-title`, `--sd-radius`), así que no
+   introduce ni un color ni una medida nueva al sistema.
+
+   El recap no tiene bloque propio: vive dentro de la lámina "No importa quién sos"
+   (`.sd-quien__cifras`, más arriba), reusando su fondo y su marco.
+   ═══════════════════════════════════════════════════════════════════════════════════════════ */
+
+/* ── Cuenta regresiva ─────────────────────────────────────────────────────────────────────── */
+
+/* La costura con el footer.
+
+   `.sd-band--ink` deja esta sección en `--sd-ink` (violeta oscuro) y `.sd-footer` abre en
+   `--sd-void` (casi negro) con 56px de aire antes de su tarjeta redondeada. Esa franja negra
+   entre dos bloques violetas se leía como un corte.
+
+   Se resuelve con la misma técnica que usa `.sd-quien` para el empalme inverso: el fondo se
+   mantiene en `--sd-ink` casi toda la sección y muere en `--sd-void` sobre el final, de modo
+   que el borde inferior llega al mismo color con el que arranca el footer. No se toca
+   `.sd-footer`: lo comparten las tres landings del mismo shell. */
+.sd-cd {
+  background: linear-gradient(
+    to bottom,
+    var(--sd-ink) 0,
+    var(--sd-ink) calc(100% - clamp(110px, 16vh, 190px)),
+    var(--sd-void) 100%
+  );
+}
+
+/* Centrado: es el cierre de la página y el único bloque que no compite con nada al costado. */
+.sd-cd__inner {
+  max-width: 48rem;
+  margin-inline: auto;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* Rótulo de la sección. No usa `.sd-kicker` porque ése es violeta sólido y en mayúsculas de
+   cuerpo; acá el dato importante es la advertencia "fecha a confirmar", que tiene que leerse
+   como nota técnica y no como titular de campaña. */
+.sd-cd__kicker {
+  margin: 0 0 clamp(18px, 2.6vh, 28px);
+  font-family: var(--sd-font-mono);
+  font-size: clamp(0.68rem, 0.78vw, 0.8rem);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgb(var(--sd-cream-rgb) / 0.5);
+}
+
+/* El reloj, en una sola línea de mono dentro de un marco fino: un panel de operaciones, no
+   cartelería de cuenta regresiva. Reemplazó a cuatro cajas apiladas con el número en display —
+   ese tratamiento le daba a la fecha un peso que todavía no tiene, porque no está cerrada. */
+.sd-cd__ticker {
+  display: inline-flex;
+  margin: 0 0 clamp(22px, 3vh, 32px);
+  padding: clamp(14px, 1.9vh, 20px) clamp(18px, 2vw, 28px);
+  border: 1px solid var(--sd-rejilla);
+  background: rgb(var(--sd-void-rgb) / 0.55);
+  /* La misma familia que las cifras del recap: eran dos tipografías distintas para el mismo
+     tipo de dato. El ancho fijo que garantizaba el mono lo pone ahora `min-width` en `.sd-cd__val`. */
+  font-family: var(--sd-font-display);
+  /* Los días pasan de 3 a 2 dígitos con el correr de los meses y los segundos cambian todo el
+     tiempo: sin ancho fijo de cifra la línea entera se corre sola. */
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.sd-cd__tramo {
+  display: inline-flex;
+  align-items: baseline;
+}
+
+.sd-cd__sep {
+  padding: 0 clamp(8px, 1vw, 14px);
+  color: rgb(var(--sd-purple-lift-rgb) / 0.5);
+  font-size: clamp(1rem, 1.5vw, 1.35rem);
+}
+
+.sd-cd__val {
+  font-size: clamp(1.25rem, 2.1vw, 1.9rem);
+  font-weight: 700;
+  color: var(--sd-cream);
+  /* Ancho fijo por grupo: dos dígitos para horas, minutos y segundos. Es el seguro contra que la
+     fuente display no traiga cifras tabulares — sin esto la línea entera se corre en cada tic. */
+  display: inline-block;
+  min-width: 2ch;
+  text-align: center;
+}
+
+/* Los días son tres dígitos hasta que falten menos de cien. */
+.sd-cd__tramo:first-child .sd-cd__val {
+  min-width: 3ch;
+}
+
+/* La unidad pegada al número, sin espacio: `360d`. En minúscula y más chica, para que el ojo
+   agrupe cifra+unidad como un solo token y no como dos datos. */
+.sd-cd__u {
+  font-size: clamp(0.8rem, 1.15vw, 1rem);
+  color: var(--sd-purple-lift);
+}
+
+/* Variante del hero: el mismo reloj pero achicado, porque ahí convive con el wordmark del key
+   art y no puede competirle. En `#proxima` es la pieza principal de la sección y va entero. */
+.sd-cd__ticker--compacto .sd-cd__val {
+  font-size: clamp(2.6rem, 5.2vw, 4.6rem);
+}
+
+.sd-cd__ticker--compacto .sd-cd__u {
+  font-size: clamp(1.2rem, 2vw, 1.8rem);
+}
+
+.sd-cd__ticker--compacto .sd-cd__sep {
+  padding: 0 clamp(12px, 1.5vw, 22px);
+  font-size: clamp(1.8rem, 3vw, 2.8rem);
+}
+
+.sd-cd__lead {
+  margin: 0 0 clamp(22px, 3vh, 30px);
+}
+
+.sd-cd__label {
+  display: block;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--sd-purple-lift);
+  margin-bottom: 0.6rem;
+}
+
+.sd-cd__row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: center;
+  width: 100%;
+  max-width: 34rem;
+}
+
+.sd-cd__row input {
+  flex: 1 1 220px;
+  text-align: center;
+  min-width: 0;
+  padding: clamp(12px, 1.27vh, 16px) 16px;
+  font-family: var(--sd-font-body);
+  font-size: clamp(0.9rem, 1.04vw, 1.05rem);
+  color: var(--sd-cream);
+  background: rgb(var(--sd-void-rgb) / 0.6);
+  border: 1px solid rgb(var(--sd-cream-rgb) / 0.18);
+  border-radius: 0; /* a canto vivo, como los botones de esta landing */
+}
+
+.sd-cd__row input::placeholder {
+  color: rgb(var(--sd-cream-rgb) / 0.38);
+}
+
+.sd-cd__row input:focus {
+  outline: none;
+  border-color: var(--sd-purple-lift);
+}
+
+.sd-cd__ok {
+  margin: 0;
+  font-size: 1.02rem;
+  color: var(--sd-purple-lift);
+}
+
+/* ── Angosto ─────────────────────────────────────────────────────────────────────────────── */
+
+@media (max-width: 480px) {
+  /* El ticker es una línea de ~22 caracteres y entra entero en 390px; lo único que hay que
+     aflojar es el aire lateral, que a ese ancho se come el marco. Las cuatro cajas que había
+     antes sí necesitaban partirse en dos filas — esto ya no. */
+  .sd-cd__ticker {
+    padding-inline: 14px;
   }
 
-  .sd-agenda {
-    flex: 1 1 auto;
-    min-height: 0;
-    gap: clamp(0.5rem, 1.4vh, 0.85rem);
-  }
-
-  .sd-agenda__head {
-    flex: 0 0 auto;
-    margin-bottom: clamp(0.5rem, 1.6vh, 1rem);
-  }
-
-  .sd-agenda__title {
-    font-size: clamp(1.6rem, 3.4vh, var(--sd-title));
-  }
-
-  .sd-agenda__sub {
-    margin-top: clamp(0.4rem, 1vh, 0.7rem);
-    font-size: clamp(0.85rem, 1.6vh, 1.1rem);
-    line-height: 1.4;
-  }
-
-  .sd-agenda__grid {
-    flex: 1 1 auto;
-    min-height: 0;
-  }
-
-  /* `min-height: 0` pisa el `auto` por defecto de los ítems de grid: sin esto, el alto mínimo de
-     contenido de las 7 cards empujaría la fila más alta que el `100dvh` disponible. */
-  .sd-agenda__col {
-    min-height: 0;
-  }
-
-  .sd-agenda__card {
-    flex: 1 1 0;
-    min-height: 0;
-    justify-content: center;
-    gap: clamp(2px, 0.6vh, 6px);
-    padding-block: clamp(4px, 0.8vh, 10px);
-  }
-
-  /* El orador suma una línea fija por fila (7 por columna), así que acá se aprieta el interlineado:
-     lo que gana el texto se lo saca al logo, que es el único elemento elástico de la card. */
-  .sd-agenda__speaker {
-    font-size: clamp(0.66rem, 1.35vh, 0.82rem);
-    line-height: 1.15;
-  }
-
-  .sd-agenda__when {
-    font-size: clamp(0.68rem, 1.4vh, 0.85rem);
-  }
-
-  .sd-agenda__mark {
-    height: auto;
-    flex: 1 1 0;
-    min-height: 0;
-  }
-
-  .sd-agenda__note {
-    flex: 0 0 auto;
-    margin-top: clamp(0.4rem, 1vh, 0.7rem);
-    padding-top: clamp(0.5rem, 1.2vh, 0.85rem);
-    font-size: clamp(0.72rem, 0.9vw, 0.85rem);
+  .sd-cd__sep {
+    padding: 0 7px;
   }
 }
 
+/* ── Slider de marcas: segunda fila y nómina ───────────────────────────────────────────────
+   Se sumaron al pasar de una banda a dos cruzadas. */
+
+/* Aire entre las dos filas. Poco a propósito: leídas juntas son un bloque, y separadas de más
+   parecerían dos secciones distintas. */
+.sd-marcas__marquee + .sd-marcas__marquee {
+  margin-top: calc(28 * var(--sd-marcas-k));
+}
+
+/* La nómina en texto, para lectores de pantalla.
+   Las dos bandas van `aria-hidden` porque entre las copias del loop repetirían 96 nombres. Esta
+   lista da la nómina completa, ordenada y una sola vez. No se usa `display: none` ni
+   `visibility: hidden`, que la sacarían también del árbol de accesibilidad: se recorta a un píxel
+   fuera de vista, que es la técnica que sí la deja legible para quien la necesita. */
+.sd-marcas__nomina {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ── De qué se habló (`SdCharlas`) ─────────────────────────────────────────────────────────
+   Reemplaza la grilla horaria de `.sd-agenda*`. Ahí el eje era el tiempo —dos columnas por aula,
+   cada card ubicada y dimensionada por su horario— y acá es el contenido: una fila por charla,
+   en orden de reloj, con el horario degradado a dato de referencia a la derecha. */
+.sd-charlas {
+  /* La caja del logo de cada fila. El alto sale del ancho y de `--sd-charla-logo-ar`, que es la
+     proporción de la celda del slider (376/130): ver `.sd-charlas__logo` para por qué tiene que
+     ser esa y no otra. */
+  --sd-charla-logo-w: clamp(84px, 9.2vw, 133px);
+  --sd-charla-logo-ar: 2.89;
+}
+
+.sd-charlas__head {
+  margin-bottom: clamp(28px, 5vw, 56px);
+}
+
+/* Sólo el título: la regla que corría a su derecha se sacó, así que acá no queda nada que
+   repartir. */
+.sd-charlas__masthead {
+  display: flex;
+  align-items: center;
+}
+
+.sd-charlas__title {
+  font-family: var(--sd-font-display);
+  font-size: var(--sd-title);
+  line-height: 1.05;
+  margin: 0;
+  text-transform: uppercase;
+  color: var(--sd-cream);
+  white-space: nowrap;
+}
+
+.sd-charlas__lead {
+  margin: clamp(12px, 2vh, 20px) 0 0;
+  font-size: clamp(0.95rem, 1.8vw, 1.05rem);
+  line-height: 1.65;
+  color: rgb(var(--sd-cream-rgb) / 0.62);
+  max-width: 42rem;
+}
+
+/* Dos columnas, una por aula. A partir de 860px van lado a lado: es el ancho donde cada una
+   tiene lugar para el logo, el nombre y la hora sin que el nombre se parta. Abajo se apilan, K
+   primero, que es el orden del día. */
+.sd-charlas__grid {
+  display: grid;
+  gap: clamp(28px, 4vw, 56px);
+}
+
+@media (min-width: 860px) {
+  .sd-charlas__grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+  }
+}
+
+.sd-charlas__aula {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0 0 clamp(12px, 2vh, 20px);
+  font-family: var(--sd-font-display);
+  font-weight: 700;
+  font-size: clamp(1.1rem, 1.8vw, 1.45rem);
+  text-transform: uppercase;
+  color: var(--sd-cream);
+}
+
+.sd-charlas__aula span {
+  font-family: var(--sd-font-mono);
+  font-size: 0.68rem;
+  font-weight: 400;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgb(var(--sd-cream-rgb) / 0.4);
+}
+
+.sd-charlas__lista {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--sd-rejilla);
+}
+
+.sd-charlas__item {
+  border-bottom: 1px solid var(--sd-rejilla);
+}
+
+/* Cuatro columnas: logo, texto, hora y flecha. El texto es la única elástica; las otras tres
+   miden lo suyo, que es lo que alinea las siete filas de la columna. */
+.sd-charlas__trigger {
+  display: grid;
+  grid-template-columns: var(--sd-charla-logo-w) minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: clamp(10px, 1.4vw, 18px);
+  width: 100%;
+  padding: clamp(14px, 2vh, 20px) 0;
+  background: none;
+  border: 0;
+  text-align: left;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+}
+
+.sd-charlas__marca {
+  display: flex;
+  align-items: center;
+  min-height: calc(var(--sd-charla-logo-w) / var(--sd-charla-logo-ar));
+}
+
+/* Mismo `brightness(0) invert(1)` que el resto de la página. `is-color` sale de `logoEnColor`:
+   un archivo con fondo propio blanqueado queda como una mancha. */
+/* La caja del logo tiene que tener LA MISMA PROPORCIÓN que la celda del slider (376 × 130, o sea
+   2,89) para que `--escala` signifique lo mismo en los dos lados.
+
+   Por qué: la escala se despeja contra el factor con el que `object-fit: contain` mete el archivo
+   en esa celda. Si acá la caja es más chata, el factor que manda pasa a ser el otro —el ancho en
+   vez del alto— y la corrección se aplica dos veces: primero la escala achica la caja y después el
+   ancho de la columna vuelve a achicar el logo adentro. Eso fue exactamente lo que pasó al primer
+   intento: quedaron los catorce parejos pero a la mitad del tamaño que hacía falta.
+
+   Con la proporción atada, la altura de tinta que queda es el 41,5% del alto de la caja —el mismo
+   porcentaje que en el slider— en las catorce. */
+.sd-charlas__logo {
+  max-width: calc(100% * var(--escala, 1));
+  max-height: calc(var(--sd-charla-logo-w) / var(--sd-charla-logo-ar) * var(--escala, 1));
+  object-fit: contain;
+  object-position: left center;
+  filter: brightness(0) invert(1);
+  opacity: 0.85;
+}
+
+.sd-charlas__logo.is-color {
+  filter: none;
+  border-radius: 3px;
+}
+
+.sd-charlas__texto {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.sd-charlas__nombre {
+  font-family: var(--sd-font-display);
+  font-weight: 700;
+  font-size: clamp(0.95rem, 1.3vw, 1.1rem);
+  line-height: 1.2;
+  color: var(--sd-cream);
+}
+
+.sd-charlas__speaker {
+  font-size: clamp(0.78rem, 1vw, 0.86rem);
+  line-height: 1.3;
+  color: var(--sd-purple-lift);
+}
+
+.sd-charlas__hora {
+  font-family: var(--sd-font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  color: rgb(var(--sd-cream-rgb) / 0.4);
+  white-space: nowrap;
+}
+
+.sd-charlas__chevron {
+  width: 16px;
+  height: 16px;
+  color: rgb(var(--sd-cream-rgb) / 0.45);
+  transition: transform 0.25s ease, color 0.25s ease;
+}
+
+.sd-charlas__item.is-open .sd-charlas__chevron {
+  transform: rotate(180deg);
+  color: var(--sd-purple-lift);
+}
+
+.sd-charlas__trigger:hover .sd-charlas__chevron {
+  color: var(--sd-cream);
+}
+
+.sd-charlas__trigger:focus-visible {
+  outline: 1px solid var(--sd-purple-lift);
+  outline-offset: -2px;
+}
+
+/* El panel queda MONTADO y colapsa con `grid-template-rows: 0fr`, no con `display: none`: así
+   sigue en el árbol de accesibilidad y la apertura se puede animar. */
+.sd-charlas__panel {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.3s ease;
+}
+
+.sd-charlas__item.is-open .sd-charlas__panel {
+  grid-template-rows: 1fr;
+}
+
+.sd-charlas__panel-inner {
+  overflow: hidden;
+  min-height: 0;
+}
+
+.sd-charlas__temas,
+.sd-charlas__pendiente {
+  margin: 0;
+  padding: 0 0 clamp(16px, 2.4vh, 24px) clamp(74px, 7.4vw, 110px);
+  list-style: none;
+}
+
+.sd-charlas__temas li {
+  position: relative;
+  padding-left: 15px;
+  margin-bottom: 0.3rem;
+  font-size: clamp(0.84rem, 1.05vw, 0.92rem);
+  line-height: 1.5;
+  color: rgb(var(--sd-cream-rgb) / 0.68);
+}
+
+/* Guion y no bullet: son frases sueltas de lo que se tocó, no un temario numerado. */
+.sd-charlas__temas li::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0.7em;
+  width: 8px;
+  height: 1px;
+  background: rgb(var(--sd-purple-lift-rgb) / 0.7);
+}
+
+.sd-charlas__pendiente {
+  font-size: clamp(0.82rem, 1vw, 0.9rem);
+  line-height: 1.5;
+  color: rgb(var(--sd-cream-rgb) / 0.42);
+}
+
+@media (max-width: 520px) {
+  /* El logo sale de la fila: en 390px las cuatro columnas dejan el nombre en dos caracteres. */
+  .sd-charlas__trigger {
+    grid-template-columns: minmax(0, 1fr) auto auto;
+  }
+
+  .sd-charlas__marca {
+    display: none;
+  }
+
+  .sd-charlas__temas,
+  .sd-charlas__pendiente {
+    padding-left: 0;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════════════════
+   REJILLA DE ENCUADRE
+
+   Dos hairlines verticales que encajonan el contenido de punta a punta de la página, un divisor
+   horizontal entre secciones y una marca de registro en cada cruce.
+
+   **Un par de pseudos por sección y no un overlay único de página.** Sería más simple una sola
+   capa fija encima de todo, pero cada sección pinta su propio fondo y varias abren contexto de
+   apilado (`.sd-hero` y `.sd-sponsor-band` tienen `isolation: isolate`), así que ese overlay
+   quedaría tapado o por delante del contenido según la sección. Colgando de cada una, la línea
+   siempre cae entre el fondo y el contenido de esa caja.
+
+   **Las líneas van en `::after` y las cruces en `::before`, y eso NO es arbitrario.** Estaban las
+   dos cosas en `::after`, con la cruz como `background-image` desplazada media cruz hacia afuera
+   para centrarla en la esquina — y se veía cortada por la mitad. El fondo de un elemento se
+   recorta contra su propia caja: lo que cae afuera no se pinta, y sólo quedaban los dos brazos de
+   adentro. No se arregla moviendo el offset; hay que separarlas, y que la capa de las cruces tenga
+   una caja más grande que el marco.
+
+   `pointer-events: none` en las dos: sin eso se comen el arrastre del slider y los clicks.
+   ═══════════════════════════════════════════════════════════════════════════════════════════ */
+
+/* La cruz de registro. `--sd-cruz-lado` tiene que coincidir con el `width`/`height` del SVG de
+   `--sd-rejilla-cruz`, y `--sd-cruz-aire` —cuánto sobresale la caja de las cruces respecto del
+   marco— tiene que ser mayor que media cruz para que entre entera.
+
+   `--sd-cruz-offset` es la posición del BORDE de la imagen para que su CENTRO caiga sobre la
+   esquina del marco. `background-position` ubica el borde, no el centro: sin restarle media cruz,
+   la marca queda corrida media cruz hacia adentro en las dos direcciones. */
+.sd-root {
+  --sd-cruz-lado: 17px;
+  --sd-cruz-aire: 14px;
+  --sd-cruz-offset: calc(var(--sd-cruz-aire) - var(--sd-cruz-lado) / 2);
+}
+
+/* ── El marco ── */
+.sd-band::after,
+.sd-hero::after,
+.sd-sponsor-band::after,
+.sd-quien::after,
+.sd-marcas::after {
+  content: '';
+  position: absolute;
+  inset: 0 var(--sd-rejilla-x);
+  z-index: 1;
+  pointer-events: none;
+  border-left: 1px solid var(--sd-rejilla);
+  border-right: 1px solid var(--sd-rejilla);
+  /* El divisor entre secciones. Va arriba y no abajo para que no se dupliquen en la costura. */
+  border-top: 1px solid var(--sd-rejilla);
+}
+
+/* ── Las cruces ──
+   La caja se infla `--sd-cruz-aire` en las cuatro direcciones respecto del marco, así la cruz —que
+   se centra en la esquina del marco, o sea a `--sd-cruz-aire` del borde de esta caja— entra entera
+   sin tocar el recorte. */
+.sd-band::before,
+.sd-quien::before {
+  content: '';
+  position: absolute;
+  inset: calc(var(--sd-cruz-aire) * -1)
+    calc(var(--sd-rejilla-x) - var(--sd-cruz-aire));
+  /* Por encima del marco (z-index 1): con las dos capas empatadas ganaba `::after`, que se pinta
+     después, y el divisor tapaba los dos brazos horizontales de la cruz. Quedaban sólo los
+     verticales y la marca se leía como un tilde. */
+  z-index: 2;
+  pointer-events: none;
+  background-image: var(--sd-rejilla-cruz), var(--sd-rejilla-cruz);
+  background-repeat: no-repeat;
+  /* Centradas en las dos esquinas superiores del marco. */
+  background-position:
+    left var(--sd-cruz-offset) top var(--sd-cruz-offset),
+    right var(--sd-cruz-offset) top var(--sd-cruz-offset);
+}
+
+/* El hero abre la página: sin divisor arriba y sin cruces, que no tienen con qué cruzarse. */
+.sd-hero::after {
+  border-top: 0;
+}
+
+/* La banda de sponsors tampoco: su borde superior es la costura con el hero, donde el wash tiene
+   que pasar sin que se note. Una línea ahí contradice el degradado. */
+.sd-sponsor-band::after {
+  border-top: 0;
+}
+
+/* "Cómo se contó" tampoco: esa costura la resuelven el degradado y el disuelto de trama
+   (`.sd-media__disuelto`), y encima de eso la línea volvía a cortar lo que se estaba fundiendo.
+
+   Esta excepción existía desde antes, pero vivía allá arriba con el resto de `.sd-media`, o sea
+   ANTES de la regla general y con la misma especificidad: la pisaba la general y el divisor se
+   dibujaba igual. Va acá, junto a las otras dos, que es donde se lee que son tres y no una. */
+.sd-media::after {
+  border-top: 0;
+}
+
+.sd-media::before {
+  background-image: none;
+}
+
+/* La última sección cierra la rejilla: borde inferior y las cuatro cruces. */
+.sd-cd::after {
+  border-bottom: 1px solid var(--sd-rejilla);
+}
+
+.sd-cd::before {
+  background-image: var(--sd-rejilla-cruz), var(--sd-rejilla-cruz), var(--sd-rejilla-cruz),
+    var(--sd-rejilla-cruz);
+  background-position:
+    left var(--sd-cruz-offset) top var(--sd-cruz-offset),
+    right var(--sd-cruz-offset) top var(--sd-cruz-offset),
+    left var(--sd-cruz-offset) bottom var(--sd-cruz-offset),
+    right var(--sd-cruz-offset) bottom var(--sd-cruz-offset);
+}
+
+/* Las secciones que no declaraban `position` necesitan hacerlo para anclar sus pseudos. */
+.sd-band,
+.sd-quien {
+  position: relative;
+}
+
+/* El contenido tiene que quedar POR ENCIMA de la rejilla. Las que ya manejan su propio apilado
+   (`.sd-hero__grid` en z-index 3, `.sd-quien__body` en 2) ya están; el resto sube acá.
+
+   `:not(.sd-capa)` para dejar afuera las capas de atmósfera —degradados, viñetas, tramas—, que son
+   fondo y no contenido. Sin la excepción hay que pelearle la especificidad desde el bloque de cada
+   sección, y esa pelea se pierde: este bloque va último en el archivo, así que con la misma
+   especificidad gana él y una capa declarada `position: absolute` allá arriba vuelve a `relative`
+   sin que nada lo cante. Ya había pasado con el divisor de `.sd-media`. */
+.sd-band > *:not(.sd-capa),
+.sd-sponsor-band > *:not(.sd-capa) {
+  position: relative;
+  z-index: 2;
+}
+
+/* Una capa de atmósfera: cubre la sección, no recibe clicks y va por debajo del contenido. Cada
+   una pone lo suyo (qué pinta, qué caja ocupa) en su propio bloque. */
+.sd-capa {
+  position: absolute;
+  z-index: 0;
+  pointer-events: none;
+}
+
+@media (max-width: 719px) {
+  /* En teléfono el gutter es de 20px: las verticales quedarían pegadas al borde de la pantalla y
+     no encajonarían nada. Se van, y queda sólo el divisor entre secciones. */
+  .sd-band::after,
+  .sd-hero::after,
+  .sd-sponsor-band::after,
+  .sd-quien::after,
+  .sd-marcas::after {
+    inset: 0;
+    border-left: 0;
+    border-right: 0;
+  }
+
+  .sd-band::before,
+  .sd-quien::before {
+    display: none;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════════════════
+   HEADER — al sistema de la página
+
+   El header venía de otro lenguaje que el resto del Startup Day: tabs y CTA con
+   `border-radius: var(--sd-radius)` (10px), el CTA como pill blanco y la isla como una cápsula
+   redondeada con sombra. Pero los botones de esta landing son a canto vivo
+   (`.sd-root--startupday .sd-btn { border-radius: 0 }`), violetas y en Poppins regular.
+
+   Acá el header pasa a hablar el mismo idioma: **canto vivo en todo**, el CTA con el mismo
+   tratamiento que `.sd-btn--primary`, y los tabs como texto en mayúsculas con tracking en vez de
+   pastillas. La barra se separa del contenido con una hairline —la misma de la rejilla— y no con
+   una sombra.
+
+   Acotado a `.sd-root--startupday`: el shell lo comparten Xplora y Sponsors, que siguen con el
+   pill blanco.
+   ═══════════════════════════════════════════════════════════════════════════════════════════ */
+
+/* Sin línea propia abajo. La tuvo un momento y quedaba flotando: con el header transparente
+   arriba de todo, los rieles de la rejilla se ven desde el borde superior y eso ya encuadra. */
+.sd-root--startupday .sd-top {
+  border-radius: 0;
+}
+
+/* La isla al scrollear: sigue siendo una barra, no una cápsula. Mantiene el fondo translúcido y
+   el desenfoque —que son los que la despegan del contenido— pero sin esquinas ni sombra. */
+.sd-root--startupday .sd-tabs a,
+.sd-root--startupday .sd-tabs button {
+  border-radius: 0;
+  font-family: var(--sd-font-body);
+  font-weight: 400;
+  font-size: 0.72rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  background: transparent;
+}
+
+/* El tab activo se marca con una regla abajo, no con una pastilla de fondo: es lo mismo que hace
+   el resto de la página, que subraya y no encapsula. */
+.sd-root--startupday .sd-tabs a.is-active,
+.sd-root--startupday .sd-tabs button.is-active {
+  background: transparent;
+  color: #fff;
+  box-shadow: inset 0 -1px 0 0 var(--sd-purple);
+}
+
+/* Mismo botón que `.sd-btn--primary` de la página: violeta, canto vivo, Poppins regular. */
+.sd-root--startupday .sd-top__cta {
+  border-radius: 0;
+  border: 1px solid var(--sd-purple);
+  background: var(--sd-purple);
+  color: #fff;
+  font-family: var(--sd-font-body);
+  font-weight: 400;
+  font-size: 0.78rem;
+  letter-spacing: 0.02em;
+}
+
+.sd-root--startupday .sd-top__cta:hover {
+  background: rgb(var(--sd-purple-rgb) / 0.82);
+  border-color: var(--sd-purple);
+  color: #fff;
+}
+
+/* El nombre de marca, en la misma familia display que los titulares pero a escala de barra. */
+.sd-root--startupday .sd-top__name {
+  font-family: var(--sd-font-display);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  font-size: 0.9rem;
+}

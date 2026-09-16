@@ -26,7 +26,7 @@ export type StartupDayPartner = {
 };
 
 /** Ruta pública de un logo. El `?v=` es el cache-buster; vive acá y sólo acá. */
-export const LOGO = (file: string) => `/logos/startup-day/${file}?v=19`;
+export const LOGO = (file: string) => `/logos/startup-day/${file}?v=20`;
 
 export const SD_EVENT = {
   title: 'Startup Day',
@@ -42,8 +42,13 @@ export const SD_EVENT = {
 } as const;
 
 /**
- * Formulario de registro (Microsoft Forms) — única vía de inscripción. Reemplazó al evento de
- * Luma; el `utm_source=landing_xplora` viene en el link que pasó el cliente y se respeta tal cual.
+ * Formulario de registro (Microsoft Forms). Reemplazó al evento de Luma; el
+ * `utm_source=landing_xplora` viene en el link que pasó el cliente y se respeta tal cual.
+ *
+ * SIN USO desde que cerró la primera edición: el formulario ya no acepta altas y todos los CTAs
+ * de la landing apuntan ahora a `#proxima`, que guarda el mail en `startup_day_waitlist`. Se
+ * conserva —y no se borra— porque la segunda edición va a necesitar un formulario igual; cuando
+ * llegue, cambiar la URL acá vuelve a encender todo el circuito de `utm_content`.
  */
 export const SD_INSCRIPCION_URL =
   'https://forms.cloud.microsoft/pages/responsepage.aspx?id=yaQFTVUvhUiT0rJ70z_PtqvSxeN6YjNAlnGbKtc1zLxUNUZDRDVNNDFNSVc3RFVHSDROMFNYRVc4TC4u&utm_source=landing_xplora';
@@ -79,6 +84,8 @@ export const SD_COMING_SOON = false;
  * la grilla. Se publicó con las charlas de `SD_CHARLAS` confirmadas; volver a `true` la vuelve
  * a tapar sin perder los datos.
  */
+/* SIN USO desde que la grilla horaria (`StartupDayAgenda`) se reemplazó por `SdCharlas`: pasado
+   el evento no hay agenda que tapar. Se conserva para cuando vuelva a haber uno. */
 export const SD_AGENDA_LOCKED = false;
 
 /**
@@ -92,11 +99,11 @@ export const SD_DAY_STORY = {
   pillars: [
     {
       tag: 'Stands',
-      text: 'El espacio permanece activo de 15 a 20 hs. Recorré los stands, conversá con los equipos y volvé cuando quieras.',
+      text: 'El espacio estuvo activo de 15 a 20 hs. Se recorrían los stands, se conversaba con los equipos y se volvía las veces que hiciera falta.',
     },
     {
       tag: 'Startups',
-      text: 'Equipos en etapa temprana buscando capital y compañías más consolidadas. Preguntá cómo construyeron producto, equipo y tracción.',
+      text: 'Equipos en etapa temprana buscando capital y compañías más consolidadas, respondiendo cómo construyeron producto, equipo y tracción.',
     },
     {
       tag: 'Workshops',
@@ -104,7 +111,7 @@ export const SD_DAY_STORY = {
     },
     {
       tag: 'Networking',
-      text: 'Conectá con founders, inversores y aceleradoras. Conversaciones directas, en un mismo lugar y horario.',
+      text: 'Founders, inversores y aceleradoras en el mismo lugar y horario. Conversaciones directas, muchas de ellas fuera de agenda.',
     },
   ],
 } as const;
@@ -123,9 +130,9 @@ export type SdAula = (typeof SD_AULAS)[number]['id'];
 /**
  * Una charla de la grilla.
  *
- * `from`/`to` no son sólo texto: `StartupDayAgenda` los convierte en líneas de una grilla CSS,
- * así que la card queda ubicada y dimensionada por su horario real — los huecos entre charlas y
- * el largo de cada una salen solos de estos dos valores.
+ * `from`/`to` alimentaban la grilla horaria de `StartupDayAgenda`, que se fue al pasar la página
+ * a recap: un itinerario sirve antes del evento, no después. Se conservan porque siguen ordenando
+ * la lista y porque la próxima edición va a querer su agenda de vuelta.
  */
 export type SdCharla = {
   aula: SdAula;
@@ -141,6 +148,14 @@ export type SdCharla = {
   speaker?: string;
   /** Archivo dentro de `/logos/startup-day/`. Sin él la card cae al punto violeta. */
   logo?: string;
+  /**
+   * De qué se habló, en frases sueltas.
+   *
+   * Sin esto la card muestra sólo la empresa y quién habló, que es lo correcto mientras el
+   * resumen no exista: son charlas reales de gente real, y escribir de qué hablaron sin saberlo
+   * les pone en la boca algo que no dijeron. El dato lo tiene que pasar la organización.
+   */
+  temas?: readonly string[];
   /**
    * Deja el logo en su color en vez de aplanarlo a blanco.
    *
@@ -164,7 +179,22 @@ export type SdCharla = {
    rectángulo blanco; `resender.png` es el ícono cuadrado y no el wordmark; y `derecruiters.png`
    llegó con fondo negro macizo, así que se le quitó con `ffmpeg -vf colorkey`. */
 export const SD_CHARLAS: readonly SdCharla[] = [
-  { aula: 'k', from: '15:30', to: '16:15', name: 'Derecruiters', speaker: 'Alan Gosiker', logo: 'derecruiters.png' },
+  /* La única con `temas` por ahora: es el resumen que pasó la organización. Las otras trece
+     esperan el suyo — ver el comentario del campo. */
+  {
+    aula: 'k',
+    from: '15:30',
+    to: '16:15',
+    name: 'Derecruiters',
+    speaker: 'Alan Gosiker',
+    logo: 'derecruiters.png',
+    temas: [
+      'Qué se mira hoy en el mercado',
+      'Qué hace un forward deployed engineer',
+      'Cómo contratan las startups',
+      'Qué miran en tu CV',
+    ],
+  },
   { aula: 'k', from: '16:15', to: '16:45', name: 'First Plug', speaker: 'Santiago Sucari', logo: 'firstplug.png' },
   { aula: 'k', from: '16:45', to: '17:15', name: 'uin', speaker: 'Manuel Heredia', logo: 'uin.png' },
   {
@@ -203,7 +233,16 @@ export const SD_STANDS = {
   note: 'Abiertos todo el horario',
 } as const;
 
-/** Startups confirmadas — logos normalizados en `/logos/startup-day/*.webp`. */
+/**
+ * Catálogo de marcas — logos normalizados en `/logos/startup-day/*.webp`.
+ *
+ * Ya no es "las confirmadas" de la landing previa al evento: desde el recap esta lista sólo
+ * resuelve nombre + logo + link para las insignias del piso 3D (`startupDayStands.ts`), y quién
+ * estuvo realmente lo define `MARCA_POR_STAND`, no este array. Por eso siguen acá marcas que no
+ * se presentaron (Renderahouse, Talentum) o que compartieron mesa con otra (Referent con Squads
+ * Ventures, Stellar con BAF): no aparecen en ningún lado hasta que el plano les asigne una mesa,
+ * y si vuelven en la próxima edición el asset ya está.
+ */
 export const SD_STARTUPS: StartupDayCompany[] = [
   {
     id: 'pasito',

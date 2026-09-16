@@ -84,7 +84,7 @@ export function createPublicStartupDayWaitlistHandler(config: AppConfig): Reques
       });
       const err = await sendOneResendEmail(config.resend, {
         to: email,
-        subject: 'Tu lugar en Startup Day está reservado — Xplora',
+        subject: 'Estás en la lista del próximo Startup Day — Xplora',
         html,
       });
       if (err) {

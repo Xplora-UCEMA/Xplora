@@ -1,103 +1,82 @@
-import { useState } from 'react';
-import { SD_DAY_STORY, sdInscripcionUrl } from '../../data/startupDay';
+import { SD_DAY_STORY } from '../../data/startupDay';
+import { type PatronAscii } from './ascii';
+import { SdAsciiCampo } from './SdAsciiCampo';
 import { SdReveal } from './SdReveal';
 
 /**
- * "La experiencia" — acordeón tipográfico.
+ * "La experiencia" — bento de cuatro celdas.
  *
- * Antes esto era un panel: bordes redondeados, sombra de 120px, degradado propio, una foto de
- * horizonte en `mix-blend-mode: screen` y cuatro SVG con halos radiales. Demasiada capa para lo
- * que la sección dice. Ahora es lo mínimo que sostiene el contenido —título grande, cuatro filas
- * numeradas, hairlines— plano sobre `--sd-ink`, igual que sus dos secciones vecinas.
+ * Cuarta versión de esta sección. Fue cuatro filas a sangre, después un panel con sombra y
+ * degradado, y hasta recién un acordeón: una fila abierta por vez, las otras tres reducidas a su
+ * título.
  *
- * Una sola fila abierta por vez. El patrón de índice activo es el de `StartupDayAgenda`
- * (`active` + hover/focus/click), pero sin el intervalo ni el `userLocked` de allá: acá no hay
- * nada que auto-avanzar, y al salir el mouse la fila se queda donde el usuario la dejó.
+ * El acordeón se fue por dos razones. La de forma: `#charlas`, acá nomás abajo, TAMBIÉN es un
+ * acordeón, y son catorce charlas contra cuatro pilares — ahí el patrón se gana el lugar porque
+ * sin plegar no se termina de scrollear más, y acá no. Repetirlo dos secciones seguidas hacía
+ * parecer que la página tiene un solo recurso. La de fondo: los cuatro pilares son cuatro hechos
+ * cortos del día, no cuatro opciones entre las que elegir; plegarlos escondía tres cuartos del
+ * contenido para ahorrar un espacio que sobraba.
  *
- * Cada fila es UNA grilla de cuatro columnas y sus tres piezas van en la misma línea:
- * `[01 | STANDS]` (el botón), la descripción y la flecha. La descripción es hermana del botón y
- * no hija, para que arranque a la altura del título en vez de caer debajo — y para que el nombre
- * accesible del botón siga siendo sólo el nombre de la fila, no el párrafo entero.
+ * El bento los muestra los cuatro a la vez, con pesos distintos —dos celdas anchas y dos
+ * angostas— para que la grilla tenga ritmo en vez de ser cuatro cajas iguales.
+ *
+ * **El contenido no cambió**: siguen siendo los mismos cuatro `SD_DAY_STORY.pillars`.
  */
 
-/** Flecha única: la rotación (↗ abierta / ↘ cerrada) la hace el CSS sobre `.sd-exp__arrow`. */
-function ExpArrow() {
-  return (
-    <svg
-      className="sd-exp__arrow-svg"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.6"
-      strokeLinecap="square"
-      aria-hidden
-      focusable="false"
-    >
-      <path d="M6 18 18 6" />
-      <path d="M9 6h9v9" />
-    </svg>
-  );
-}
+/**
+ * Qué campo de ASCII lleva de fondo cada celda, en el orden de los pilares.
+ *
+ * No son decorativos al azar: cada uno ilustra su celda. Una retícula lee como plano de piso
+ * (Stands), una espiral como algo que crece desde un centro (Startups), ondas concéntricas como
+ * algo que se propaga (Workshops) y puntos sueltos como gente suelta (Networking).
+ *
+ * Van todos en `animado={false}`: se pintan UNA vez y no vuelven a dibujar. Cuatro canvas estáticos
+ * cuestan lo que cuatro imágenes, que es el presupuesto que esta página puede pagar.
+ */
+const CAMPOS: readonly PatronAscii[] = ['malla', 'espiral', 'onda', 'disperso'];
 
 export function SdExperiencia() {
-  const [active, setActive] = useState(0);
-
   return (
     <section id="que-pasa" className="sd-band sd-band--ink sd-exp">
       <SdReveal className="sd-exp__head">
         <h2 className="sd-exp__title">{SD_DAY_STORY.title}</h2>
       </SdReveal>
 
-      <SdReveal delay={1} className="sd-exp__list">
-        {SD_DAY_STORY.pillars.map((pillar, i) => {
-          const open = i === active;
-          return (
-            <div
-              key={pillar.tag}
-              className={`sd-exp__row${open ? ' is-open' : ''}`}
-              /* El hover vive en la fila entera y no en el botón: el botón sólo ocupa las dos
-                 primeras columnas, así que si no la zona de la descripción quedaría muerta. */
-              onMouseEnter={() => setActive(i)}
-            >
-              <button
-                type="button"
-                className="sd-exp__trigger"
-                aria-expanded={open}
-                aria-controls={`sd-exp-body-${i}`}
-                onFocus={() => setActive(i)}
-                onClick={() => setActive(i)}
-              >
-                <span className="sd-exp__num">{String(i + 1).padStart(2, '0')}</span>
-                <span className="sd-exp__name">{pillar.tag}</span>
-              </button>
+      <SdReveal delay={1} className="sd-exp__bento">
+        {SD_DAY_STORY.pillars.map((pillar, i) => (
+          <article key={pillar.tag} className={`sd-exp__celda sd-exp__celda--${i + 1}`}>
+            <SdAsciiCampo
+              className="sd-exp__campo"
+              patron={CAMPOS[i] ?? 'flujo'}
+              animado={false}
+              opacity={0.26}
+              celda={10}
+              /* Fases distintas: con la misma, cuatro campos estáticos del mismo patrón saldrían
+                 calcados. Acá además cambia el patrón, pero `disperso` y `malla` son sensibles a
+                 la fase y conviene que no arranquen todos en cero. */
+              fase={i * 7}
+              corte={0.3}
+            />
 
-              {/* Se queda montado y colapsa a `0fr`: `visibility: hidden` lo saca del árbol de
-                  accesibilidad mientras está cerrado y además deja animar la apertura. */}
-              <div id={`sd-exp-body-${i}`} className="sd-exp__body" role="region">
-                <p className="sd-exp__copy">{pillar.text}</p>
-              </div>
-
-              <span className="sd-exp__arrow" aria-hidden>
-                <ExpArrow />
-              </span>
+            <div className="sd-exp__celda-cuerpo">
+              <span className="sd-exp__num">{String(i + 1).padStart(2, '0')}</span>
+              <h3 className="sd-exp__name">{pillar.tag}</h3>
+              <p className="sd-exp__copy">{pillar.text}</p>
             </div>
-          );
-        })}
+          </article>
+        ))}
       </SdReveal>
 
       {/* Mismo par que cierra "No importa quién sos": el primario fuerte y el secundario claro. */}
       <SdReveal delay={2} className="sd-exp__actions">
-        <a
-          className="sd-btn sd-btn--primary"
-          href={sdInscripcionUrl('experiencia')}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Inscribirme
+        {/* Cerrada la primera edición el formulario ya no acepta altas: el llamado pasa a ser
+            el contador de la próxima. Ver la misma sustitución en `SdManifesto` y el hero. */}
+        <a className="sd-btn sd-btn--primary" href="#proxima">
+          Avisame de la próxima
         </a>
-        {/* `#piso` es la sección "El lugar" (`StartupDayFloor` + agenda). */}
-        <a className="sd-btn sd-btn--ghost" href="#piso">
-          Conocé el lugar
+        {/* Apuntaba a `#piso` ("El lugar", el render 3D), que se sacó de la página. */}
+        <a className="sd-btn sd-btn--ghost" href="#charlas">
+          De qué se habló
         </a>
       </SdReveal>
     </section>

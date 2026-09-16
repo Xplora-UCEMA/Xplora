@@ -3,6 +3,7 @@ import { useSiteMedia } from '../../context/SiteMediaContext';
 import { DEFAULT_LOGO_URL } from '../../lib/defaultsMedia';
 import {
   mainSiteUrl,
+  sdPath,
   startupDayUrl,
 } from '../../lib/startupDayHost';
 import {
@@ -10,6 +11,7 @@ import {
   SD_XPLORA_PARTNERS,
   SD_XPLORA_SOCIALS,
 } from '../../data/startupDay';
+import { SD_TESTIMONIOS } from '../../data/startupDayTestimonios';
 import { StartupDayCursor } from './StartupDayCursor';
 import { StartupDayLoader } from './StartupDayLoader';
 import { SdPixelWave } from './SdPixelWave';
@@ -47,7 +49,7 @@ export function SdShell({
   loaderDone = true,
   showCursor = active === 'startupday',
   cta,
-  brandBlurb = 'Club de emprendedores. Startup Day es la primera edición del evento más importante del año.',
+  brandBlurb = 'Club de emprendedores. Startup Day fue la primera edición del evento más importante del año.',
 }: Props) {
   const { logoUrl } = useSiteMedia();
   const brandLogo = logoUrl || DEFAULT_LOGO_URL;
@@ -186,15 +188,23 @@ export function SdShell({
               {active === 'startupday' ? (
                 <div className="sd-footer__col">
                   <h3>Startup Day</h3>
-                  <a href="#para-quien">Para quién</a>
-                  <a href="#sponsors">Sponsors</a>
-                  <a href="#que-pasa">La experiencia</a>
-                  <a href="#piso">El lugar</a>
-                  <a href="#agenda">Agenda</a>
+                  {/* `#recap` es la lámina "No importa quién sos", que desde el recap lleva los
+                      números de la edición — ya no existe un `#para-quien` aparte. */}
+                  <a href={sdPath('/#recap')}>El recap</a>
+                  <a href={sdPath('/#proxima')}>Próxima edición</a>
+                  <a href={sdPath('/#sponsors')}>Sponsors</a>
+                  <a href={sdPath('/#que-pasa')}>La experiencia</a>
+                  {/* Era `#agenda`, el id de la grilla horaria. Esa sección se reemplazó por
+                      `SdCharlas` (`#charlas`) al pasar la página a recap. */}
+                  <a href={sdPath('/#charlas')}>Las charlas</a>
+                  {/* Condicional, no fijo: mientras no haya posteos cargados `SdTestimonios`
+                      devuelve `null` y este link no tendría a dónde llevar. */}
+                  {SD_TESTIMONIOS.length > 0 ? (
+                    <a href={sdPath('/#testimonios')}>Testimonios</a>
+                  ) : null}
                   {/* StartupMate oculta — ver `StartupDay.tsx`
                   <a href="#startupmate">StartupMate</a>
                   */}
-                  <a href="#reservar">Inscripción</a>
                 </div>
               ) : (
                 <div className="sd-footer__col">
@@ -235,7 +245,7 @@ export function SdShell({
                       <span key={p.id}>{p.name}</span>
                     ),
                   )}
-                  <a href="#sponsors">Sumar mi marca</a>
+                  <a href={sdPath('/#sponsors')}>Sumar mi marca</a>
                 </div>
               ) : (
                 <div className="sd-footer__col">

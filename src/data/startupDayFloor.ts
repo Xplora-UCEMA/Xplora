@@ -616,6 +616,12 @@ export function rectEnfocable(id: string, aire = 1): RectM | null {
 }
 
 /** Qué se hace en la sala — reemplaza a mostrar medidas. */
+/**
+ * SIN USO desde el recap. La lista del render pasó a contar marcas y no mesas —dos tablones
+ * quedaron sin logo y dos marcas no se presentaron—, y esa cuenta necesita la asignación, que
+ * este módulo no conoce a propósito. Vive ahora en `StartupDayFloor.tsx` (`standsOcupados`).
+ * Se conserva porque describe el plano, que es lo que este archivo modela.
+ */
 export function detalleDe(sala: Sala): string {
   if (sala.tipo === 'stands') {
     const n = mesasDeSala(sala.id);

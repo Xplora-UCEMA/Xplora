@@ -58,6 +58,24 @@ export function startupDayUrl(): string {
   return STARTUP_DAY_CANONICAL;
 }
 
+/**
+ * Ruta interna del host Startup Day, conservando el modo preview.
+ *
+ * En producción alcanza con el path pelado. En preview el host no dice nada —la landing se
+ * sirve por `?startupday=1`— así que un link a `/placa/pasito` a secas perdería el parámetro,
+ * caería en el sitio principal y `App.tsx` lo redirigiría a `/`.
+ */
+export function sdPath(path: string): string {
+  const p = path.startsWith('/') ? path : `/${path}`;
+  const host = normalizeHost(window.location.hostname);
+  if (STARTUP_DAY_HOSTS.has(host)) return p;
+  /* El fragmento va siempre último: `/#recap?startupday=1` metería el parámetro dentro del
+     hash y ni el ancla ni el gate de preview funcionarían. */
+  const corte = p.indexOf('#');
+  if (corte === -1) return `${p}?startupday=1`;
+  return `${p.slice(0, corte)}?startupday=1${p.slice(corte)}`;
+}
+
 /** URL del sitio Xplora principal. */
 export function mainSiteUrl(): string {
   const host = normalizeHost(window.location.hostname);

@@ -7,20 +7,23 @@ import { DEFAULT_LOGO_URL } from '../lib/defaultsMedia';
 import { MAIN_SITE_URL, STARTUP_DAY_CANONICAL } from '../lib/startupDayHost';
 import {
   SD_COMING_SOON,
-  SD_EVENT,
   // SD_STARTUPMATE,  ← ver "StartupMate: sección OCULTA" más abajo
-  sdInscripcionUrl,
 } from '../data/startupDay';
-import { SdReveal } from '../components/startup-day/SdReveal';
 import { SdShell } from '../components/startup-day/SdShell';
 import { SdExperiencia } from '../components/startup-day/SdExperiencia';
 import { SdManifesto } from '../components/startup-day/SdManifesto';
-import { StartupDayAgenda } from '../components/startup-day/StartupDayAgenda';
+import { SdMarcas } from '../components/startup-day/SdMarcas';
+import { SdMedia } from '../components/startup-day/SdMedia';
+import { SdCharlas } from '../components/startup-day/SdCharlas';
+import { SdTestimonios } from '../components/startup-day/SdTestimonios';
+import { SdCountdown } from '../components/startup-day/SdCountdown';
+import { SdTicker } from '../components/startup-day/cuentaRegresiva';
+import { SD_PROXIMA_EDICION_TS } from '../data/startupDayRecap';
 import { StartupDayComingSoon } from '../components/startup-day/StartupDayComingSoon';
 import { StartupDayCursor } from '../components/startup-day/StartupDayCursor';
 import { SdAsciiDisc } from '../components/startup-day/SdAsciiDisc';
+import { SdAsciiCampo } from '../components/startup-day/SdAsciiCampo';
 import { SdSponsorStrip } from '../components/startup-day/SdSponsorStrip';
-import { StartupDayFloor } from '../components/startup-day/floor/StartupDayFloor';
 import '../styles/startupDay.css';
 
 /* ── StartupMate: sección OCULTA a pedido ────────────────────────────────────────
@@ -80,7 +83,7 @@ export default function StartupDay() {
     if (metaDesc) {
       metaDesc.content = comingSoon
         ? 'Startup Day by Xplora UCEMA. Lo estamos construyendo — pronto disponible. 11 de septiembre 2026. Entrada 100% gratuita.'
-        : 'Startup Day by Xplora UCEMA. 11 de septiembre 2026, Av. Alem 882. Entrada 100% gratuita. Startups, workshops, pitch e inversores.';
+        : 'Así fue el Startup Day by Xplora UCEMA: 40 stands, 14 charlas y workshops y cinco horas en Av. Alem 882. Mirá el recap y enterate de la próxima edición.';
     }
 
     const t = comingSoon ? undefined : window.setTimeout(() => setLoaderDone(true), 900);
@@ -110,7 +113,7 @@ export default function StartupDay() {
       active="startupday"
       showLoader
       loaderDone={loaderDone}
-      cta={{ label: 'Inscribirme', href: sdInscripcionUrl('nav') }}
+      cta={{ label: 'Avisame de la próxima', href: '#proxima' }}
     >
       <StartupDayContent />
     </SdShell>
@@ -121,6 +124,29 @@ function StartupDayContent() {
   return (
     <>
       <section className="sd-hero">
+        {/* Dos manchas de ASCII en las diagonales, detrás de todo. No son el disco: el disco es la
+            pieza —lleva el mark calado y reacciona al cursor— y esto es atmósfera, que es por qué
+            van muy apagadas y con la celda más grande (se leen como caracteres, no como trama).
+
+            Fases distintas para que las dos no respiren al unísono, que es lo que delataría que
+            son el mismo dibujo dos veces. El `overflow: hidden` del hero las recorta contra los
+            bordes de la pantalla. */}
+        <SdAsciiCampo
+          className="sd-hero__campo sd-hero__campo--no"
+          patron="flujo"
+          opacity={0.55}
+          celda={11}
+          corte={0.62}
+        />
+        <SdAsciiCampo
+          className="sd-hero__campo sd-hero__campo--se"
+          patron="onda"
+          opacity={0.6}
+          celda={12}
+          corte={0.6}
+          fase={11}
+        />
+
         <div className="sd-hero__grid">
           <div className="sd-hero__content">
             {/* Logo de key art en vez de texto seteado en CSS: después de varias vueltas afinando
@@ -134,32 +160,20 @@ function StartupDayContent() {
               />
             </h1>
 
+            {/* Que el evento ya pasó lo dice el verbo del lede y nada más. Antes lo decían
+                además un sello ("Edición 01 — terminada") y dos hitos con las fechas de ida y
+                vuelta: tres veces el mismo mensaje, y las fechas eran datos muertos ocupando el
+                lugar del reloj que ahora corre al pie. */}
             <p className="sd-hero__lede">
-              El mayor evento para startups y builders del año.
+              Se hizo el mayor evento para startups y builders del año. Esto es lo que pasó.
             </p>
 
-            <div className="sd-hero__facts">
-              <div>
-                <span className="sd-hero__fact-k">Fecha</span>
-                <strong>11.09</strong>
-              </div>
-              <div>
-                <span className="sd-hero__fact-k">Lugar</span>
-                <strong>Buenos Aires</strong>
-              </div>
-            </div>
-
             <div className="sd-hero__actions">
-              <a
-                className="sd-btn sd-btn--primary"
-                href={sdInscripcionUrl('hero')}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                Inscribirme gratis
+              <a className="sd-btn sd-btn--primary" href="#recap">
+                Ver el recap
               </a>
-              <a className="sd-btn sd-btn--ghost" href="#que-pasa">
-                La experiencia
+              <a className="sd-btn sd-btn--ghost" href="#proxima">
+                Avisame de la próxima
               </a>
             </div>
           </div>
@@ -167,40 +181,56 @@ function StartupDayContent() {
           <SdAsciiDisc className="sd-hero__disc" />
         </div>
 
-        <a className="sd-hero__scroll" href="#para-quien">
-          Seguí bajando
-          <span aria-hidden />
-        </a>
+        {/* Barra de estado al pie del hero, en el lugar que tenía el "Seguí bajando". Va como
+            hermana de `__grid` y no adentro de `__content`, que tiene `pointer-events: none`.
+
+            Queda DENTRO de la caja de `100dvh` del hero a propósito: la costura con
+            `.sd-sponsor-band` depende de que el hero mida exactamente eso (ver el comentario de
+            la banda, más abajo), así que esto no puede empujar hacia afuera. */}
+        {/* Sólo el reloj, centrado. El rótulo "Próxima edición / a confirmar" que estaba a la
+            izquierda se fue: la salvedad de la fecha sigue dicha en `#proxima`, que es donde se
+            pide el mail, y acá le quitaba limpieza a la barra. */}
+        <div className="sd-hero__reloj">
+          <SdTicker ts={SD_PROXIMA_EDICION_TS} compacto />
+        </div>
       </section>
 
+      {/* PEGADO AL HERO, y no es una preferencia de orden: `.sd-sponsor-band::before` dibuja la
+          cola del wash como `radial-gradient(… at 0% -14dvh …)`, y ese `-14dvh` cae sobre el
+          mismo punto que la elipse del hero (86% de una caja de 100dvh) SÓLO si esta banda
+          arranca exactamente en 100dvh. Metiendo cualquier sección en el medio, el hero queda
+          con medio wash cortado a pico y acá aparece una elipse violeta flotando sin origen. */}
       <div id="sponsors" className="sd-sponsor-band">
         <SdSponsorStrip />
       </div>
 
+      {/* El recap vive DENTRO de `SdManifesto`: esa lámina ya era la pieza más fuerte de la
+          página —fondo ASCII, marco técnico y el titular del Figma— y lo único que le sobraba
+          era la banda de logos, que se reemplazó por los números. Por eso no hay una sección
+          de recap aparte: sería repetir el mismo contenido con menos diseño.
+
+          Abre en `--sd-void` porque es con el que cierra `.sd-sponsor-band` justo arriba, y
+          termina en `--sd-ink` para `SdExperiencia`. Otra costura que depende del orden. */}
       <SdManifesto />
+
+      {/* Quiénes vinieron. Es la banda que antes remataba la lámina: como sección propia deja de
+          ser decoración y pasa a ser la prueba del recap. */}
+      <SdMarcas />
+
+      {/* El registro del día y quiénes lo hicieron. Va después de las marcas porque primero se
+          dice quiénes vinieron y después se muestra. */}
+      <SdMedia />
 
       <SdExperiencia />
 
-      {/* "El lugar" + Agenda fusionados: la agenda ya no es una sección aparte con su propio
-          fondo — es la continuación directa del piso ("así va a suceder"), ver
-          `.sd-piso__agenda` y el comentario en `StartupDayAgenda.tsx`. */}
-      <section id="piso" className="sd-band sd-band--ink sd-piso">
-        <SdReveal className="sd-piso__head">
-          {/* Masthead: título a la izquierda y la regla corriendo hasta el margen derecho. */}
-          <div className="sd-piso__masthead">
-            <h2 className="sd-piso__title">El lugar</h2>
-            <span className="sd-piso__rule" aria-hidden />
-          </div>
-          <p className="sd-piso__lead">
-            Dos salas de workshops, cuatro con stands y el hall alrededor del núcleo de
-            ascensores. Giralo para ver cómo se recorre el día.
-          </p>
-        </SdReveal>
+      {/* De qué se habló. Era la grilla horaria fusionada al piso; ahora es sección propia,
+          porque pasó de ser un itinerario a ser contenido. */}
+      <SdCharlas />
 
-        <StartupDayFloor />
-
-        <StartupDayAgenda />
-      </section>
+      {/* Qué dijeron. Va último del recap y antes del cierre: es la prueba de terceros, y sólo
+          pesa después de que la página ya contó qué pasó. Si todavía no hay posteos cargados el
+          componente devuelve `null` y acá no queda nada — ver `startupDayTestimonios.ts`. */}
+      <SdTestimonios />
 
       {/* StartupMate — OCULTA. Ver la nota arriba del archivo para volver a mostrarla.
       <section id="startupmate" className="sd-band sd-band--purple-wash sd-smate">
@@ -233,29 +263,10 @@ function StartupDayContent() {
       </section>
       */}
 
-      <section id="reservar" className="sd-band sd-band--ink">
-        <SdReveal className="sd-signup">
-          <p className="sd-kicker">Inscripción</p>
-          <h2 className="sd-h2">¿Venís?</h2>
-          <p className="sd-lead">
-            Entrada {SD_EVENT.priceLabel} y cupos limitados. La inscripción se hace en un
-            formulario: lo completás en un minuto y te llega la confirmación por mail.
-          </p>
-
-          <a
-            className="sd-btn sd-btn--primary sd-signup__cta"
-            href={sdInscripcionUrl('inscripcion')}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Inscribirme gratis
-          </a>
-
-          <p className="sd-signup__meta">
-            {SD_EVENT.dateLabel} · {SD_EVENT.timeLabel} · {SD_EVENT.addressFull}
-          </p>
-        </SdReveal>
-      </section>
+      {/* Cierre. Ocupa el lugar de `#reservar`, que era la sección de inscripción al formulario
+          de Microsoft: cerrada la edición ese link no tiene destino, y el único llamado que
+          queda es dejar el mail para la próxima. Nada apunta ya al id viejo. */}
+      <SdCountdown />
     </>
   );
 }

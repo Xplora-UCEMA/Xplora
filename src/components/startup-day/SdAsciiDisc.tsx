@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { construirAtlas, RAMP, smoothstep } from './ascii';
 
 /**
  * Disco ASCII — canvas 2D puro.
@@ -7,38 +8,9 @@ import { useEffect, useRef } from 'react';
  * con el mark de Xplora calado en negativo. Acá el campo está vivo — anillos que respiran,
  * rotación lenta, reacción al cursor — en vez de ser una imagen plana.
  *
- * Deliberadamente NO usa three ni @react-three/fiber: el chunk `three` pesa ~838 KB y
- * `vite.config.ts` lo mantiene fuera del grafo de imports estáticos para que no caiga en el camino
- * crítico de la landing.
+ * Deliberadamente en canvas 2D y no en WebGL: un disco de ASCII no justifica una librería 3D, y
+ * así el hero no depende de nada que no sea el navegador.
  */
-
-/** Rampa de densidad: del vacío al bloque lleno. */
-const RAMP = ' .:-=+*#%@';
-
-/**
- * Sin webfont monoespaciada. En canvas no existe `font-display`: si la familia todavía no cargó,
- * `ctx.font` cae al fallback en silencio y no hay repintado cuando llega, así que habría que
- * esperar a `document.fonts.load()` antes del primer frame — sobre un `index.html` que ni siquiera
- * tiene preconnect a fonts.gstatic.com. A 6-13 px el disco es textura, no texto.
- */
-const MONO =
-  "ui-monospace, 'SF Mono', 'Cascadia Mono', 'Segoe UI Mono', Menlo, Consolas, 'DejaVu Sans Mono', monospace";
-
-/**
- * Del ink casi invisible al lavanda de las crestas. El original de Luma nunca llega a blanco
- * (pico ~134/255), así que las puntas quedan apagadas a propósito.
- *
- * La rampa no es libre: son seis muestras interpoladas entre los tres valores del sistema
- * —`--sd-void` (11,7,18) → `--sd-purple` (96,62,249) → `--sd-purple-lift` (196,181,255)—, así que
- * el disco vive en el mismo hue que todo lo demás. Va hardcodeada porque esto se pinta en canvas,
- * donde no llegan las custom properties; si cambian los tokens, hay que recalcularla acá.
- */
-const TINTS = ['#27195f', '#3e289d', '#5537da', '#7456fa', '#9c85fd', '#c4b5ff'];
-
-const smoothstep = (a: number, b: number, x: number) => {
-  const t = Math.min(1, Math.max(0, (x - a) / (b - a)));
-  return t * t * (3 - 2 * t);
-};
 
 type Props = {
   className?: string;
@@ -135,44 +107,10 @@ export function SdAsciiDisc({ className, opacity = 1 }: Props) {
       for (let i = 0; i < mask.length; i++) mask[i] = data[i * 4 + 3]! / 255;
     };
 
-    /**
-     * Un sprite por nivel. Glifo y tono salen del mismo escalar, así que no hacen falta
-     * `glifos × tonos` combinaciones: alcanza con una tira de `RAMP.length` tiles.
-     *
-     * Pegar sprites es bastante más barato que `fillText` por celda, y sobre todo elimina el
-     * `fillStyle` por celda, que es lo que rompe el batching de glifos del rasterizador.
-     */
+    /* La tira de sprites, una por nivel de la rampa. Vive en `ascii.ts` porque `SdAsciiCampo`
+       necesita exactamente la misma —y sobre todo los mismos tonos. */
     const buildAtlas = () => {
-      const a = document.createElement('canvas');
-      /* 15% de aire: `@` y `#` desbordan una celda ajustada. */
-      const pad = 1.15;
-      const tw = Math.ceil(cellW * pad);
-      const th = Math.ceil(cellH * pad);
-      a.width = tw * RAMP.length;
-      a.height = th;
-      const actx = a.getContext('2d');
-      if (!actx) return;
-
-      /* 0.6 em es el avance típico de una monoespaciada, pero varía por familia: se mide una vez y
-         se corrige, así el glifo llena la celda en cualquier plataforma. */
-      let fontPx = cellW / 0.6;
-      actx.font = `${fontPx}px ${MONO}`;
-      const adv = actx.measureText('#').width;
-      if (adv > 0) fontPx *= cellW / adv;
-
-      actx.font = `${fontPx}px ${MONO}`;
-      /* Centrado en los dos ejes: así se cancelan las diferencias de ascent/descent entre familias. */
-      actx.textAlign = 'center';
-      actx.textBaseline = 'middle';
-
-      for (let gi = 0; gi < RAMP.length; gi++) {
-        const ch = RAMP[gi]!;
-        if (ch === ' ') continue;
-        const ti = Math.min(TINTS.length - 1, Math.floor((gi / RAMP.length) * TINTS.length));
-        actx.fillStyle = TINTS[ti]!;
-        actx.fillText(ch, gi * tw + tw / 2, th / 2);
-      }
-      atlas = a;
+      atlas = construirAtlas(cellW, cellH);
     };
 
     const measure = () => {

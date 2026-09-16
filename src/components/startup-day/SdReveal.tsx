@@ -12,7 +12,7 @@ export function SdReveal({
   children: ReactNode;
   className?: string;
   delay?: 0 | 1 | 2 | 3;
-  as?: 'div' | 'section' | 'article' | 'li' | 'figure';
+  as?: 'div' | 'section' | 'article' | 'li' | 'figure' | 'ol' | 'ul';
   style?: CSSProperties;
   id?: string;
 }) {
