@@ -1051,64 +1051,74 @@ html.sd-coming-soon body {
   bottom: calc(var(--sd-cruz-aire) * -1);
   left: calc(var(--sd-rejilla-x) - var(--sd-cruz-aire));
   right: calc(var(--sd-rejilla-x) - var(--sd-cruz-aire));
+  background-image: var(--sd-rejilla-cruz), var(--sd-rejilla-cruz), var(--sd-rejilla-cruz);
+  background-repeat: no-repeat;
+  /* Las dos de las esquinas más una en el medio del tramo. La del medio no marca un cruce de
+     líneas sino el eje del marco: es el marcador que evita que la regla se lea como un trazo
+     suelto de punta a punta. */
+  background-position:
+    left var(--sd-cruz-offset) top var(--sd-cruz-offset),
+    right var(--sd-cruz-offset) top var(--sd-cruz-offset),
+    center top var(--sd-cruz-offset);
+}
+
+/* Los pies de riel. El marco no lleva borde inferior —el degradado del hero se continúa en "Nos
+   apoyan" y una línea ahí lo corta—, así que estas dos cruces son las que cierran la composición:
+   marcan dónde terminan las verticales sin cruzar nada por el medio. */
+.sd-hero__pies {
+  position: absolute;
+  z-index: 1;
+  /* Adentro del hero y no a caballo del borde: el hero mide `100dvh` clavados y tiene
+     `overflow: hidden`, así que una cruz centrada en su borde inferior queda partida al medio —
+     la mitad de abajo cae fuera del recorte Y fuera de la ventana. Apoyadas contra el pie por
+     dentro se ven enteras y siguen leyéndose como el final de cada riel. */
+  bottom: 0;
+  height: calc(var(--sd-cruz-aire) * 2);
+  left: calc(var(--sd-rejilla-x) - var(--sd-cruz-aire));
+  right: calc(var(--sd-rejilla-x) - var(--sd-cruz-aire));
+  pointer-events: none;
   background-image: var(--sd-rejilla-cruz), var(--sd-rejilla-cruz);
   background-repeat: no-repeat;
   background-position:
-    left var(--sd-cruz-offset) top var(--sd-cruz-offset),
-    right var(--sd-cruz-offset) top var(--sd-cruz-offset);
+    left var(--sd-cruz-offset) bottom var(--sd-cruz-offset),
+    right var(--sd-cruz-offset) bottom var(--sd-cruz-offset);
 }
 
-/* ── Las dos bandas ASCII del hero ──
-   Fueron dos tiras de 115px contra los bordes de la pantalla y no se veían: por esquivar el disco
-   quedaron en el margen. Ahora cruzan.
+/* ── La cinta ASCII del hero ──
+   Fueron dos campos con el patrón de la brújula, enmascarados en diagonal. Daban textura y no
+   forma: un patrón que se evalúa igual en todo el plano no produce silueta, y lo único que
+   recortaba el dibujo era la máscara — o sea que el contorno lo ponía el CSS, no el ASCII.
 
-   La geometría no es decorativa. Medido a 1440×900, la brújula ocupa x=778→1324 e y=181→727, y es
-   lo único que estas capas no pueden tocar —el texto sí, va por encima en `z-index: 3`—. Por eso
-   la principal termina justo antes de 778 y la contradiagonal justo después de 727.
+   Ahora es una sola capa con `patron="cinta"`, que trae su propia geometría (ver `ascii.ts`), y
+   acá no hay máscara: la forma se desvanece sola en sus bordes, así que no hay rectángulo de
+   canvas que disimular.
 
-   Selector compuesto, y no `.sd-hero__campo` a secas: el componente pone `sd-ascii` en el MISMO
+   La caja es más grande que el hero y está corrida hacia arriba y a la izquierda a propósito: la
+   cinta tiene que entrar cortada por una esquina y salir cortada por la otra, para que se lea como
+   un pedazo de algo mucho mayor. Lo recorta el `overflow: hidden` del hero.
+
+   Selector compuesto, y no `.sd-hero__cinta` a secas: el componente pone `sd-ascii` en el MISMO
    div, y `.sd-ascii { position: relative }` se declara más abajo con la misma especificidad, así
-   que le ganaba y los campos terminaban como items del flex del hero, achatados y fuera de lugar.
-   Con las dos clases juntas el modificador pesa más que la base, que es lo que corresponde. */
-.sd-ascii.sd-hero__campo {
+   que le ganaba y el campo terminaba como item del flex del hero, achatado y fuera de lugar. */
+.sd-ascii.sd-hero__cinta {
   position: absolute;
   z-index: 0;
+  top: -14%;
+  left: -12%;
+  width: 130%;
+  height: 128%;
   pointer-events: none;
+  /* Lo único que se enmascara es la franja del header: la cinta cruzándolo mezclaba caracteres con
+     el logo y el menú. La forma en sí no lleva máscara — se desvanece sola. El `14%` compensa el
+     `top: -14%` de la caja, así el fundido cae sobre la banda y no más arriba. */
+  -webkit-mask-image: linear-gradient(to bottom, transparent 14%, #000 calc(14% + var(--sd-banda-h)));
+  mask-image: linear-gradient(to bottom, transparent 14%, #000 calc(14% + var(--sd-banda-h)));
 }
 
-/* La principal: esquina superior izquierda → media página. La máscara la enciende en la esquina y
-   la apaga en diagonal, más un arranque por debajo del header —cruzándolo, los caracteres se
-   mezclaban con el logo y el menú—. */
-.sd-hero__campo--diag {
-  top: 0;
-  left: 0;
-  width: clamp(360px, 54vw, 780px);
-  height: clamp(280px, 62vh, 560px);
-  -webkit-mask-image:
-    linear-gradient(to bottom right, #000 0, rgb(0 0 0 / 0.5) 42%, transparent 82%),
-    linear-gradient(to bottom, transparent 0, #000 var(--sd-banda-h));
-  mask-image:
-    linear-gradient(to bottom right, #000 0, rgb(0 0 0 / 0.5) 42%, transparent 82%),
-    linear-gradient(to bottom, transparent 0, #000 var(--sd-banda-h));
-  -webkit-mask-composite: source-in;
-  mask-composite: intersect;
-}
-
-/* La contradiagonal: esquina inferior derecha hacia adentro. Baja de alto para pasar por DEBAJO
-   del disco en vez de meterse en su caja. */
-.sd-hero__campo--contra {
-  right: 0;
-  bottom: 0;
-  width: clamp(300px, 44vw, 620px);
-  height: clamp(140px, 20vh, 200px);
-  -webkit-mask-image: linear-gradient(to top left, #000 0, rgb(0 0 0 / 0.45) 45%, transparent 85%);
-  mask-image: linear-gradient(to top left, #000 0, rgb(0 0 0 / 0.45) 45%, transparent 85%);
-}
-
-/* En pantallas angostas el hero pasa a una columna y las bandas caerían encima del texto sin nada
-   que las separe del contenido. */
+/* En pantallas angostas el hero pasa a una columna: la cinta caería justo detrás del texto, sin
+   ancho libre por ningún lado, y la única forma de que no moleste es no dibujarla. */
 @media (max-width: 900px) {
-  .sd-ascii.sd-hero__campo {
+  .sd-ascii.sd-hero__cinta {
     display: none;
   }
 }
@@ -5001,7 +5011,8 @@ a.sd-partner__name:hover {
 
   /* La del hero, por el mismo motivo: sin verticales no hay intersección que marcar y las cruces
      quedarían flotando solas sobre la regla. */
-  .sd-hero__regla::after {
+  .sd-hero__regla::after,
+  .sd-hero__pies {
     display: none;
   }
 }

@@ -123,33 +123,28 @@ function StartupDayContent() {
   return (
     <>
       <section className="sd-hero">
-        {/* Dos bandas de ASCII en diagonal, detrás de todo.
+        {/* La cinta: una sola forma ASCII enorme cruzando el hero en diagonal, detrás de todo.
 
-            Fueron dos tiras de 115px pegadas a los bordes y casi no se veían: por esquivar el
-            disco terminaron en el margen, donde no interpelan nada. Ahora la principal cruza desde
-            la esquina superior izquierda hasta media página, por detrás del kicker y del wordmark
-            —están en `z-index: 3` y esto en 0—, y muere justo donde arranca la brújula. La segunda
-            es la contradiagonal de la esquina inferior derecha, para que la composición no quede
-            coja; es más corta porque arriba de ella está el disco.
+            Reemplaza a dos campos con el patrón de la brújula enmascarados en diagonal. Eso daba
+            textura y no forma: un patrón que se evalúa igual en todo el plano nunca produce una
+            silueta, y el único contorno terminaba siendo el rectángulo del canvas. `cinta` tiene
+            geometría propia —una trayectoria y un ancho— y la densidad sale de la distancia a esa
+            trayectoria. Ver `ascii.ts`.
 
-            `patron="disco"` y no `flujo`: es la misma fórmula que dibuja la brújula, así que el
-            fondo y la pieza se leen como la misma familia. */}
+            `pico={7}` recorta la rampa a `. : - + * #` y deja afuera `%` y `@`, los dos más
+            pesados. `corte` casi en cero porque acá el vacío lo define la forma, no un piso.
+
+            La caja es más grande que el hero y está corrida hacia arriba y a la izquierda: la
+            forma entra y sale cortada por los bordes, que es lo que la hace leer como parte de
+            algo mucho más grande. El `overflow: hidden` del hero recorta. */}
         <SdAsciiCampo
-          className="sd-hero__campo sd-hero__campo--diag"
-          patron="disco"
-          opacity={0.9}
-          celda={5}
-          corte={0.5}
-          pico={6}
-        />
-        <SdAsciiCampo
-          className="sd-hero__campo sd-hero__campo--contra"
-          patron="disco"
-          opacity={0.8}
-          celda={5}
-          corte={0.54}
-          pico={6}
-          fase={17}
+          className="sd-hero__cinta"
+          patron="cinta"
+          opacity={0.5}
+          celda={7}
+          corte={0.03}
+          pico={7}
+          techoCeldas={26000}
         />
 
         {/* El borde de arriba del marco del hero: la regla al pie de la banda del header, con sus
@@ -161,6 +156,10 @@ function StartupDayContent() {
             brújula. Siendo parte de la sección se va con ella, que es lo que corresponde a un
             borde. */}
         <span className="sd-hero__regla" aria-hidden />
+
+        {/* Los pies de riel: las cruces que marcan dónde terminan las verticales. El marco no
+            lleva borde inferior, así que son ellas las que cierran la composición. */}
+        <span className="sd-hero__pies" aria-hidden />
 
         <div className="sd-hero__grid">
           <div className="sd-hero__content">
