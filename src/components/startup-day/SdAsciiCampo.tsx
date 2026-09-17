@@ -54,6 +54,19 @@ type Props = {
    * que no se ejecuta.
    */
   corte?: number;
+  /**
+   * Glifo más pesado que se puede dibujar: un índice en `RAMP` (`' .:-=+*#%@'`).
+   *
+   * Existe porque `corte` solo hace lo contrario de lo que parece. La densidad elige **las tres
+   * cosas a la vez**: si la celda se dibuja, con qué carácter, y de qué tono —el color sale del
+   * mismo índice—. Así que subir el piso para ralear el campo deja únicamente las crestas, o sea
+   * `#`, `%` y `@` en el lavanda más claro de la paleta: queda más ralo y MUCHO más pesado.
+   *
+   * Con `pico` la densidad que sobrevive al corte se reescala sobre el tramo `1..pico` en vez de
+   * sobre la rampa entera. `pico` bajo = puntos y guiones en un tono apagado, que es lo que se lee
+   * como textura fina. Alto = la rampa completa, para cuando el campo es el motivo y no el fondo.
+   */
+  pico?: number;
 };
 
 export function SdAsciiCampo({
@@ -64,6 +77,7 @@ export function SdAsciiCampo({
   celda = 9,
   fase = 0,
   corte = 0.05,
+  pico,
 }: Props) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -148,6 +162,10 @@ export function SdAsciiCampo({
       const tw = Math.ceil(cellW * 1.15);
       const th = Math.ceil(cellH * 1.15);
       const nGlyph = RAMP.length - 1;
+      /* El tramo de rampa disponible, y cuánto queda de densidad por encima del corte para
+         repartir en él. Los dos se calculan una vez por frame y no por celda. */
+      const techo = Math.min(nGlyph, Math.max(1, pico ?? nGlyph));
+      const sobra = Math.max(1e-6, 1 - corte);
 
       ctx.clearRect(0, 0, W, H);
       ctx.globalAlpha = opacity;
@@ -158,8 +176,9 @@ export function SdAsciiCampo({
           const u = (col * cellW + cellW / 2) / W;
           const d = campo(u, v, t);
           if (d <= corte) continue;
-          const gi = Math.min(nGlyph, (d * RAMP.length) | 0);
-          if (gi <= 0) continue;
+          /* Lo que sobrevivió al corte se reescala sobre `1..techo`: sin esto, cortar alto sería
+             quedarse sólo con los glifos más pesados. Ver `pico`. */
+          const gi = Math.min(techo, 1 + (((d - corte) / sobra) * techo) | 0);
           ctx.drawImage(atlas, gi * tw, 0, tw, th, col * cellW, row * cellH, tw, th);
         }
       }
@@ -238,7 +257,7 @@ export function SdAsciiCampo({
       document.removeEventListener('visibilitychange', sincronizar);
       motionMq.removeEventListener('change', onMotionChange);
     };
-  }, [patron, opacity, animado, celda, fase, corte]);
+  }, [patron, opacity, animado, celda, fase, corte, pico]);
 
   return (
     <div ref={wrapRef} className={`sd-ascii${className ? ` ${className}` : ''}`} aria-hidden>

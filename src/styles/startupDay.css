@@ -128,6 +128,11 @@
      Un token para la línea y otro para la cruz, así la densidad de la rejilla se gobierna desde
      un solo lugar: subirle la opacidad acá la endurece en toda la página de una. */
   --sd-rejilla: rgb(var(--sd-cream-rgb) / 0.11);
+  /* La rejilla, un punto más arriba. Es el mismo tono con el que se dibujan las cruces de
+     registro (ver `--sd-rejilla-cruz`, que usa 0,45 de opacidad de trazo): lo usan las piezas que
+     SON marca de registro y no línea de fondo, como las esquinas de `.sd-btn--esquinas`. A 0,11
+     una escuadra de 9px directamente no se ve. */
+  --sd-rejilla-fuerte: rgb(var(--sd-cream-rgb) / 0.4);
   /* Las verticales van POR FUERA del contenido, no encima. Colgaban de `--sd-pad-x`, que es justo
      donde arranca el texto, así que quedaban pegadas a las letras. El colchón va explícito y no
      "lo que sobre de ancho": `--sd-pad-x` colapsa al gutter por debajo de `--sd-shell` y ahí no
@@ -1012,55 +1017,43 @@ html.sd-coming-soon body {
   justify-self: end;
 }
 
-/* ── Las dos manchas ASCII de las diagonales ──
-   Arriba a la izquierda y abajo a la derecha, en las dos esquinas que quedan vacías: el wordmark
-   arranca bien abajo del borde superior y el disco no llega al pie. Se van a sangre contra el
-   borde de la pantalla —el hero recorta— para que se lean como algo que sigue afuera del cuadro y
-   no como dos recuadros pegados.
+/* ── El barrido ASCII del hero ──
+   Un solo campo a sangre sobre el hero entero. Eran DOS manchas de esquina y no funcionaba: dos
+   rectángulos de canvas con celda gorda se leen como parches pegados, no como atmósfera.
 
-   `z-index: 0` las deja debajo de `.sd-hero__grid` (que está en 3), así que nunca compiten con el
-   wordmark ni con el reloj. Y una máscara las desvanece hacia adentro, que es lo que las vuelve
-   atmósfera: sin eso el rectángulo del canvas se nota. */
-/* Selector compuesto, y no `.sd-hero__campo` a secas: el componente pone `sd-ascii` en el MISMO
+   `z-index: 0` lo deja debajo de `.sd-hero__grid` (que está en 3), así que nunca compite con el
+   wordmark. Lo que lo vuelve atmósfera es la máscara: una diagonal que lo enciende arriba a la
+   izquierda y lo apaga antes de llegar a la esquina opuesta, más un corte suave contra el borde
+   derecho para que no choque de plano con el disco. Sin máscara el rectángulo del canvas se nota.
+
+   Selector compuesto, y no `.sd-hero__campo` a secas: el componente pone `sd-ascii` en el MISMO
    div, y `.sd-ascii { position: relative }` se declara más abajo con la misma especificidad, así
-   que le ganaba y los dos campos terminaban como items del flex del hero — uno debajo del otro,
-   achatados a 85px y pegados arriba a la izquierda. Con las dos clases juntas el modificador pesa
-   más que la base, que es lo que corresponde. */
+   que le ganaba y el campo terminaba como item del flex del hero, achatado y fuera de lugar. Con
+   las dos clases juntas el modificador pesa más que la base, que es lo que corresponde. */
 .sd-ascii.sd-hero__campo {
   position: absolute;
   z-index: 0;
-  width: clamp(240px, 34vw, 560px);
-  height: clamp(200px, 38vh, 460px);
+  inset: 0;
   pointer-events: none;
+  /* Tres capas que se intersecan: la diagonal que define el barrido, un retiro contra el borde
+     derecho para no chocar de plano con el disco, y un arranque por debajo del header —cruzándolo,
+     los caracteres se mezclaban con el logo y el menú—. */
+  -webkit-mask-image:
+    linear-gradient(to bottom right, #000 2%, rgb(0 0 0 / 0.55) 38%, transparent 76%),
+    linear-gradient(to left, transparent 0, #000 26%),
+    linear-gradient(to bottom, transparent 0, #000 clamp(88px, 12vh, 132px));
+  mask-image:
+    linear-gradient(to bottom right, #000 2%, rgb(0 0 0 / 0.55) 38%, transparent 76%),
+    linear-gradient(to left, transparent 0, #000 26%),
+    linear-gradient(to bottom, transparent 0, #000 clamp(88px, 12vh, 132px));
+  -webkit-mask-composite: source-in, source-in;
+  mask-composite: intersect, intersect;
 }
 
-/* Arranca debajo del header: pisándolo, los caracteres se cruzaban con el logo y el menú. */
-.sd-hero__campo--no {
-  top: clamp(56px, 8vh, 92px);
-  left: 0;
-  -webkit-mask-image: radial-gradient(ellipse at 0% 0%, #000 8%, transparent 78%);
-  mask-image: radial-gradient(ellipse at 0% 0%, #000 8%, transparent 78%);
-}
-
-/* Espejada en los dos ejes. Los patrones de `ascii.ts` tienen su origen en la esquina superior
-   izquierda de su caja —`onda` sale de ahí— y acá el campo tiene que emanar de la esquina de
-   ABAJO A LA DERECHA. Dando vuelta la caja, el origen del dibujo cae donde va sin necesidad de un
-   segundo patrón que sea el mismo al revés.
-
-   Es `transform` sobre un canvas estático de fondo: no cuesta nada y no hay texto adentro que
-   pudiera salir espejado. */
-.sd-hero__campo--se {
-  right: 0;
-  bottom: 0;
-  transform: scale(-1);
-  -webkit-mask-image: radial-gradient(ellipse at 0% 0%, #000 8%, transparent 78%);
-  mask-image: radial-gradient(ellipse at 0% 0%, #000 8%, transparent 78%);
-}
-
-/* En pantallas angostas el hero ya está apretado —wordmark, lede, dos botones y el reloj en
-   100dvh— y dos manchas más lo ensucian en vez de darle aire. */
+/* En pantallas angostas el hero ya está apretado —wordmark, lede, dos botones y la tarjeta en
+   100dvh— y una capa más lo ensucia en vez de darle aire. */
 @media (max-width: 720px) {
-  .sd-hero__campo {
+  .sd-ascii.sd-hero__campo {
     display: none;
   }
 }
@@ -1213,6 +1206,22 @@ html.sd-coming-soon body {
 /* `font-style: italic` no sintetiza acá: `Glacial Indifference` sólo registra caras 'normal' en
    sus dos @font-face (Regular/Bold) y el navegador no la fuerza. `skewX` la reemplaza con control
    total sobre el ángulo, igual al tratamiento del banner. */
+/* Píldora de contexto arriba del wordmark, en el lugar del "BACKED BY Y COMBINATOR" de la
+   referencia. Borde de rejilla y mono chica: es un rótulo, no un botón, así que no lleva ni fondo
+   ni color propio. */
+.sd-hero__kicker {
+  display: inline-block;
+  margin: 0 0 clamp(18px, 2.4vh, 30px);
+  padding: 7px 12px;
+  border: 1px solid var(--sd-rejilla);
+  font-family: var(--sd-font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: rgb(var(--sd-cream-rgb) / 0.62);
+  opacity: 0;
+}
+
 /* Wordmark del key art como imagen, no texto seteado en CSS — ver `startup-day-wordmark.png`. */
 .sd-hero__title {
   margin: 0 0 1.5rem;
@@ -1243,39 +1252,117 @@ html.sd-coming-soon body {
   opacity: 0;
 }
 
-/* ── Barra del reloj, al pie del hero ──
-   Ocupa el lugar que tenía el "Seguí bajando" y reemplaza a los dos hitos con fechas que estaban
-   dentro del bloque de texto: un dato vivo en vez de dos muertos.
+/* ── Botón de marcas de esquina ──
+   Cuatro escuadras en lugar del borde entero. El dibujo son dos gradientes cónicos repetidos
+   —uno por par de esquinas— recortados a una caja de `--sd-esq` de lado con `background-size`;
+   el truco de siempre para esto son cuatro pseudo-elementos, pero un botón tiene dos y uno ya se
+   lo lleva el hover.
 
-   `position: absolute` para quedar FUERA del flujo de `.sd-hero`, que es un flex centrado: como
-   hijo normal empujaría el bloque de texto hacia arriba y descentraría el hero. Además la
-   costura con `.sd-sponsor-band` exige que el hero mida exactamente `100dvh`, así que esto no
-   puede sumar alto.
-
-   `left`/`right` cuelgan de `--sd-pad-x` y no del borde de la ventana: la barra queda a plomo con
-   el titular, igual que lo hacía el scroll hint. */
-.sd-hero__reloj {
-  position: absolute;
-  z-index: 3;
-  left: var(--sd-pad-x);
-  right: var(--sd-pad-x);
-  bottom: clamp(20px, 4vh, 40px);
-  display: flex;
-  justify-content: center;
-  /* Sin línea arriba: el reloj es parte del hero, no un pie separado. */
-  padding-top: clamp(12px, 2vh, 20px);
-  opacity: 0; /* la enciende `.sd-root.is-loaded` — ver el bloque de entrada */
-}
-
-/* El ticker compartido, acá sin marco: el borde superior de la barra ya lo encuadra, y el marco
-   propio sumaba una caja dentro de otra. */
-.sd-hero__reloj .sd-cd__ticker {
-  margin: 0;
-  padding: 0;
-  border: 0;
+   Va como modificador de `.sd-btn` y no como clase suelta para heredar padding, tipografía y
+   `border-radius: 0`; lo único que cambia es cómo se dibuja el marco. */
+.sd-btn--esquinas {
+  --sd-esq: 9px;
+  position: relative;
   background: none;
+  color: var(--sd-cream);
+  background-image:
+    linear-gradient(var(--sd-rejilla-fuerte), var(--sd-rejilla-fuerte)),
+    linear-gradient(var(--sd-rejilla-fuerte), var(--sd-rejilla-fuerte)),
+    linear-gradient(var(--sd-rejilla-fuerte), var(--sd-rejilla-fuerte)),
+    linear-gradient(var(--sd-rejilla-fuerte), var(--sd-rejilla-fuerte)),
+    linear-gradient(var(--sd-rejilla-fuerte), var(--sd-rejilla-fuerte)),
+    linear-gradient(var(--sd-rejilla-fuerte), var(--sd-rejilla-fuerte)),
+    linear-gradient(var(--sd-rejilla-fuerte), var(--sd-rejilla-fuerte)),
+    linear-gradient(var(--sd-rejilla-fuerte), var(--sd-rejilla-fuerte));
+  /* Por esquina: un tramo horizontal y uno vertical. */
+  background-size:
+    var(--sd-esq) 1px, 1px var(--sd-esq),
+    var(--sd-esq) 1px, 1px var(--sd-esq),
+    var(--sd-esq) 1px, 1px var(--sd-esq),
+    var(--sd-esq) 1px, 1px var(--sd-esq);
+  background-position:
+    left top, left top,
+    right top, right top,
+    left bottom, left bottom,
+    right bottom, right bottom;
+  background-repeat: no-repeat;
+  transition: background-image 0.2s ease, color 0.2s ease;
 }
 
+.sd-btn--esquinas:hover,
+.sd-btn--esquinas:focus-visible {
+  --sd-esq: 14px;
+  color: #fff;
+}
+
+/* ── La tarjeta al pie del hero ──
+   Ocupa el lugar del reloj, que se fue. Es el equivalente de la tarjeta de novedad de la
+   referencia: un bloque con borde, un rótulo chico, un título con flecha y una línea.
+
+   Va EN EL FLUJO de `.sd-hero__content` y no absoluta como estaba el reloj, así que suma alto: ver
+   `.sd-hero__grid`, donde el padding vertical se recortó para compensar. El hero tiene que seguir
+   midiendo `100dvh` clavados o la costura con `.sd-sponsor-band` se rompe. */
+.sd-hero__nota {
+  display: inline-block;
+  margin-top: clamp(24px, 3.4vh, 44px);
+  padding: clamp(14px, 1.6vw, 20px) clamp(16px, 1.8vw, 24px);
+  max-width: 30rem;
+  border: 1px solid var(--sd-rejilla);
+  text-decoration: none;
+  color: inherit;
+  /* El contenido del hero tiene `pointer-events: none` para que arrastrar no pelee con el cursor
+     custom; los enlaces se lo devuelven uno por uno. */
+  pointer-events: auto;
+  opacity: 0;
+  transition: border-color 0.25s ease, background 0.25s ease;
+}
+
+.sd-hero__nota:hover,
+.sd-hero__nota:focus-visible {
+  border-color: rgb(var(--sd-purple-rgb) / 0.6);
+  background: rgb(var(--sd-purple-rgb) / 0.08);
+}
+
+.sd-hero__nota-kicker {
+  display: block;
+  font-family: var(--sd-font-mono);
+  font-size: 0.64rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--sd-purple-lift);
+}
+
+.sd-hero__nota-titulo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  font-family: var(--sd-font-display);
+  font-weight: 700;
+  font-size: clamp(1rem, 1.4vw, 1.2rem);
+  color: var(--sd-cream);
+}
+
+.sd-hero__nota-titulo svg {
+  width: 1em;
+  height: 1em;
+  flex: 0 0 auto;
+  transition: transform 0.25s ease;
+}
+
+.sd-hero__nota:hover .sd-hero__nota-titulo svg {
+  transform: translateX(3px);
+}
+
+.sd-hero__nota-copy {
+  display: block;
+  margin-top: 6px;
+  font-family: var(--sd-font-body);
+  font-weight: 300;
+  font-size: 0.92rem;
+  line-height: 1.5;
+  color: rgb(var(--sd-cream-rgb) / 0.62);
+}
 
 /* ── Entrada del hero ──
    Todo cuelga de `.sd-root.is-loaded`, que `SdShell` prende recién cuando termina el barrido:
@@ -1288,8 +1375,12 @@ html.sd-coming-soon body {
   white-space: nowrap;
 }
 
+.sd-root.is-loaded .sd-hero__kicker {
+  animation: sd-fade-up 0.6s ease both;
+}
+
 .sd-root.is-loaded .sd-hero__title {
-  animation: sd-fade-up 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation: sd-fade-up 0.7s 0.08s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 .sd-root.is-loaded .sd-hero__eyebrow {
@@ -1304,17 +1395,17 @@ html.sd-coming-soon body {
   animation: sd-fade-up 0.9s 0.38s ease both;
 }
 
-/* La barra del reloj ocupa el turno que tenía el "Seguí bajando" en la secuencia. */
-.sd-root.is-loaded .sd-hero__reloj {
-  animation: sd-fade-up 1s 0.6s ease both;
+.sd-root.is-loaded .sd-hero__nota {
+  animation: sd-fade-up 1s 0.56s ease both;
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .sd-hero__kicker,
   .sd-hero__title,
   .sd-hero__eyebrow,
   .sd-hero__lede,
   .sd-hero__actions,
-  .sd-hero__reloj,
+  .sd-hero__nota,
   .sd-loader__logo,
   .sd-loader__orbit,
   .sd-loader__glow--a,
@@ -1322,11 +1413,12 @@ html.sd-coming-soon body {
     animation: none !important;
   }
   /* Sin este reset el hero queda invisible para quien pide menos movimiento. */
+  .sd-hero__kicker,
   .sd-hero__title,
   .sd-hero__eyebrow,
   .sd-hero__lede,
   .sd-hero__actions,
-  .sd-hero__reloj {
+  .sd-hero__nota {
     opacity: 1;
     transform: none;
     transition: none !important;

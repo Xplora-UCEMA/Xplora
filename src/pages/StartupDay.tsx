@@ -17,8 +17,7 @@ import { SdMedia } from '../components/startup-day/SdMedia';
 import { SdCharlas } from '../components/startup-day/SdCharlas';
 import { SdTestimonios } from '../components/startup-day/SdTestimonios';
 import { SdCountdown } from '../components/startup-day/SdCountdown';
-import { SdTicker } from '../components/startup-day/cuentaRegresiva';
-import { SD_PROXIMA_EDICION_TS } from '../data/startupDayRecap';
+import { SD_RECAP } from '../data/startupDayRecap';
 import { StartupDayComingSoon } from '../components/startup-day/StartupDayComingSoon';
 import { StartupDayCursor } from '../components/startup-day/StartupDayCursor';
 import { SdAsciiDisc } from '../components/startup-day/SdAsciiDisc';
@@ -124,31 +123,31 @@ function StartupDayContent() {
   return (
     <>
       <section className="sd-hero">
-        {/* Dos manchas de ASCII en las diagonales, detrás de todo. No son el disco: el disco es la
-            pieza —lleva el mark calado y reacciona al cursor— y esto es atmósfera, que es por qué
-            van muy apagadas y con la celda más grande (se leen como caracteres, no como trama).
+        {/* Un solo barrido de ASCII cruzando el hero entero, detrás de todo.
 
-            Fases distintas para que las dos no respiren al unísono, que es lo que delataría que
-            son el mismo dibujo dos veces. El `overflow: hidden` del hero las recorta contra los
-            bordes de la pantalla. */}
+            Eran dos manchas en las esquinas, con la celda en 11-12px: a ese tamaño los caracteres
+            se leen como dos parches pegados y no como atmósfera. Ahora es un campo a sangre con la
+            celda a la mitad —textura fina en vez de bloques— y el piso de densidad bien alto, así
+            que sólo sobreviven las crestas del patrón y entre glifo y glifo se ve el fondo.
+
+            `flujo` porque es el único de los cinco que da bandas largas en diagonal, que es la
+            forma que tiene el barrido de la referencia. El disco no se toca: es otra cosa. */}
         <SdAsciiCampo
-          className="sd-hero__campo sd-hero__campo--no"
+          className="sd-hero__campo"
           patron="flujo"
-          opacity={0.55}
-          celda={11}
-          corte={0.62}
-        />
-        <SdAsciiCampo
-          className="sd-hero__campo sd-hero__campo--se"
-          patron="onda"
-          opacity={0.6}
-          celda={12}
-          corte={0.6}
-          fase={11}
+          opacity={0.75}
+          celda={5}
+          corte={0.66}
+          pico={3}
         />
 
         <div className="sd-hero__grid">
           <div className="sd-hero__content">
+            {/* Píldora de contexto arriba del wordmark. El dato sale de `SD_RECAP.kicker`, que ya
+                lo dice en la lámina del recap: escribirlo de nuevo acá es garantizar que un día
+                digan fechas distintas. */}
+            <p className="sd-hero__kicker">{SD_RECAP.kicker}</p>
+
             {/* Logo de key art en vez de texto seteado en CSS: después de varias vueltas afinando
                 itálica/tracking/glow a mano para igualar el banner, se usa directamente el
                 wordmark que ya viene diseñado así. */}
@@ -162,8 +161,7 @@ function StartupDayContent() {
 
             {/* Que el evento ya pasó lo dice el verbo del lede y nada más. Antes lo decían
                 además un sello ("Edición 01 — terminada") y dos hitos con las fechas de ida y
-                vuelta: tres veces el mismo mensaje, y las fechas eran datos muertos ocupando el
-                lugar del reloj que ahora corre al pie. */}
+                vuelta: tres veces el mismo mensaje. */}
             <p className="sd-hero__lede">
               Se hizo el mayor evento para startups y builders del año. Esto es lo que pasó.
             </p>
@@ -172,26 +170,32 @@ function StartupDayContent() {
               <a className="sd-btn sd-btn--primary" href="#recap">
                 Ver el recap
               </a>
-              <a className="sd-btn sd-btn--ghost" href="#proxima">
-                Avisame de la próxima
+              {/* Marcas de esquina en vez de borde completo: mismo tratamiento que el secundario
+                  de la referencia, y el mismo lenguaje que las cruces de registro de la rejilla. */}
+              <a className="sd-btn sd-btn--esquinas" href="#charlas">
+                De qué se habló
               </a>
             </div>
+
+            {/* Ocupa el lugar que tenía el reloj al pie del hero. Un contador gigante arriba de
+                todo le daba a una fecha sin confirmar más peso del que tiene; como tarjeta, el
+                dato es el mismo y el llamado queda donde se puede actuar: `#proxima`, que es
+                donde se deja el mail. */}
+            <a className="sd-hero__nota" href="#proxima">
+              <span className="sd-hero__nota-kicker">Próxima edición</span>
+              <span className="sd-hero__nota-titulo">
+                Avisame primero
+                <svg viewBox="0 0 24 24" fill="none" aria-hidden focusable="false">
+                  <path d="M5 12h13M12 5l7 7-7 7" stroke="currentColor" strokeWidth="1.8" strokeLinecap="square" />
+                </svg>
+              </span>
+              <span className="sd-hero__nota-copy">
+                Dejá tu mail y te escribimos apenas haya fecha.
+              </span>
+            </a>
           </div>
 
           <SdAsciiDisc className="sd-hero__disc" />
-        </div>
-
-        {/* Barra de estado al pie del hero, en el lugar que tenía el "Seguí bajando". Va como
-            hermana de `__grid` y no adentro de `__content`, que tiene `pointer-events: none`.
-
-            Queda DENTRO de la caja de `100dvh` del hero a propósito: la costura con
-            `.sd-sponsor-band` depende de que el hero mida exactamente eso (ver el comentario de
-            la banda, más abajo), así que esto no puede empujar hacia afuera. */}
-        {/* Sólo el reloj, centrado. El rótulo "Próxima edición / a confirmar" que estaba a la
-            izquierda se fue: la salvedad de la fecha sigue dicha en `#proxima`, que es donde se
-            pide el mail, y acá le quitaba limpieza a la barra. */}
-        <div className="sd-hero__reloj">
-          <SdTicker ts={SD_PROXIMA_EDICION_TS} compacto />
         </div>
       </section>
 
