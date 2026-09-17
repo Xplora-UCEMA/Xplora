@@ -14,13 +14,26 @@ export function setupSpaStaticIfProduction(app: Express, config: AppConfig): voi
     return;
   }
 
+  const entryForHost = (hostname: string) => {
+    const host = hostname.toLowerCase().replace(/\.$/, '');
+    return host === 'startupday.xploraucema.com' || host === 'startupday.localhost'
+      ? 'startup-day.html'
+      : 'index.html';
+  };
+
+  // Run before express.static, whose directory index would otherwise always serve Xplora's HTML.
+  app.get('/', (req, res, next) => {
+    res.sendFile(path.join(distDir, entryForHost(req.hostname)), err => {
+      if (err) next(err);
+    });
+  });
   app.use(express.static(distDir));
   app.get('*', (req, res, next) => {
     if (req.path.startsWith('/api')) {
       res.status(404).json({ error: 'Ruta API no encontrada.', code: 'NOT_FOUND' });
       return;
     }
-    res.sendFile(path.join(distDir, 'index.html'), err => {
+    res.sendFile(path.join(distDir, entryForHost(req.hostname)), err => {
       if (err) next(err);
     });
   });

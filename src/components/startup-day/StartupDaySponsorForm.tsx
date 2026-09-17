@@ -81,6 +81,7 @@ function StartupDaySponsorModal({
 
   useEffect(() => {
     const prev = document.body.style.overflow;
+    const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     document.body.style.overflow = 'hidden';
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
@@ -90,6 +91,7 @@ function StartupDaySponsorModal({
     return () => {
       document.body.style.overflow = prev;
       window.removeEventListener('keydown', onKey);
+      if (opener?.isConnected) opener.focus({ preventScroll: true });
     };
   }, [onClose]);
 

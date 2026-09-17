@@ -1,0 +1,240 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-09-17T00:30:54Z",
+  "title": "Design System: Xplora — Startup Day recap",
+  "extensions": {
+    "colorMeta": {
+      "purple": {
+        "role": "primary",
+        "displayName": "purple",
+        "tonalRamp": [
+          "oklch(15% 0.2577 281.40)",
+          "oklch(26% 0.2577 281.40)",
+          "oklch(38% 0.2577 281.40)",
+          "oklch(49% 0.2577 281.40)",
+          "oklch(61% 0.2577 281.40)",
+          "oklch(72% 0.2577 281.40)",
+          "oklch(84% 0.2577 281.40)",
+          "oklch(95% 0.2577 281.40)"
+        ]
+      },
+      "lilac": {
+        "role": "secondary",
+        "displayName": "lilac",
+        "tonalRamp": [
+          "oklch(15% 0.1040 293.24)",
+          "oklch(26% 0.1040 293.24)",
+          "oklch(38% 0.1040 293.24)",
+          "oklch(49% 0.1040 293.24)",
+          "oklch(61% 0.1040 293.24)",
+          "oklch(72% 0.1040 293.24)",
+          "oklch(84% 0.1040 293.24)",
+          "oklch(95% 0.1040 293.24)"
+        ]
+      },
+      "paper": {
+        "role": "neutral",
+        "displayName": "paper",
+        "tonalRamp": [
+          "oklch(15% 0.0045 78.30)",
+          "oklch(26% 0.0045 78.30)",
+          "oklch(38% 0.0045 78.30)",
+          "oklch(49% 0.0045 78.30)",
+          "oklch(61% 0.0045 78.30)",
+          "oklch(72% 0.0045 78.30)",
+          "oklch(84% 0.0045 78.30)",
+          "oklch(95% 0.0045 78.30)"
+        ]
+      },
+      "ink": {
+        "role": "neutral",
+        "displayName": "ink",
+        "tonalRamp": [
+          "oklch(15% 0.0480 301.44)",
+          "oklch(26% 0.0480 301.44)",
+          "oklch(38% 0.0480 301.44)",
+          "oklch(49% 0.0480 301.44)",
+          "oklch(61% 0.0480 301.44)",
+          "oklch(72% 0.0480 301.44)",
+          "oklch(84% 0.0480 301.44)",
+          "oklch(95% 0.0480 301.44)"
+        ]
+      },
+      "night": {
+        "role": "neutral",
+        "displayName": "night",
+        "tonalRamp": [
+          "oklch(15% 0.0250 300.81)",
+          "oklch(26% 0.0250 300.81)",
+          "oklch(38% 0.0250 300.81)",
+          "oklch(49% 0.0250 300.81)",
+          "oklch(61% 0.0250 300.81)",
+          "oklch(72% 0.0250 300.81)",
+          "oklch(84% 0.0250 300.81)",
+          "oklch(95% 0.0250 300.81)"
+        ]
+      },
+      "muted-ink": {
+        "role": "neutral",
+        "displayName": "muted-ink",
+        "tonalRamp": [
+          "oklch(15% 0.0384 306.67)",
+          "oklch(26% 0.0384 306.67)",
+          "oklch(38% 0.0384 306.67)",
+          "oklch(49% 0.0384 306.67)",
+          "oklch(61% 0.0384 306.67)",
+          "oklch(72% 0.0384 306.67)",
+          "oklch(84% 0.0384 306.67)",
+          "oklch(95% 0.0384 306.67)"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Glacial Indifference Bold",
+        "purpose": "Hero-only weight 700 from the existing GlacialIndifference-Bold.otf; always two lines within 720px, preserving original font sizes and line height 0.74. Other headings remain 400."
+      },
+      "headline": {
+        "displayName": "Section heading",
+        "purpose": "Default section-heading ramp, 36–64px; h2 line height 1.18 and tracking −0.015em, with local editorial exceptions. The shared Glacial asset remains unchanged."
+      },
+      "subheading": {
+        "displayName": "Card heading",
+        "purpose": "Regular Glacial h3; line height 1.24 and tracking −0.01em leave room for accented glyphs."
+      },
+      "body": {
+        "displayName": "Poppins reading text",
+        "purpose": "Body and controls on the recap surface."
+      }
+    },
+    "shadows": [],
+    "motion": [
+      {
+        "name": "recap-ease",
+        "value": "cubic-bezier(.22, 1, .36, 1)",
+        "purpose": "Local CSS transitions and entrances."
+      },
+      {
+        "name": "arrow-feedback",
+        "value": "350ms",
+        "purpose": "Small arrow direction feedback with fine-pointer hover."
+      },
+      {
+        "name": "dialog-open",
+        "value": "350ms",
+        "purpose": "Native dialog panel entrance."
+      },
+      {
+        "name": "dialog-close",
+        "value": "180ms",
+        "purpose": "CSS close-duration token read by the dialog; immediate close with reduced motion."
+      },
+      {
+        "name": "section-reveal",
+        "value": "850ms",
+        "purpose": "One IntersectionObserver triggers a GSAP entrance and then unobserves the section. Separate video observers control visible silent playback."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "tablet",
+        "value": "600px"
+      },
+      {
+        "name": "desktop",
+        "value": "1000px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary watch action",
+      "kind": "button",
+      "refersTo": "watch-primary",
+      "description": "Shared-radius cream viewing action with an inline play icon.",
+      "html": "<div class=\"ds-dark\"><button class=\"ds-watch\"><svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\"><path d=\"m9 5 11 7-11 7V5Z\" fill=\"currentColor\"/></svg><span>Volvé a vivirlo</span></button></div>",
+      "css": ".ds-dark{background:#0b0712;padding:24px}.ds-watch{display:inline-flex;align-items:center;gap:12px;min-height:56px;padding:14px 22px;border:0;border-radius:10px;background:#faf8f5;color:#1a1028;font:14px Poppins,sans-serif;cursor:pointer;transition:background 220ms,color 220ms}.ds-watch:focus-visible{outline:2px solid #c4b5ff;outline-offset:6px}@media(hover:hover) and (pointer:fine){.ds-watch:hover{background:#603ef9;color:#faf8f5}}@media(prefers-reduced-motion:reduce){.ds-watch{transition:none}}"
+    },
+    {
+      "name": "Editorial text link",
+      "kind": "button",
+      "refersTo": "text-link",
+      "description": "An underline and SVG arrow keep navigation visibly actionable.",
+      "html": "<a class=\"ds-link\" href=\"/#que-es\">Conocé Xplora<svg width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\"><path d=\"M5 19 19 5M5 5h14v14\" stroke=\"currentColor\" stroke-width=\"1.5\"/></svg></a>",
+      "css": ".ds-link{display:inline-flex;align-items:center;gap:20px;padding:13px 0;min-height:48px;border-bottom:1px solid currentColor;font:12px Poppins,sans-serif;color:#1a1028;text-decoration:none}.ds-link svg{transition:transform 350ms cubic-bezier(.22,1,.36,1)}.ds-link:hover svg{transform:translate(3px,-3px)}.ds-link:focus-visible{outline:2px solid currentColor;outline-offset:6px}@media(prefers-reduced-motion:reduce){.ds-link svg{transition:none}}"
+    },
+    {
+      "name": "Photo category filter",
+      "kind": "button",
+      "description": "Text categories with a purple underline for selected state, not pill badges.",
+      "html": "<div class=\"ds-filters\"><button aria-pressed=\"true\">Todas</button><button aria-pressed=\"false\">Encuentros</button><button aria-pressed=\"false\">Charlas</button></div>",
+      "css": ".ds-filters{display:flex;gap:22px;background:#faf8f5;padding:12px}.ds-filters button{position:relative;min-height:44px;border:0;background:none;color:#685d74;font:12px Poppins,sans-serif;cursor:pointer}.ds-filters button:after{content:\"\";position:absolute;bottom:0;left:0;right:0;height:2px;background:#603ef9;transform:scaleX(0);transform-origin:left;transition:transform 250ms cubic-bezier(.22,1,.36,1)}.ds-filters button[aria-pressed=true]{color:#603ef9}.ds-filters button[aria-pressed=true]:after{transform:scaleX(1)}.ds-filters button:focus-visible{outline:2px solid currentColor;outline-offset:6px}@media(prefers-reduced-motion:reduce){.ds-filters button:after{transition:none}}"
+    },
+    {
+      "name": "Rail advance control",
+      "kind": "button",
+      "refersTo": "rail-control",
+      "description": "Shared-radius arrow control supplementing native touch scrolling.",
+      "html": "<button class=\"ds-rail\" aria-label=\"Ver más fotos\"><svg width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\"><path d=\"M5 19 19 5M5 5h14v14\" stroke=\"currentColor\" stroke-width=\"1.5\"/></svg></button>",
+      "css": ".ds-rail{display:grid;place-items:center;width:46px;height:46px;border:1px solid #1a102840;border-radius:10px;color:#1a1028;background:#faf8f5;cursor:pointer;transition:background 220ms,color 220ms}.ds-rail svg{rotate:45deg}.ds-rail:hover{background:#1a1028;color:#faf8f5}.ds-rail:focus-visible{outline:2px solid currentColor;outline-offset:6px}@media(prefers-reduced-motion:reduce){.ds-rail{transition:none}}"
+    },
+    {
+      "name": "Silent preview toggle",
+      "kind": "button",
+      "refersTo": "preview-toggle",
+      "description": "Independent pause/play control on every visible preview; opening the full video remains a separate action.",
+      "html": "<div class=\"ds-preview\"><button class=\"ds-preview-toggle\" aria-label=\"Pausar vista previa\"><svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" aria-hidden=\"true\"><path d=\"M8 5v14M16 5v14\"/></svg></button></div>",
+      "css": ".ds-preview{position:relative;min-height:90px;background:#1a1028;border-radius:10px}.ds-preview-toggle{position:absolute;top:12px;right:12px;display:grid;place-items:center;width:44px;height:44px;border:0;border-radius:10px;color:#faf8f5;background:#0b0712c9;cursor:pointer;transition:background 180ms}.ds-preview-toggle:focus-visible{outline:2px solid currentColor;outline-offset:6px}.ds-preview-toggle:disabled{opacity:.5;cursor:default}@media(hover:hover) and (pointer:fine){.ds-preview-toggle:hover{background:#1a1028}}@media(prefers-reduced-motion:reduce){.ds-preview-toggle{transition:none}}"
+    }
+  ],
+  "narrative": {
+    "northStar": "El registro de un encuentro",
+    "overview": "The Startup Day recap is part of Xplora. It reuses `SdShell` for the same club header and footer, with Startup Day active and the “Sumarme” community action. This document covers the recap content and its integration with that shell; it does not redesign the main site, admin, APIs, or archived floor experience.\n\nReal event media, regular headings, and open layouts form a photographic journal. Shared Glacial/Poppins typography, ink, cream, purple wash, and softly rounded controls keep the journal recognizably Xplora. The route strategy lives in its surface brief.",
+    "keyCharacteristics": [
+      "Shared Xplora navigation, footer, tokens, and hero grid; a wider recap body.",
+      "Bold Glacial hero, regular section headings, and Poppins reading text.",
+      "Mobile-first photographs and native horizontal rails.",
+      "Silent previews that play only while relevant and visible.",
+      "Content and manual controls available with reduced motion."
+    ],
+    "rules": [
+      {
+        "name": "The Contrast Rule",
+        "body": "A token does not approve every pairing. Preserve readable text over photos and washes; never promote an animation's faint starting opacity into a resting text style. Sidecar tonal ramps are swatch previews, not approved text/background pairs.",
+        "section": "colors"
+      },
+      {
+        "name": "The Regular Type Rule",
+        "body": "Preserve Glacial headings at 400, except the hero #sr-title at 700, with normal style and the shared typography. Do not add italic flourishes, arbitrary bold emphasis, or oversized all-caps titles to restyle the recap.",
+        "section": "typography"
+      },
+      {
+        "name": "The Wider Body Rule",
+        "body": "Preserve the shared 1320px hero grid and cap its content at 720px. Keep the original photograph and Glacial title always on two lines: clamp(88px, 23vw, 172px), then clamp(128px, 12vw, 172px) from 1000px, with line height 0.74 and a −0.11em second-line top margin. Body gutters use clamp(20px, 4vw, 72px) with a 1920px canvas cap, yielding 1776px content at 1920px. The film heading reads “Así se vivió Startup Day.” above a centered 9:16 video capped at 380px, with a single overlay viewing CTA and two flanking photographs from 1000px. Gallery photos use a 92% mobile rail and two equal columns from 600px; voices use four equal desktop columns.",
+        "section": "layout"
+      },
+      {
+        "name": "The Brief Copy Rule",
+        "body": "Use brief section copy, the exact centered heading “Xplora en los medios”, and a short photo source-credit caption. Keep the gallery inside the site without an external album CTA or Drive/Docs links; exclude such recording links from the CMS selection while preserving images and other valid URLs. Short event display titles preserve original CMS titles in accessible links and do not change archive ownership.",
+        "section": "components"
+      },
+      {
+        "name": "The Available Without Motion Rule",
+        "body": "Reduced motion leaves content and controls available, disables reveal effects, and retains video posters until manual play. Keep native scrolling and the visible playback controls; do not add scroll hijacking or mobile pinning.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "Do reuse the shared Xplora shell, tokens, fonts, and approved hero grid, with the wider recap body.",
+      "Do keep mobile browsing, keyboard access, and manual playback usable.",
+      "Do use real event media with source provenance and optimized previews.",
+      "Do keep the existing purple wash and text contrast working together."
+    ],
+    "donts": [
+      "Don't restore a separate recap header/footer or introduce a competing identity.",
+      "Don't autoplay full recordings in cards or let hidden previews keep decoding.",
+      "Don't fabricate testimonials, coverage, attendance, or future event dates.",
+      "Don't canonize faint animation states or tiny metadata as reusable reading defaults."
+    ]
+  }
+}

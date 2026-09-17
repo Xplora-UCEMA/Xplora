@@ -6,7 +6,6 @@ import {
   startupDayUrl,
 } from '../../lib/startupDayHost';
 import {
-  SD_EDITION_SPONSORS,
   SD_XPLORA_PARTNERS,
   SD_XPLORA_SOCIALS,
 } from '../../data/startupDay';
@@ -47,7 +46,7 @@ export function SdShell({
   loaderDone = true,
   showCursor = active === 'startupday',
   cta,
-  brandBlurb = 'Club de emprendedores. Startup Day es la primera edición del evento más importante del año.',
+  brandBlurb = 'Organización estudiantil de la Universidad del CEMA. Por y para emprendedores.',
 }: Props) {
   const { logoUrl } = useSiteMedia();
   const brandLogo = logoUrl || DEFAULT_LOGO_URL;
@@ -183,35 +182,17 @@ export function SdShell({
                 <p>{brandBlurb}</p>
               </div>
 
-              {active === 'startupday' ? (
-                <div className="sd-footer__col">
-                  <h3>Startup Day</h3>
-                  <a href="#para-quien">Para quién</a>
-                  <a href="#sponsors">Sponsors</a>
-                  <a href="#que-pasa">La experiencia</a>
-                  <a href="#piso">El lugar</a>
-                  <a href="#agenda">Agenda</a>
-                  {/* StartupMate oculta — ver `StartupDay.tsx`
-                  <a href="#startupmate">StartupMate</a>
-                  */}
-                  <a href="#reservar">Inscripción</a>
-                </div>
-              ) : (
-                <div className="sd-footer__col">
-                  <h3>Xplora</h3>
-                  <a href="/#que-es">El club</a>
-                  <a href="/#empresas">Empresas</a>
-                  <a href="/sponsors">Sponsors</a>
-                  <a href="/#newsletter">Newsletter</a>
-                  <a href={sdHref}>Startup Day</a>
-                </div>
-              )}
+              <div className="sd-footer__col">
+                <h3>Xplora</h3>
+                <a href={`${xpHref}#que-es`}>El club</a>
+                <a href={`${xpHref}#empresas`}>Empresas</a>
+                <a href={`${xpHref}sponsors`}>Sponsors</a>
+                <a href={`${xpHref}#newsletter`}>Newsletter</a>
+                <a href={sdHref}>Startup Day</a>
+              </div>
 
               <div className="sd-footer__col">
-                <h3>{active === 'startupday' ? 'Xplora' : 'Comunidad'}</h3>
-                {active === 'startupday' ? (
-                  <a href={xpHref}>Sitio Xplora</a>
-                ) : null}
+                <h3>Comunidad</h3>
                 <a href={SD_XPLORA_SOCIALS.instagram} target="_blank" rel="noopener noreferrer">
                   Instagram
                 </a>
@@ -223,35 +204,19 @@ export function SdShell({
                 </a>
               </div>
 
-              {active === 'startupday' ? (
-                <div className="sd-footer__col">
-                  <h3>Sponsors</h3>
-                  {SD_EDITION_SPONSORS.map((p) =>
-                    p.website ? (
-                      <a key={p.id} href={p.website} target="_blank" rel="noopener noreferrer">
-                        {p.name}
-                      </a>
-                    ) : (
-                      <span key={p.id}>{p.name}</span>
-                    ),
-                  )}
-                  <a href="#sponsors">Sumar mi marca</a>
-                </div>
-              ) : (
-                <div className="sd-footer__col">
-                  <h3>Sponsors del club</h3>
-                  {SD_XPLORA_PARTNERS.map((p) =>
-                    p.website ? (
-                      <a key={p.id} href={p.website} target="_blank" rel="noopener noreferrer">
-                        {p.name}
-                      </a>
-                    ) : (
-                      <span key={p.id}>{p.name}</span>
-                    ),
-                  )}
-                  <a href="/sponsors">Sumar mi marca</a>
-                </div>
-              )}
+              <div className="sd-footer__col">
+                <h3>Sponsors del club</h3>
+                {SD_XPLORA_PARTNERS.map((p) =>
+                  p.website ? (
+                    <a key={p.id} href={p.website} target="_blank" rel="noopener noreferrer">
+                      {p.name}
+                    </a>
+                  ) : (
+                    <span key={p.id}>{p.name}</span>
+                  ),
+                )}
+                <a href={`${xpHref}sponsors`}>Sumar mi marca</a>
+              </div>
 
               <div className="sd-footer__col sd-footer__col--nl">
                 <StartupDayFooterNewsletter />

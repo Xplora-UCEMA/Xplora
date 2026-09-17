@@ -1,0 +1,134 @@
+{
+  "description": "Real photographs selected for the main Xplora landing. The mandatory team hero was supplied directly by the user; other photographs are from the existing Startup Day source cache. No images are generated.",
+  "processing": "EXIF orientation normalized; original composition and colors preserved. Proportional downsampling and WebP encoding only. No cropping, upscaling, retouching, or EXIF location metadata retained.",
+  "selection": "Photo numbers 8, 33 and 91 are not used by the Startup Day recap gallery, hero or film side photographs at preparation time.",
+  "photos": [
+    {
+      "id": "equipo-startupday",
+      "description": "Equipo de Xplora reunido frente a la pantalla de Startup Day",
+      "sourceFile": "WhatsApp Image 2026-09-16 at 22.04.38.jpeg",
+      "sourceSha256": "079b858bdeec0a0839a5054495020be3e4eab43e166976086e9df8d1230cf759",
+      "sourceWidth": 960,
+      "sourceHeight": 1280,
+      "credit": "User-provided team photograph",
+      "photoNumber": null,
+      "usedInStartupDayRecap": false,
+      "assets": [
+        {
+          "url": "/images/home/equipo-startupday-480.webp",
+          "width": 480,
+          "height": 640,
+          "bytes": 54396
+        },
+        {
+          "url": "/images/home/equipo-startupday-640.webp",
+          "width": 640,
+          "height": 853,
+          "bytes": 80826
+        },
+        {
+          "url": "/images/home/equipo-startupday-960.webp",
+          "width": 960,
+          "height": 1280,
+          "bytes": 133166
+        }
+      ]
+    },
+    {
+      "id": "startupday-charla",
+      "description": "Participantes escuchando una charla en un aula de Startup Day",
+      "sourceFile": "photo-8.jpg",
+      "sourceSha256": "a657212dd4f963729f9df2b5efd3d42ec1a8d4f53e8fad8766d70be76b74bbb5",
+      "sourceWidth": 4146,
+      "sourceHeight": 2757,
+      "credit": "@ABRILMKT",
+      "photoNumber": 8,
+      "usedInStartupDayRecap": false,
+      "assets": [
+        {
+          "url": "/images/home/startupday-charla-640.webp",
+          "width": 640,
+          "height": 426,
+          "bytes": 38488
+        },
+        {
+          "url": "/images/home/startupday-charla-1280.webp",
+          "width": 1280,
+          "height": 851,
+          "bytes": 104674
+        },
+        {
+          "url": "/images/home/startupday-charla-1920.webp",
+          "width": 1920,
+          "height": 1277,
+          "bytes": 205324
+        }
+      ],
+      "sourceFolderId": "1bfEiR9GKOgXaw64qx7uIUicN6rfUQu_b"
+    },
+    {
+      "id": "startupday-encuentros",
+      "description": "Participantes conversando junto al stand de diVenuo en Startup Day",
+      "sourceFile": "photo-33.jpg",
+      "sourceSha256": "0bfa2b37a5ff2425af505be2c83671192fc25303d25318fee906063d6f08c93b",
+      "sourceWidth": 4512,
+      "sourceHeight": 3000,
+      "credit": "@ABRILMKT",
+      "photoNumber": 33,
+      "usedInStartupDayRecap": false,
+      "assets": [
+        {
+          "url": "/images/home/startupday-encuentros-640.webp",
+          "width": 640,
+          "height": 426,
+          "bytes": 46812
+        },
+        {
+          "url": "/images/home/startupday-encuentros-1280.webp",
+          "width": 1280,
+          "height": 851,
+          "bytes": 132768
+        },
+        {
+          "url": "/images/home/startupday-encuentros-1920.webp",
+          "width": 1920,
+          "height": 1277,
+          "bytes": 262160
+        }
+      ],
+      "sourceFolderId": "1bfEiR9GKOgXaw64qx7uIUicN6rfUQu_b"
+    },
+    {
+      "id": "startupday-proyectos",
+      "description": "Conversación frente al stand de Cobrando durante Startup Day",
+      "sourceFile": "photo-91.jpg",
+      "sourceSha256": "918815acc1dfa5290eb0f003eecf5296afc41818a533a98b5cf8dd0a9494385a",
+      "sourceWidth": 4335,
+      "sourceHeight": 2882,
+      "credit": "@ABRILMKT",
+      "photoNumber": 91,
+      "usedInStartupDayRecap": false,
+      "assets": [
+        {
+          "url": "/images/home/startupday-proyectos-640.webp",
+          "width": 640,
+          "height": 425,
+          "bytes": 38440
+        },
+        {
+          "url": "/images/home/startupday-proyectos-1280.webp",
+          "width": 1280,
+          "height": 851,
+          "bytes": 107532
+        },
+        {
+          "url": "/images/home/startupday-proyectos-1920.webp",
+          "width": 1920,
+          "height": 1276,
+          "bytes": 207526
+        }
+      ],
+      "sourceFolderId": "1bfEiR9GKOgXaw64qx7uIUicN6rfUQu_b"
+    }
+  ]
+}

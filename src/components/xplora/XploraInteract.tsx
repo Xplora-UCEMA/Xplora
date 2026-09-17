@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { useSiteMedia } from '../../context/SiteMediaContext';
 import { DEFAULT_CLUB_MODES } from '../../lib/defaultsMedia';
 
@@ -49,7 +49,6 @@ export function XploraModes() {
     </div>
   );
 }
-
 /** Hero foto full-bleed — sin RAF / parallax (performance). */
 export function XploraHeroPhoto({
   src,
@@ -123,38 +122,5 @@ export function XploraRail({
         </a>
       ))}
     </nav>
-  );
-}
-
-/** Pausa el marquee cuando está fuera de pantalla. */
-export function XploraMarquee({
-  label,
-  children,
-}: {
-  label: string;
-  children: ReactNode;
-}) {
-  const ref = useRef<HTMLDivElement>(null);
-  const [on, setOn] = useState(false);
-
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    const io = new IntersectionObserver(
-      ([entry]) => setOn(entry.isIntersecting),
-      { rootMargin: '80px 0px' },
-    );
-    io.observe(el);
-    return () => io.disconnect();
-  }, []);
-
-  return (
-    <div
-      ref={ref}
-      className={`xp-marquee${on ? ' is-running' : ''}`}
-      aria-label={label}
-    >
-      {children}
-    </div>
   );
 }

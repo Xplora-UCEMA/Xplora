@@ -17,6 +17,14 @@
   status = 200
   force = true
 
+# El recap tiene metadatos disponibles sin JavaScript para previews al compartir.
+# Regla exacta de host + raíz: no intercepta imágenes, bundles ni el API.
+[[redirects]]
+  from = "https://startupday.xploraucema.com/"
+  to = "/startup-day.html"
+  status = 200
+  force = true
+
 # SPA: rutas del sitio + la URL secreta del panel (VITE_PANEL_PATH en build).
 [[redirects]]
   from = "/*"
