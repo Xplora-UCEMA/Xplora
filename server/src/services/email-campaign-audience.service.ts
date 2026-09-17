@@ -7,7 +7,12 @@ import { BadRequestError, ForbiddenError } from '../http/errors/http-error.js';
 import { fetchAllMemberRows, type AdminMemberRowDTO } from './admin-member-rows.service.js';
 import { getContactListById, listMembersForList } from './contact-lists.service.js';
 
-export type CampaignRecipient = { usuario_id: string; email: string };
+export type CampaignRecipient = {
+  usuario_id: string;
+  email: string;
+  nombre: string;
+  carrera: string;
+};
 
 /** Devuelve los `usuario_id` elegidos por el cuerpo de la petición (sin filtrar por email). */
 export async function resolveCampaignUsuarioIdsFromBody(
@@ -70,7 +75,12 @@ export function mapUsuarioIdsToRecipientsWithEmail(
     const row = byId.get(uid);
     const email = (row?.email ?? '').trim().toLowerCase();
     if (!email || !email.includes('@')) continue;
-    out.push({ usuario_id: uid, email });
+    out.push({
+      usuario_id: uid,
+      email,
+      nombre: (row?.nombre ?? '').trim(),
+      carrera: (row?.carrera ?? '').trim(),
+    });
   }
   return out;
 }

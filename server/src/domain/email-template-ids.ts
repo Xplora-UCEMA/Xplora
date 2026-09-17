@@ -3,6 +3,7 @@ export const EMAIL_TEMPLATE_IDS = [
   'minimal_notice',
   'editorial_event',
   'platform_features',
+  'custom_html',
 ] as const;
 export type EmailTemplateId = (typeof EMAIL_TEMPLATE_IDS)[number];
 export const DEFAULT_EMAIL_TEMPLATE_ID: EmailTemplateId = 'classic_event';
