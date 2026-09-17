@@ -8,6 +8,11 @@ import type { AppConfig } from '../config/env.js';
 import { sendOneResendEmail } from './resend-send.service.js';
 import type { CampaignRecipient } from './email-campaign-audience.service.js';
 import { personalizeCampaignHtml } from './contact-unsubscribe.service.js';
+import {
+  buildCustomEmailVariables,
+  renderCustomEmailHtml,
+  type CustomEmailCampaignData,
+} from '../domain/custom-email-template.js';
 
 export type DispatchJobStatus = 'queued' | 'running' | 'completed' | 'failed';
 
@@ -29,6 +34,7 @@ type InternalJob = DispatchJobPublicState & {
   startedAt: number;
   subject: string;
   html: string;
+  customEmailCampaign: CustomEmailCampaignData | null;
   recipients: CampaignRecipient[];
   sb: SupabaseClient;
   resend: NonNullable<AppConfig['resend']>;
@@ -49,6 +55,7 @@ export function createDispatchJob(params: {
   campaignId: string;
   subject: string;
   html: string;
+  customEmailCampaign?: CustomEmailCampaignData | null;
   recipients: CampaignRecipient[];
   skipped_already_sent: number;
   resend: NonNullable<AppConfig['resend']>;
@@ -71,6 +78,7 @@ export function createDispatchJob(params: {
     from: params.resend.from,
     subject: params.subject,
     html: params.html,
+    customEmailCampaign: params.customEmailCampaign ?? null,
     recipients: params.recipients,
     resend: params.resend,
     sb: params.sb,
@@ -124,7 +132,16 @@ export function startDispatchJobRunner(jobId: string): void {
     try {
       for (const r of job.recipients) {
         job.current_email = r.email;
-        const recipientHtml = await personalizeCampaignHtml(job.html, {
+        const personalizedHtml = job.customEmailCampaign
+          ? renderCustomEmailHtml(
+              job.html,
+              buildCustomEmailVariables(
+                { nombre: r.nombre, email: r.email, carrera: r.carrera },
+                job.customEmailCampaign,
+              ),
+            )
+          : job.html;
+        const recipientHtml = await personalizeCampaignHtml(personalizedHtml, {
           siteUrl: job.unsubscribe.siteUrl,
           tokenSecret: job.unsubscribe.tokenSecret,
           usuarioId: r.usuario_id,

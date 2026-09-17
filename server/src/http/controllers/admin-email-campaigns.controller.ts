@@ -23,8 +23,48 @@ import {
   getDispatchJob,
   startDispatchJobRunner,
 } from '../../services/email-dispatch-queue.service.js';
+import {
+  findUnsupportedCustomEmailVariables,
+  type CustomEmailCampaignData,
+} from '../../domain/custom-email-template.js';
 
 const FETCH_PAGE = 1000;
+
+function optionalTrimmedString(value: unknown): string {
+  return typeof value === 'string' ? value.trim() : '';
+}
+
+function validateOptionalHttpUrl(value: string, label: string): string {
+  if (!value) return '';
+  let parsed: URL;
+  try {
+    parsed = new URL(value);
+  } catch {
+    throw new BadRequestError(`${label} debe ser una URL válida.`);
+  }
+  if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+    throw new BadRequestError(`${label} debe comenzar con http:// o https://.`);
+  }
+  return parsed.toString();
+}
+
+function parseCustomEmailCampaignData(
+  body: Record<string, unknown>,
+  titulo: string,
+  asunto: string,
+): CustomEmailCampaignData | null {
+  if (body.content_mode !== 'custom_html') return null;
+  const rawVariables =
+    typeof body.custom_variables === 'object' && body.custom_variables !== null && !Array.isArray(body.custom_variables)
+      ? (body.custom_variables as Record<string, unknown>)
+      : {};
+  return {
+    imagen: validateOptionalHttpUrl(optionalTrimmedString(rawVariables.imagen), 'Imagen'),
+    link: validateOptionalHttpUrl(optionalTrimmedString(rawVariables.link), 'Link'),
+    titulo,
+    asunto,
+  };
+}
 
 function parseCampaignRouteId(req: { params: { id?: string | string[] } }): string {
   const rawId = req.params.id;
@@ -272,9 +312,18 @@ export function createEmailCampaignDispatchStartHandler(config: AppConfig): Requ
     if (!html.trim()) throw new BadRequestError('Falta html del correo (plantilla renderizada).');
     if (html.length > 2_500_000) throw new BadRequestError('HTML demasiado grande.');
 
+    if (body.content_mode === 'custom_html') {
+      const unsupportedVariables = findUnsupportedCustomEmailVariables(html);
+      if (unsupportedVariables.length > 0) {
+        throw new BadRequestError(
+          `Variables HTML no reconocidas: ${unsupportedVariables.map(name => `{{${name}}}`).join(', ')}.`,
+        );
+      }
+    }
+
     const { data: campaignRow, error: cErr } = await sb
       .from('campanias_email')
-      .select('id, asunto')
+      .select('id, nombre, asunto')
       .eq('id', campaignId)
       .maybeSingle();
     if (cErr) throw new BadRequestError(cErr.message);
@@ -285,6 +334,9 @@ export function createEmailCampaignDispatchStartHandler(config: AppConfig): Requ
         ? body.asunto.trim()
         : String((campaignRow as { asunto?: string }).asunto ?? '').trim();
     if (!subject) throw new BadRequestError('Falta asunto del correo (guardá la campaña con asunto o envialo en el JSON).');
+
+    const campaignTitle = String((campaignRow as { nombre?: string }).nombre ?? '').trim();
+    const customEmailCampaign = parseCustomEmailCampaignData(body, campaignTitle, subject);
 
     const usuarioIdsResolved = await resolveCampaignUsuarioIdsFromBody(sb, body, req.authUser?.id ?? null);
     const members = await fetchAllMemberRows(sb);
@@ -320,6 +372,7 @@ export function createEmailCampaignDispatchStartHandler(config: AppConfig): Requ
       campaignId,
       subject,
       html,
+      customEmailCampaign,
       recipients: nuevos,
       skipped_already_sent,
       resend: live.resend,

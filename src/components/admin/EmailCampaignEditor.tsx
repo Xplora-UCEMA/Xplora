@@ -6,6 +6,8 @@ import { authFetch, readApiError } from '../../lib/serverApi';
 import EmailHtmlLivePreview from './EmailHtmlLivePreview';
 import EmailCampaignEventFields from './EmailCampaignEventFields';
 import EmailCampaignPlatformFields from './EmailCampaignPlatformFields';
+import CustomEmailHtmlEditor from './CustomEmailHtmlEditor';
+import CustomEmailHtmlLivePreview from './CustomEmailHtmlLivePreview';
 import { emailSiteOrigin } from './emailCampaignHelpers';
 import {
   CrmSection,
@@ -27,8 +29,16 @@ import {
   type EmailTemplateId,
 } from './emailTemplates/registry';
 import { showCampaignField } from './emailTemplates/formFields';
+import {
+  DEFAULT_CUSTOM_EMAIL_HTML,
+  findUnsupportedPreviewVariables,
+  isValidOptionalHttpUrl,
+  type CustomEmailPreviewVariables,
+} from './customEmailTemplate';
 
 const DISPATCH_LS_KEY = 'xplora_email_dispatch_job_v1';
+const MAX_CUSTOM_HTML_LENGTH = 2_000_000;
+type EmailContentMode = 'guided_template' | 'custom_html';
 
 export type DispatchJobState = {
   jobId: string | null;
@@ -65,6 +75,7 @@ export default function EmailCampaignEditor({ bare = false }: EmailCampaignEdito
 
   const [tituloInterno, setTituloInterno] = useState('');
   const [asunto, setAsunto] = useState('');
+  const [contentMode, setContentMode] = useState<EmailContentMode>('guided_template');
   const [templateId, setTemplateId] = useState<EmailTemplateId>(DEFAULT_EMAIL_TEMPLATE_ID);
   const [estado, setEstado] = useState<EmailCampaignEstadoId>('nuevo_evento');
   const [flyerUrl, setFlyerUrl] = useState('');
@@ -75,6 +86,9 @@ export default function EmailCampaignEditor({ bare = false }: EmailCampaignEdito
   const [orador, setOrador] = useState('');
   const [ctaUrl, setCtaUrl] = useState('');
   const [platform, setPlatform] = useState(defaultPlatformData);
+  const [customHtml, setCustomHtml] = useState(DEFAULT_CUSTOM_EMAIL_HTML);
+  const [customImageUrl, setCustomImageUrl] = useState('');
+  const [customLinkUrl, setCustomLinkUrl] = useState('');
 
   const [dispatchJob, setDispatchJob] = useState<DispatchJobState | null>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -225,6 +239,49 @@ export default function EmailCampaignEditor({ bare = false }: EmailCampaignEdito
     ],
   );
 
+  const unsupportedCustomVariables = useMemo(
+    () => findUnsupportedPreviewVariables(customHtml),
+    [customHtml],
+  );
+
+  const customPreviewVariables = useMemo<CustomEmailPreviewVariables>(
+    () => ({
+      Nombre: 'María Xplora',
+      Email: 'maria@ejemplo.com',
+      Carrera: 'Marketing',
+      Imagen: customImageUrl,
+      Link: customLinkUrl || '#',
+      Titulo: tituloInterno || 'Tu campaña Xplora',
+      Asunto: asunto || 'Asunto del correo',
+    }),
+    [asunto, customImageUrl, customLinkUrl, tituloInterno],
+  );
+
+  const validateCampaignContent = (): boolean => {
+    if (contentMode !== 'custom_html') return true;
+    if (!customHtml.trim()) {
+      toast.error('Pegá o importá el HTML personalizado.');
+      return false;
+    }
+    if (customHtml.length > MAX_CUSTOM_HTML_LENGTH) {
+      toast.error('El HTML supera el máximo de 2 MB.');
+      return false;
+    }
+    if (unsupportedCustomVariables.length > 0) {
+      toast.error(`Corregí las variables no reconocidas: ${unsupportedCustomVariables.map(name => `{{${name}}}`).join(', ')}.`);
+      return false;
+    }
+    if (!isValidOptionalHttpUrl(customImageUrl)) {
+      toast.error('La URL de {{Imagen}} debe comenzar con http:// o https://.');
+      return false;
+    }
+    if (!isValidOptionalHttpUrl(customLinkUrl)) {
+      toast.error('La URL de {{Link}} debe comenzar con http:// o https://.');
+      return false;
+    }
+    return true;
+  };
+
   const saveCampaign = async (): Promise<string | null> => {
     if (!tituloInterno.trim()) {
       toast.error('Completá el título de la campaña.');
@@ -234,6 +291,7 @@ export default function EmailCampaignEditor({ bare = false }: EmailCampaignEdito
       toast.error('Completá el asunto del correo.');
       return null;
     }
+    if (!validateCampaignContent()) return null;
     setSaving(true);
     const res = await authFetch('/api/admin/email-campaigns', {
       method: 'POST',
@@ -241,7 +299,7 @@ export default function EmailCampaignEditor({ bare = false }: EmailCampaignEdito
       body: JSON.stringify({
         nombre: tituloInterno.trim(),
         asunto: asunto.trim(),
-        template_id: templateId,
+        template_id: contentMode === 'custom_html' ? 'custom_html' : templateId,
         contact_list_id: contactListId === '__ALL__' ? null : contactListId,
       }),
     });
@@ -266,7 +324,10 @@ export default function EmailCampaignEditor({ bare = false }: EmailCampaignEdito
     if (dispatchBusy) return;
     const campaignId = lastCampaignId ?? (await saveCampaign());
     if (!campaignId) return;
-    const html = buildEmailHtmlForTemplate(templateId, buildInput);
+    if (!validateCampaignContent()) return;
+    const html = contentMode === 'custom_html'
+      ? customHtml
+      : buildEmailHtmlForTemplate(templateId, buildInput);
     setSaving(true);
     prevStatusRef.current = null;
     const res = await authFetch(`/api/admin/email-campaigns/${campaignId}/dispatch/start`, {
@@ -275,6 +336,10 @@ export default function EmailCampaignEditor({ bare = false }: EmailCampaignEdito
       body: JSON.stringify({
         html,
         asunto: asunto.trim(),
+        content_mode: contentMode,
+        ...(contentMode === 'custom_html'
+          ? { custom_variables: { imagen: customImageUrl.trim(), link: customLinkUrl.trim() } }
+          : {}),
         ...(contactListId === '__ALL__'
           ? { audience: 'all' }
           : { contact_list_id: contactListId }),
@@ -308,6 +373,9 @@ export default function EmailCampaignEditor({ bare = false }: EmailCampaignEdito
   );
 
   const sectionSubtitle = useMemo(() => {
+    if (contentMode === 'custom_html') {
+      return 'HTML propio: importá o pegá el código, insertá variables y revisá el resultado en vivo antes de enviar.';
+    }
     if (templateId === 'minimal_notice') {
       return 'Aviso corto: badge, texto y cuándo/dónde en una línea.';
     }
@@ -318,7 +386,7 @@ export default function EmailCampaignEditor({ bare = false }: EmailCampaignEdito
       return 'Aviso de plataforma: hero, bloques, tip amarillo y CTA. Maquetación responsive.';
     }
     return 'Layout completo 600px: flyer, fecha, recordatorios y pie con imagen.';
-  }, [templateId]);
+  }, [contentMode, templateId]);
 
   const editorGrid = (
       <div
@@ -332,6 +400,30 @@ export default function EmailCampaignEditor({ bare = false }: EmailCampaignEdito
       >
         <div style={{ minWidth: 0 }}>
           <FormSection title="Identificación y envío">
+            <div style={crm.formField}>
+              <span style={crm.label}>Tipo de contenido</span>
+              <div style={crm.segmentTrack} role="group" aria-label="Tipo de contenido del email">
+                <button
+                  type="button"
+                  className="xplora-admin-seg"
+                  style={crm.segmentBtn(contentMode === 'guided_template')}
+                  aria-pressed={contentMode === 'guided_template'}
+                  onClick={() => setContentMode('guided_template')}
+                >
+                  <span style={crm.segmentLabel}>Plantilla guiada</span>
+                </button>
+                <button
+                  type="button"
+                  className="xplora-admin-seg"
+                  style={crm.segmentBtn(contentMode === 'custom_html')}
+                  aria-pressed={contentMode === 'custom_html'}
+                  onClick={() => setContentMode('custom_html')}
+                >
+                  <span style={crm.segmentLabel}>HTML propio</span>
+                </button>
+              </div>
+              <p style={crm.hint}>Usá una plantilla del panel o controlá por completo el HTML y sus variables.</p>
+            </div>
             <Sel
               label="Lista de contactos (destinatarios)"
               hint="«Todos» se calcula al enviar (incluye usuarios nuevos). Si elegís una lista guardada, se usan solo esos contactos."
@@ -339,14 +431,16 @@ export default function EmailCampaignEditor({ bare = false }: EmailCampaignEdito
               onChange={(v) => setContactListId(v as '__ALL__' | string)}
               options={listOptions}
             />
-            <Sel
-              label="Plantilla de email"
-              hint={EMAIL_TEMPLATE_OPTIONS.find(o => o.id === templateId)?.description ?? ''}
-              value={templateId}
-              onChange={v => setTemplateId(v as EmailTemplateId)}
-              options={EMAIL_TEMPLATE_OPTIONS.map(o => ({ value: o.id, label: o.label }))}
-            />
-            {showCampaignField('tituloInterno', templateId) ? (
+            {contentMode === 'guided_template' ? (
+              <Sel
+                label="Plantilla de email"
+                hint={EMAIL_TEMPLATE_OPTIONS.find(o => o.id === templateId)?.description ?? ''}
+                value={templateId}
+                onChange={v => setTemplateId(v as EmailTemplateId)}
+                options={EMAIL_TEMPLATE_OPTIONS.map(o => ({ value: o.id, label: o.label }))}
+              />
+            ) : null}
+            {contentMode === 'custom_html' || showCampaignField('tituloInterno', templateId) ? (
               <Field
                 label="Título de la campaña (solo base de datos)"
                 hint="Nombre descriptivo para vos; no se muestra en el mail."
@@ -355,7 +449,7 @@ export default function EmailCampaignEditor({ bare = false }: EmailCampaignEdito
                 placeholder="Ej: Newsletter abril 2026 · Workshop UX"
               />
             ) : null}
-            {showCampaignField('asunto', templateId) ? (
+            {contentMode === 'custom_html' || showCampaignField('asunto', templateId) ? (
               <Field
                 label="Asunto del correo"
                 hint="Lo que ve la persona en la bandeja de entrada."
@@ -366,28 +460,44 @@ export default function EmailCampaignEditor({ bare = false }: EmailCampaignEdito
             ) : null}
           </FormSection>
 
-          <EmailCampaignEventFields
-            templateId={templateId}
-            estado={estado}
-            onEstadoChange={setEstado}
-            flyerUrl={flyerUrl}
-            onFlyerUrlChange={setFlyerUrl}
-            textoPrincipal={textoPrincipal}
-            onTextoPrincipalChange={setTextoPrincipal}
-            fecha={fecha}
-            onFechaChange={setFecha}
-            hora={hora}
-            onHoraChange={setHora}
-            lugar={lugar}
-            onLugarChange={setLugar}
-            orador={orador}
-            onOradorChange={setOrador}
-            ctaUrl={ctaUrl}
-            onCtaUrlChange={setCtaUrl}
-          />
+          {contentMode === 'guided_template' ? (
+            <EmailCampaignEventFields
+              templateId={templateId}
+              estado={estado}
+              onEstadoChange={setEstado}
+              flyerUrl={flyerUrl}
+              onFlyerUrlChange={setFlyerUrl}
+              textoPrincipal={textoPrincipal}
+              onTextoPrincipalChange={setTextoPrincipal}
+              fecha={fecha}
+              onFechaChange={setFecha}
+              hora={hora}
+              onHoraChange={setHora}
+              lugar={lugar}
+              onLugarChange={setLugar}
+              orador={orador}
+              onOradorChange={setOrador}
+              ctaUrl={ctaUrl}
+              onCtaUrlChange={setCtaUrl}
+            />
+          ) : null}
 
-          {templateId === 'platform_features' ? (
+          {contentMode === 'guided_template' && templateId === 'platform_features' ? (
             <EmailCampaignPlatformFields platform={platform} onPlatformChange={setPlatform} />
+          ) : null}
+
+          {contentMode === 'custom_html' ? (
+            <FormSection title="HTML personalizado">
+              <CustomEmailHtmlEditor
+                html={customHtml}
+                imageUrl={customImageUrl}
+                linkUrl={customLinkUrl}
+                unsupportedVariables={unsupportedCustomVariables}
+                onHtmlChange={setCustomHtml}
+                onImageUrlChange={setCustomImageUrl}
+                onLinkUrlChange={setCustomLinkUrl}
+              />
+            </FormSection>
           ) : null}
 
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'center', marginTop: 8 }}>
@@ -426,7 +536,8 @@ export default function EmailCampaignEditor({ bare = false }: EmailCampaignEdito
             ) : null}
             <div style={{ fontSize: 13, color: 'var(--ink-muted)', margin: 0, maxWidth: 520, lineHeight: 1.45 }}>
               <p style={{ margin: 0 }}>
-                El HTML de la vista previa es el que se envía por Resend tal cual lo ves acá.
+                El servidor personaliza y envía por Resend el{' '}
+                <strong>{contentMode === 'custom_html' ? 'HTML propio' : 'HTML de la plantilla'}</strong> que ves en la vista previa.
               </p>
               {lastCampaignId ? (
                 <p style={{ margin: '10px 0 0', fontSize: 12, fontFamily: 'ui-monospace, monospace' }}>
@@ -463,7 +574,15 @@ export default function EmailCampaignEditor({ bare = false }: EmailCampaignEdito
           >
             Vista previa del mail
           </p>
-          <EmailHtmlLivePreview templateId={templateId} input={buildInput} asunto={asunto} />
+          {contentMode === 'custom_html' ? (
+            <CustomEmailHtmlLivePreview
+              html={customHtml}
+              asunto={asunto}
+              variables={customPreviewVariables}
+            />
+          ) : (
+            <EmailHtmlLivePreview templateId={templateId} input={buildInput} asunto={asunto} />
+          )}
         </aside>
       </div>
   );
