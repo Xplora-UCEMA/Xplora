@@ -1022,6 +1022,42 @@ html.sd-coming-soon body {
   justify-self: end;
 }
 
+/* ── El borde de arriba del hero ──
+   Cierra el marco por arriba, a la altura del pie de la banda del header (`--sd-banda-h`, que es
+   la misma variable que le da el alto a `.sd-top`: si salieran de números distintos, la línea
+   dejaría de apoyarse en el borde de la banda al primer cambio de relleno).
+
+   A todo el ancho, como las demás horizontales de la página. `z-index: 1` la deja por encima de
+   las bandas de ASCII —que están en 0— y por debajo del contenido, que va en 3. */
+.sd-hero__regla {
+  position: absolute;
+  z-index: 1;
+  top: var(--sd-banda-h);
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: var(--sd-rejilla);
+  pointer-events: none;
+}
+
+/* Las dos cruces, donde la regla corta los rieles. Mismo mecanismo que las de la rejilla: la caja
+   se infla `--sd-cruz-aire` en las cuatro direcciones respecto del punto de cruce, así la marca
+   —que se centra en la esquina de esa caja— entra entera en vez de quedar partida al medio por el
+   recorte. Ver el bloque "Las cruces" para el porqué del `--sd-cruz-offset`. */
+.sd-hero__regla::after {
+  content: '';
+  position: absolute;
+  top: calc(var(--sd-cruz-aire) * -1);
+  bottom: calc(var(--sd-cruz-aire) * -1);
+  left: calc(var(--sd-rejilla-x) - var(--sd-cruz-aire));
+  right: calc(var(--sd-rejilla-x) - var(--sd-cruz-aire));
+  background-image: var(--sd-rejilla-cruz), var(--sd-rejilla-cruz);
+  background-repeat: no-repeat;
+  background-position:
+    left var(--sd-cruz-offset) top var(--sd-cruz-offset),
+    right var(--sd-cruz-offset) top var(--sd-cruz-offset);
+}
+
 /* ── Las dos bandas ASCII del hero ──
    Fueron dos tiras de 115px contra los bordes de la pantalla y no se veían: por esquivar el disco
    quedaron en el margen. Ahora cruzan.
@@ -4963,9 +4999,9 @@ a.sd-partner__name:hover {
     display: none;
   }
 
-  /* Las del header, por el mismo motivo: sin verticales no hay intersección que marcar y la cruz
-     queda flotando sola sobre la regla. */
-  .sd-root--startupday .sd-nav-shell::before {
+  /* La del hero, por el mismo motivo: sin verticales no hay intersección que marcar y las cruces
+     quedarían flotando solas sobre la regla. */
+  .sd-hero__regla::after {
     display: none;
   }
 }
@@ -5003,53 +5039,16 @@ a.sd-partner__name:hover {
   min-height: var(--sd-banda-h);
 }
 
-/* ── El marco del header ──
-   Dos marcos distintos, y esto es lo importante: **el de la página no se mueve**. La regla al pie
-   de la banda y sus dos cruces se quedan clavadas donde están, se scrollee o no; lo que aparece
-   con el scroll es OTRO marco, el borde de la isla, que entra por encima.
+/* El marco del header NO vive acá.
 
-   Por eso cuelgan de `.sd-nav-shell` y no de `.sd-top`. `.sd-top` cambia de ancho, de relleno y de
-   fondo al volverse isla, así que cualquier cosa anclada a él se mueve con la animación. El shell
-   es `fixed` en `top: 0`, y sus pseudos absolutos se posicionan contra su CAJA DE PADDING, que
-   arranca en `y=0` pase lo que pase — incluso cuando la isla le mete `padding: 14px 24px 0`.
+   La regla al pie de la banda y sus dos cruces son el borde de arriba del hero, no del header, así
+   que se declaran con la sección (`.sd-hero__regla`). La diferencia importa: colgadas del shell
+   —que es `fixed`— quedaban clavadas en la ventana, y al scrollear la isla se despegaba mientras
+   la línea seguía en `y=81` cruzando el hero por el medio, por encima del wordmark y de la
+   brújula. Una horizontal atravesando el contenido sin nada que delimitar.
 
-   Estaban además atadas a `:not(.is-island)`, o sea que se apagaban apenas arrancabas a bajar. */
-.sd-root--startupday .sd-nav-shell::after {
-  content: '';
-  position: absolute;
-  z-index: 0;
-  top: var(--sd-banda-h);
-  left: 0;
-  right: 0;
-  height: 1px;
-  background: var(--sd-rejilla);
-  pointer-events: none;
-}
+   Lo que aparece al scrollear es el borde propio de la isla, y con eso alcanza. */
 
-/* Las dos cruces, donde la regla corta los rieles. Mismo mecanismo que las de la rejilla: la caja
-   se infla `--sd-cruz-aire` en las cuatro direcciones respecto del punto de cruce, así la marca
-   —que se centra en la esquina de esa caja— entra entera sin que el recorte le coma la mitad.
-
-   `--sd-rejilla-x` es donde caen los rieles, y acá resuelve bien porque el shell ocupa el ancho de
-   la ventana: esa variable lleva un `100%` adentro y se resuelve contra la caja donde se usa. */
-.sd-root--startupday .sd-nav-shell::before {
-  content: '';
-  position: absolute;
-  z-index: 0;
-  top: calc(var(--sd-banda-h) - var(--sd-cruz-aire));
-  height: calc(var(--sd-cruz-aire) * 2);
-  left: calc(var(--sd-rejilla-x) - var(--sd-cruz-aire));
-  right: calc(var(--sd-rejilla-x) - var(--sd-cruz-aire));
-  pointer-events: none;
-  background-image: var(--sd-rejilla-cruz), var(--sd-rejilla-cruz);
-  background-repeat: no-repeat;
-  background-position:
-    left var(--sd-cruz-offset) top var(--sd-cruz-offset),
-    right var(--sd-cruz-offset) top var(--sd-cruz-offset);
-}
-
-/* La isla al scrollear: sigue siendo una barra, no una cápsula. Mantiene el fondo translúcido y
-   el desenfoque —que son los que la despegan del contenido— pero sin esquinas ni sombra. */
 /* Caja baja y sin tracking, como la referencia. Estuvo un tiempo en MAYÚSCULAS espaciadas y ahí el
    nav pesaba más que la marca: con tres ítems de una palabra, el tracking los estira hasta ocupar
    el ancho de un titular. */

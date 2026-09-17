@@ -152,6 +152,16 @@ function StartupDayContent() {
           fase={17}
         />
 
+        {/* El borde de arriba del marco del hero: la regla al pie de la banda del header, con sus
+            dos cruces sobre los rieles.
+
+            Vive ACÁ y no en el header, aunque visualmente lo cierre. Colgada del shell —que es
+            `fixed`— quedaba clavada a la ventana: al scrollear, la isla se despegaba y la línea
+            seguía en su lugar cortando el hero por el medio, por encima del wordmark y de la
+            brújula. Siendo parte de la sección se va con ella, que es lo que corresponde a un
+            borde. */}
+        <span className="sd-hero__regla" aria-hidden />
+
         <div className="sd-hero__grid">
           <div className="sd-hero__content">
             {/* Píldora de contexto arriba del wordmark. El dato sale de `SD_RECAP.kicker`, que ya
