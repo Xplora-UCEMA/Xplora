@@ -18,6 +18,10 @@ import {
   createPublicSiteMediaHandler,
 } from '../controllers/public-catalog.controller.js';
 import { createPublicSubscribeHandler } from '../controllers/public-subscribe.controller.js';
+import {
+  createPublicContactUnsubscribeDeleteHandler,
+  createPublicContactUnsubscribePageHandler,
+} from '../controllers/public-contact-unsubscribe.controller.js';
 import { createPublicCandidatosHandler } from '../controllers/public-candidatos.controller.js';
 import { createPublicSponsorsLeadHandler } from '../controllers/public-sponsors.controller.js';
 import { createPublicStartupDayWaitlistHandler } from '../controllers/public-startup-day-waitlist.controller.js';
@@ -199,9 +203,25 @@ export function registerApiRoutes(app: Express, deps: ApiRoutesDeps): void {
     standardHeaders: true,
     legacyHeaders: false,
   });
+  const unsubscribeLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 60,
+    standardHeaders: true,
+    legacyHeaders: false,
+  });
 
   // ── Público (lecturas para el sitio; anon Supabase) ─────────────────────
   app.post('/api/public/subscribe', subscribeLimiter, createPublicSubscribeHandler(deps.config));
+  app.get(
+    '/api/public/unsubscribe',
+    unsubscribeLimiter,
+    createPublicContactUnsubscribePageHandler(deps.config),
+  );
+  app.post(
+    '/api/public/unsubscribe',
+    unsubscribeLimiter,
+    createPublicContactUnsubscribeDeleteHandler(deps.config),
+  );
   app.post('/api/public/candidatos', subscribeLimiter, uploadSingleCv, createPublicCandidatosHandler(deps.config));
   app.post('/api/public/sponsors', subscribeLimiter, createPublicSponsorsLeadHandler(deps.config));
   app.post(

@@ -32,7 +32,7 @@ export function buildPlatformHtml(input: EmailTemplateBuildInput): string {
   const ctaIntro = escapeHtml(d.ctaIntro.trim() || '—');
   const ctaLabel = escapeHtml(d.ctaLabel.trim() || 'Ir a Xplora');
   const ctaHref = escapeHtml(d.ctaUrl.trim() || '#');
-  const unsubHref = '#';
+  const unsubHref = '{{UNSUBSCRIBE_URL}}';
 
   const featuresHtml = d.features.map(featureRow).join('');
 

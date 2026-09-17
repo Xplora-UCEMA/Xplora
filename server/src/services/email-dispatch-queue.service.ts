@@ -7,6 +7,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import type { AppConfig } from '../config/env.js';
 import { sendOneResendEmail } from './resend-send.service.js';
 import type { CampaignRecipient } from './email-campaign-audience.service.js';
+import { personalizeCampaignHtml } from './contact-unsubscribe.service.js';
 
 export type DispatchJobStatus = 'queued' | 'running' | 'completed' | 'failed';
 
@@ -31,6 +32,7 @@ type InternalJob = DispatchJobPublicState & {
   recipients: CampaignRecipient[];
   sb: SupabaseClient;
   resend: NonNullable<AppConfig['resend']>;
+  unsubscribe: { siteUrl: string; tokenSecret: string };
 };
 
 const jobs = new Map<string, InternalJob>();
@@ -51,6 +53,7 @@ export function createDispatchJob(params: {
   skipped_already_sent: number;
   resend: NonNullable<AppConfig['resend']>;
   sb: SupabaseClient;
+  unsubscribe: { siteUrl: string; tokenSecret: string };
 }): string {
   pruneOldJobs();
   const jobId = randomUUID();
@@ -71,6 +74,7 @@ export function createDispatchJob(params: {
     recipients: params.recipients,
     resend: params.resend,
     sb: params.sb,
+    unsubscribe: params.unsubscribe,
   };
   jobs.set(jobId, job);
   return jobId;
@@ -120,10 +124,15 @@ export function startDispatchJobRunner(jobId: string): void {
     try {
       for (const r of job.recipients) {
         job.current_email = r.email;
+        const recipientHtml = await personalizeCampaignHtml(job.html, {
+          siteUrl: job.unsubscribe.siteUrl,
+          tokenSecret: job.unsubscribe.tokenSecret,
+          usuarioId: r.usuario_id,
+        });
         const errMsg = await sendOneResendEmail(job.resend, {
           to: r.email,
           subject: job.subject,
-          html: job.html,
+          html: recipientHtml,
         });
         if (errMsg) {
           console.warn(`[resend] fallo envío a ${r.email}:`, errMsg);

@@ -84,6 +84,8 @@ export interface AppConfig {
   readonly publicSiteUrl: string;
   /** Secreto HS256 para JWT de miembros (cuenta / bolsa). */
   readonly memberJwtSecret: string | null;
+  /** Secreto HS256 para enlaces individuales de eliminación de contactos. */
+  readonly unsubscribeTokenSecret: string | null;
   readonly paths: {
     /** Carpeta `dist` del front (Vite) */
     webDist: string;
@@ -143,6 +145,7 @@ export function getAppConfig(): AppConfig {
   const memberJwtSecret =
     firstNonEmpty('MEMBER_JWT_SECRET', 'JWT_SECRET') ||
     (nodeEnv === 'production' ? null : 'dev-member-jwt-secret-change-me');
+  const unsubscribeTokenSecret = firstNonEmpty('UNSUBSCRIBE_TOKEN_SECRET') || memberJwtSecret;
 
   return {
     nodeEnv: nodeEnv === 'production' || nodeEnv === 'test' ? nodeEnv : 'development',
@@ -155,6 +158,7 @@ export function getAppConfig(): AppConfig {
     meta,
     publicSiteUrl,
     memberJwtSecret,
+    unsubscribeTokenSecret,
     paths: { webDist: resolveWebDist() },
   };
 }

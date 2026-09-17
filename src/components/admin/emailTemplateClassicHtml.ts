@@ -125,7 +125,7 @@ export function buildClassicNewsletterHtml(input: EmailTemplateBuildInput): stri
       </td></tr>
 
       <tr><td align="center" style="padding:16px 40px;background:#0a0914;">
-        <p style="margin:0;font-size:11px;color:rgba(255,255,255,0.3);">${escapeHtml('¿No querés recibir más emails?')} <a href="#" style="color:rgba(255,255,255,0.5);text-decoration:none;">${escapeHtml('Desuscribite acá')}</a></p>
+        <p style="margin:0;font-size:11px;color:rgba(255,255,255,0.3);">${escapeHtml('¿No querés recibir más emails?')} <a href="{{UNSUBSCRIBE_URL}}" style="color:rgba(255,255,255,0.5);text-decoration:none;">${escapeHtml('Desuscribite acá')}</a></p>
       </td></tr>
 
     </table>
