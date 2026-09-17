@@ -619,6 +619,8 @@ function CharlasSection() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [csvBusy, setCsvBusy] = useState(false);
+  const [attendanceMode, setAttendanceMode] = useState('auto');
+  const [importWarnings, setImportWarnings] = useState<string[]>([]);
   const csvInputRef = useRef<HTMLInputElement>(null);
 
   const { permissions } = useStaffPermissions();
@@ -661,12 +663,16 @@ function CharlasSection() {
 
   const openCreate = () => {
     setForm(CHARLA_EMPTY);
+    setAttendanceMode('auto');
+    setImportWarnings([]);
     setTopicsText('');
     setEditRow(null);
     setFormOpen(true);
     setError('');
   };
   const openEdit = (r: DbCharla) => {
+    setAttendanceMode('auto');
+    setImportWarnings([]);
     setForm({ ...CHARLA_EMPTY, ...r });
     setTopicsText((r.topics || []).join('\n'));
     setEditRow(r);
@@ -759,45 +765,52 @@ function CharlasSection() {
   const importLumaCsv = async (file: File | null) => {
     if (!file) return;
     if (!form.evento_id) {
-      toast.error('Elegí primero el evento de la lista de arriba (debe ser el mismo que en Luma).');
+      toast.error('Elegí primero el evento al que pertenecen los participantes.');
       return;
     }
     setCsvBusy(true);
+    setImportWarnings([]);
     setError('');
-    const fd = new FormData();
-    fd.append('csv', file);
-    const res = await authFetch(`/api/admin/eventos/${form.evento_id}/luma-csv`, {
-      method: 'POST',
-      body: fd,
-    });
-    setCsvBusy(false);
-    if (csvInputRef.current) csvInputRef.current.value = '';
-    if (!res.ok) {
-      const msg = await readApiError(res);
-      setError(msg);
-      toast.error(msg);
-      return;
+    try {
+      const fd = new FormData();
+      fd.append('csv', file);
+      fd.append('attendance_mode', attendanceMode);
+      const res = await authFetch(`/api/admin/eventos/${form.evento_id}/luma-csv`, {
+        method: 'POST',
+        body: fd,
+      });
+      if (!res.ok) {
+        const msg = await readApiError(res);
+        setError(msg);
+        toast.error(msg);
+        return;
+      }
+      const data = (await res.json()) as {
+        emails_procesados: number;
+        usuarios_nuevos: number;
+        usuarios_existentes: number;
+        warnings?: string[];
+      };
+      toast.success(
+        `Importación lista: ${data.emails_procesados} emails (${data.usuarios_nuevos} usuarios nuevos, ${data.usuarios_existentes} ya existían).`,
+      );
+      setImportWarnings(data.warnings ?? []);
+      void load();
+    } catch {
+      const message = 'No se pudo completar la importación. Revisá la conexión e intentá nuevamente.';
+      setError(message);
+      toast.error(message);
+    } finally {
+      setCsvBusy(false);
+      if (csvInputRef.current) csvInputRef.current.value = '';
     }
-    const data = (await res.json()) as {
-      emails_procesados: number;
-      usuarios_nuevos: number;
-      usuarios_existentes: number;
-      warnings?: string[];
-    };
-    toast.success(
-      `Importación lista: ${data.emails_procesados} emails (${data.usuarios_nuevos} usuarios nuevos, ${data.usuarios_existentes} ya existían).`,
-    );
-    if (data.warnings?.length) {
-      for (const w of data.warnings) toast.info(w);
-    }
-    void load();
   };
 
   const archivoDePasados = (
     <CrmSection
       kicker="Historial"
       title="Archivo en la web"
-      subtitle="Registrá cada meet ya realizado: vinculá un evento de Próximos eventos, subí el CSV de Luma y archivá la fecha en el sitio público."
+      subtitle="Vinculá el evento realizado, importá participantes desde CSV o Excel y archivá la fecha en el sitio público."
       onNew={openCreate}
       newLabel="+ Nueva entrada en Archivo"
     >
@@ -831,7 +844,7 @@ function CharlasSection() {
       {formOpen && (
         <FormScreen
           title={editRow ? 'Editar entrada del Archivo' : 'Nueva entrada en Archivo'}
-          subtitle="Vinculá el mismo evento que tenés en Luma y en Eventos (si aplica). Al guardar, ese evento deja el listado público de próximos."
+          subtitle="Vinculá el evento al que corresponden los participantes. Al guardar, ese evento deja el listado público de próximos."
           onClose={closeForm}
           onSave={save}
           saving={saving}
@@ -858,11 +871,23 @@ function CharlasSection() {
             </FormSection>
           )}
 
-          <FormSection title="Invitados Luma (CSV)">
+          <FormSection title="Importar participantes">
             <p style={{ fontSize: 13, color: 'var(--ink-muted)', marginTop: 0, marginBottom: 12, lineHeight: 1.5 }}>
-              Exportá invitados desde Luma (Guests → CSV). Necesitás haber elegido arriba el **mismo evento** en Xplora para que los mails se crucen con{' '}
-              <code style={{ fontSize: 12 }}>inscripciones_evento</code>. El archivo usa <code style={{ fontSize: 12 }}>checked_in_at</code> para asistencia.
+              Usá un CSV, XLSX o XLS de Luma o de tu propia planilla. Necesita una columna Email o Correo electrónico.
+              La asistencia se reconoce por Asistió, Asistencia, Acreditado o el check-in de Luma.
             </p>
+            <Sel
+              label="Cómo registrar la asistencia"
+              hint="Si tu planilla solo contiene asistentes y no tiene una columna de asistencia, elegí «Todos asistieron»."
+              value={attendanceMode}
+              onChange={setAttendanceMode}
+              disabled={csvBusy}
+              options={[
+                { value: 'auto', label: 'Detectar desde las columnas del archivo' },
+                { value: 'attended', label: 'Todos asistieron' },
+                { value: 'registered', label: 'Solo inscripciones, sin marcar asistencia' },
+              ]}
+            />
             <TwoCol>
               <div>
                 <span
@@ -886,7 +911,8 @@ function CharlasSection() {
                 <input
                   ref={csvInputRef}
                   type="file"
-                  accept=".csv,text/csv"
+                  aria-label="Archivo de participantes"
+                  accept=".csv,.xlsx,.xls,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel"
                   style={{ fontSize: 13 }}
                   disabled={csvBusy || !form.evento_id}
                   onChange={e => {
@@ -897,6 +923,12 @@ function CharlasSection() {
                 {csvBusy && <Spinner />}
               </div>
             </TwoCol>
+            {importWarnings.length > 0 && (
+              <details style={{ marginTop: 12, fontSize: 13, color: 'var(--ink-muted)' }}>
+                <summary>{importWarnings.length} avisos de la importación</summary>
+                <ul>{importWarnings.map((warning, index) => <li key={index}>{warning}</li>)}</ul>
+              </details>
+            )}
           </FormSection>
 
           <FormSection title="Tarjeta y datos principales">
@@ -1011,7 +1043,7 @@ function CharlasSection() {
                 type="button"
                 role="tab"
                 aria-selected={pasadosTab === 'archivo'}
-                title="Tarjetas en sitio y CSV Luma"
+                title="Tarjetas en sitio e importación de participantes"
                 className={`xplora-admin-seg${pasadosTab === 'archivo' ? ' is-active' : ''}`}
                 style={crm.segmentBtn(pasadosTab === 'archivo')}
                 onClick={() => setPasadosTab('archivo')}

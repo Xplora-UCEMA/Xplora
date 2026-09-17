@@ -133,6 +133,7 @@ export default function ContactListsPanel() {
   const [nombre, setNombre] = useState("");
   const [descripcion, setDescripcion] = useState("");
   const [emailQuery, setEmailQuery] = useState("");
+  const [attendeeEventId, setAttendeeEventId] = useState("");
   const [carreraFilter, setCarreraFilter] = useState("");
   const [pctMin, setPctMin] = useState("");
   const [pctMax, setPctMax] = useState("");
@@ -157,8 +158,8 @@ export default function ContactListsPanel() {
 
   const filterSnap: ContactListFilterSnapshot = useMemo(
     () =>
-      buildFilterSnapshot(emailQuery, carreraFilter, pctMin, pctMax, esAlumnoCema),
-    [emailQuery, carreraFilter, pctMin, pctMax, esAlumnoCema],
+      buildFilterSnapshot(emailQuery, carreraFilter, pctMin, pctMax, esAlumnoCema, attendeeEventId),
+    [emailQuery, carreraFilter, pctMin, pctMax, esAlumnoCema, attendeeEventId],
   );
 
   const filtered = useMemo(
@@ -167,6 +168,7 @@ export default function ContactListsPanel() {
   );
 
   const filtersActive =
+    attendeeEventId !== "" ||
     emailQuery.trim().length > 0 ||
     carreraFilter.length > 0 ||
     pctMin.trim().length > 0 ||
@@ -272,6 +274,7 @@ export default function ContactListsPanel() {
   }, [allMembers]);
 
   const clearFilters = () => {
+    setAttendeeEventId("");
     setEmailQuery("");
     setCarreraFilter("");
     setPctMin("");
@@ -280,6 +283,25 @@ export default function ContactListsPanel() {
   };
 
   const pctBounds = useMemo(() => normalizePctBounds(pctMin, pctMax), [pctMin, pctMax]);
+  const attendeeEventOptions = useMemo(() => {
+    const events = new Map<string, { title: string; attendees: Set<string> }>();
+    for (const member of allMembers) {
+      for (const registration of member.inscripciones ?? []) {
+        let event = events.get(registration.evento_id);
+        if (!event) {
+          event = { title: registration.title, attendees: new Set() };
+          events.set(registration.evento_id, event);
+        }
+        if (registration.asistio) event.attendees.add(member.id);
+      }
+    }
+    return [
+      { value: "", label: "Sin filtro por evento" },
+      ...[...events].sort((a, b) => a[1].title.localeCompare(b[1].title, "es")).map(([id, event]) => ({
+        value: id, label: `${event.title} · ${event.attendees.size} ${event.attendees.size === 1 ? 'asistente' : 'asistentes'}`,
+      })),
+    ];
+  }, [allMembers]);
   const pctInvalid =
     pctMin.trim() !== "" &&
     pctMax.trim() !== "" &&
@@ -530,6 +552,13 @@ export default function ContactListsPanel() {
             />
 
             <div style={{ marginTop: 18 }}>
+              <Sel
+                label="Asistentes a un evento"
+                hint="Incluye solo asistencia confirmada. Podés combinarlo con los otros filtros."
+                value={attendeeEventId}
+                onChange={setAttendeeEventId}
+                options={attendeeEventOptions}
+              />
               <TwoCol>
                 <Field
                   label="Buscar por email"

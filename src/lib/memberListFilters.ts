@@ -64,6 +64,7 @@ export function applyMemberFilters(
   const pctBounds = normalizePctBounds(f.pct_min ?? "", f.pct_max ?? "");
 
   let list = rows;
+  if (f.attendee_event_id) list = list.filter(r => r.inscripciones?.some(i => i.evento_id === f.attendee_event_id && i.asistio === true));
   if (q) list = list.filter((r) => (r.email || "").toLowerCase().includes(q));
   if (carrera) list = list.filter((r) => passesCarrera(r, carrera));
   list = list.filter((r) => passesPctRange(r, pctBounds.lo, pctBounds.hi));
@@ -77,8 +78,10 @@ export function buildFilterSnapshot(
   pctMin: string,
   pctMax: string,
   esAlumnoCema: "" | "yes" | "no",
+  attendeeEventId = "",
 ): ContactListFilterSnapshot {
   return {
+    attendee_event_id: attendeeEventId,
     email_contains: emailQuery.trim(),
     carrera: carreraFilter,
     pct_min: pctMin.trim(),

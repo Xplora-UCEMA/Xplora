@@ -66,7 +66,7 @@ export function createAdminDbImportUsuariosCsvHandler(config: AppConfig): Reques
   return asyncHandler(async (req, res) => {
     const file = req.file;
     if (!file?.buffer?.length) {
-      throw new BadRequestError('Subí un archivo CSV o XLSX en el campo csv.');
+      throw new BadRequestError('Subí un archivo CSV, XLSX o XLS.');
     }
 
     const svc = createServiceSupabase(config);

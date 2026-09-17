@@ -227,24 +227,27 @@ export function Sel({
   value,
   onChange,
   options,
+  disabled = false,
 }: {
   label: string;
   hint?: string;
   value: string;
   onChange: (v: string) => void;
   options: { value: string; label: string }[];
+  disabled?: boolean;
 }) {
+  const id = useId();
   return (
     <div style={crm.formField}>
-      <label style={crm.label}>{label}</label>
-      <select className="crm-input" style={crm.select} value={value} onChange={e => onChange(e.target.value)}>
+      <label htmlFor={id} style={crm.label}>{label}</label>
+      <select id={id} aria-describedby={hint ? `${id}-hint` : undefined} disabled={disabled} className="crm-input" style={crm.select} value={value} onChange={e => onChange(e.target.value)}>
         {options.map(o => (
           <option key={o.value} value={o.value}>
             {o.label}
           </option>
         ))}
       </select>
-      {hint ? <p style={crm.hint}>{hint}</p> : null}
+      {hint ? <p id={`${id}-hint`} style={crm.hint}>{hint}</p> : null}
     </div>
   );
 }

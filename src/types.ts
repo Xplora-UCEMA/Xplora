@@ -191,6 +191,8 @@ export interface AdminMemberRow {
 
 /** Filtros guardados con una lista de contactos (referencia al crear la lista). */
 export interface ContactListFilterSnapshot {
+  /** Solo usuarios con asistencia confirmada al evento elegido. */
+  attendee_event_id?: string;
   email_contains?: string;
   carrera?: string;
   pct_min?: string;

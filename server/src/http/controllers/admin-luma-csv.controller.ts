@@ -1,5 +1,5 @@
 /**
- * POST multipart `csv` + evento id en URL: importa invitados desde CSV de Luma.
+ * POST multipart `csv` + evento id en URL: importa invitados desde CSV o Excel.
  * Crea usuarios faltantes, upsert `inscripciones_evento`, actualiza totales en `eventos`.
  */
 import type { RequestHandler } from 'express';
@@ -11,6 +11,7 @@ import { asyncHandler } from '../middleware/async-handler.js';
 import {
   mergeGuestsByEmail,
   parseLumaCsvFile,
+  type AttendanceMode,
   type ParsedLumaGuest,
 } from '../../services/luma-csv-import.service.js';
 
@@ -54,12 +55,14 @@ async function upsertInscripcion(
   eventoId: string,
   asistio: boolean,
 ): Promise<void> {
-  const { data: prev } = await sb
+  const { data: prev, error: queryError } = await sb
     .from('inscripciones_evento')
     .select('id, asistio, asistio_at, registered_at')
     .eq('usuario_id', usuarioId)
     .eq('evento_id', eventoId)
     .maybeSingle();
+
+  if (queryError) throw new BadRequestError(queryError.message);
 
   const nowIso = new Date().toISOString();
   const effectiveAsistio = Boolean(prev?.asistio) || asistio;
@@ -94,7 +97,7 @@ export function createAdminLumaCsvImportHandler(config: AppConfig): RequestHandl
 
     const file = req.file;
     if (!file?.buffer?.length) {
-      throw new BadRequestError('Subí un archivo CSV exportado desde Luma.');
+      throw new BadRequestError('Subí un archivo CSV, XLSX o XLS.');
     }
 
     const sb = createUserSupabase(config, req.headers.authorization);
@@ -107,21 +110,11 @@ export function createAdminLumaCsvImportHandler(config: AppConfig): RequestHandl
     if (evErr) throw new BadRequestError(evErr.message);
     if (!evento) throw new BadRequestError('No existe ese evento.');
 
-    const parsed = parseLumaCsvFile(file.buffer);
+    const attendanceMode = req.body?.attendance_mode ?? 'auto';
+    if (!['auto', 'attended', 'registered'].includes(attendanceMode)) throw new BadRequestError('Modo de asistencia inválido.');
+    const parsed = parseLumaCsvFile(file.buffer, { filename: file.originalname, attendanceMode: attendanceMode as AttendanceMode });
     if (parsed.guests.length === 0) {
-      res.status(200).json({
-        ok: true,
-        filas_leidas: 0,
-        emails_procesados: 0,
-        usuarios_nuevos: 0,
-        usuarios_existentes: 0,
-        inscripciones_actualizadas: 0,
-        asistieron_marcados: 0,
-        total_inscriptos_evento: 0,
-        total_asistieron_evento: 0,
-        warnings: parsed.warnings,
-      });
-      return;
+      throw new BadRequestError(`No hay participantes válidos para importar. ${parsed.warnings[0] ?? 'Revisá los emails y las filas del archivo.'}`);
     }
 
     const merged = mergeGuestsByEmail(parsed.guests);
@@ -136,8 +129,14 @@ export function createAdminLumaCsvImportHandler(config: AppConfig): RequestHandl
       await upsertInscripcion(sb, uid, eventoId, asistio);
     }
 
-    const totalInscriptos = merged.size;
-    const totalAsistieron = [...merged.values()].filter(r => r.kind === 'checked_in').length;
+    // A new file may contain only part of the event; keep totals based on all saved registrations.
+    const [registered, attended] = await Promise.all([
+      sb.from('inscripciones_evento').select('id', { count: 'exact', head: true }).eq('evento_id', eventoId),
+      sb.from('inscripciones_evento').select('id', { count: 'exact', head: true }).eq('evento_id', eventoId).eq('asistio', true),
+    ]);
+    if (registered.error || attended.error) throw new BadRequestError((registered.error ?? attended.error)!.message);
+    const totalInscriptos = registered.count ?? 0;
+    const totalAsistieron = attended.count ?? 0;
 
     const importedAt = new Date().toISOString();
     const { error: upEvErr } = await sb
@@ -157,7 +156,7 @@ export function createAdminLumaCsvImportHandler(config: AppConfig): RequestHandl
       usuarios_nuevos: nuevos,
       usuarios_existentes: existentes,
       inscripciones_actualizadas: merged.size,
-      asistieron_marcados: totalAsistieron,
+      asistieron_marcados: [...merged.values()].filter(r => r.kind === 'checked_in').length,
       total_inscriptos_evento: totalInscriptos,
       total_asistieron_evento: totalAsistieron,
       warnings: parsed.warnings,

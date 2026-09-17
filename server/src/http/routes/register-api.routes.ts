@@ -48,7 +48,7 @@ import {
 } from '../controllers/admin-email-campaigns.controller.js';
 import { createSiteMediaUpsertHandler } from '../controllers/site-media-admin.controller.js';
 import { createRequireAuthMiddleware } from '../middleware/require-auth.middleware.js';
-import { uploadSingleImage, uploadSingleCsv, uploadSingleSpreadsheet } from '../middleware/upload.middleware.js';
+import { uploadSingleImage, uploadSingleSpreadsheet } from '../middleware/upload.middleware.js';
 import { createAdminLumaCsvImportHandler } from '../controllers/admin-luma-csv.controller.js';
 import { createAdminEventosListHandler } from '../controllers/admin-eventos-list.controller.js';
 import { createAdminEventoInscripcionesHandler } from '../controllers/admin-evento-inscripciones.controller.js';
@@ -350,7 +350,7 @@ export function registerApiRoutes(app: Express, deps: ApiRoutesDeps): void {
     requireAuth,
     loadStaff,
     eventsMutate,
-    uploadSingleCsv,
+    uploadSingleSpreadsheet,
     createAdminLumaCsvImportHandler(deps.config),
   );
 

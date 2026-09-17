@@ -4,6 +4,7 @@
 import type { AdminMemberRowDTO } from './admin-member-rows.service.js';
 
 export type MemberFilterSnapshot = {
+  attendee_event_id?: string;
   email_contains?: string;
   carrera?: string;
   pct_min?: string;
@@ -82,6 +83,7 @@ export function applyMemberFilterSnapshot(
   const esMode = f.es_alumno_cema;
 
   let list = rows;
+  if (f.attendee_event_id) list = list.filter(r => r.inscripciones.some(i => i.evento_id === f.attendee_event_id && i.asistio === true));
   if (q) list = list.filter(r => (r.email || '').toLowerCase().includes(q));
   if (carrera) list = list.filter(r => passesCarrera(r, carrera));
   list = list.filter(r => passesPctRange(r, pctBounds.lo, pctBounds.hi));

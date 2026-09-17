@@ -1460,14 +1460,15 @@ function DatabaseToolsPanel() {
 
       {canImport ? (
         <div style={{ ...crm.listCard, marginBottom: 18 }}>
-          <h3 style={{ margin: "0 0 10px", fontSize: 14 }}>2) Importar CSV a usuarios (normaliza)</h3>
+          <h3 style={{ margin: "0 0 10px", fontSize: 14 }}>2) Importar usuarios desde CSV o Excel</h3>
           <p style={{ ...crm.hint, marginTop: 0 }}>
             Columnas aceptadas: <code>email</code> (obligatoria), <code>nombre</code>, <code>carrera</code>, <code>es_alumno_cema</code>, <code>suscrito_newsletter</code>.
-            CSV con coma o punto y coma (Excel).
+            Acepta XLSX, XLS y CSV con coma o punto y coma. También reconoce Correo electrónico, Nombre y Apellido.
           </p>
           <input
             ref={importInputRef}
             type="file"
+            aria-label="Archivo de usuarios"
             accept=".csv,.xlsx,.xls,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel"
             disabled={importing}
             onChange={(e) => void onImportCsv(e.target.files?.[0] ?? null)}
