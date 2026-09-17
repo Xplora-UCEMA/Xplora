@@ -15,79 +15,150 @@ import {
   type ParsedLumaGuest,
 } from '../../services/luma-csv-import.service.js';
 
+const IMPORT_CHUNK_SIZE = 200;
+
+type UsuarioMini = { id: string; email: string };
+type InscripcionMini = {
+  id: string;
+  usuario_id: string;
+  asistio: boolean;
+  asistio_at: string | null;
+  registered_at: string;
+};
+
 function defaultNombreFromEmail(email: string): string {
   const local = email.split('@')[0] ?? 'Usuario';
   return local.replace(/[._-]+/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
 }
 
-async function ensureUsuarioId(
-  sb: SupabaseClient,
-  row: ParsedLumaGuest,
-): Promise<{ id: string; created: boolean }> {
-  const email = row.email.toLowerCase();
-  const { data: existing, error: qErr } = await sb
-    .from('usuarios')
-    .select('id')
-    .eq('email', email)
-    .maybeSingle();
-  if (qErr) throw new BadRequestError(qErr.message);
-  if (existing?.id) return { id: existing.id as string, created: false };
-
-  const nombre = row.nombre.trim() || defaultNombreFromEmail(email);
-  const { data: inserted, error: insErr } = await sb
-    .from('usuarios')
-    .insert({
-      nombre,
-      email,
-      es_alumno_cema: false,
-      carrera: null,
-      suscrito_newsletter: true,
-    })
-    .select('id')
-    .single();
-  if (insErr) throw new BadRequestError(insErr.message);
-  return { id: inserted!.id as string, created: true };
+function chunks<T>(items: T[], size = IMPORT_CHUNK_SIZE): T[][] {
+  const result: T[][] = [];
+  for (let index = 0; index < items.length; index += size) result.push(items.slice(index, index + size));
+  return result;
 }
 
-async function upsertInscripcion(
+async function fetchUsuariosByEmail(
   sb: SupabaseClient,
-  usuarioId: string,
-  eventoId: string,
-  asistio: boolean,
-): Promise<void> {
-  const { data: prev, error: queryError } = await sb
-    .from('inscripciones_evento')
-    .select('id, asistio, asistio_at, registered_at')
-    .eq('usuario_id', usuarioId)
-    .eq('evento_id', eventoId)
-    .maybeSingle();
-
-  if (queryError) throw new BadRequestError(queryError.message);
-
-  const nowIso = new Date().toISOString();
-  const effectiveAsistio = Boolean(prev?.asistio) || asistio;
-  let asistioAt: string | null = prev?.asistio_at ?? null;
-  if (effectiveAsistio && !asistioAt) asistioAt = nowIso;
-  if (!effectiveAsistio) asistioAt = null;
-
-  const registeredAt = prev?.registered_at ?? nowIso;
-
-  const payload = {
-    usuario_id: usuarioId,
-    evento_id: eventoId,
-    registered_at: registeredAt,
-    asistio: effectiveAsistio,
-    asistio_at: asistioAt,
-  };
-
-  if (prev?.id) {
-    const { error } = await sb.from('inscripciones_evento').update(payload).eq('id', prev.id);
+  emails: string[],
+): Promise<Map<string, UsuarioMini>> {
+  const result = new Map<string, UsuarioMini>();
+  for (const batch of chunks(emails)) {
+    const { data, error } = await sb.from('usuarios').select('id, email').in('email', batch);
     if (error) throw new BadRequestError(error.message);
-  } else {
-    const { error } = await sb.from('inscripciones_evento').insert(payload);
+    for (const row of (data as UsuarioMini[] | null) ?? []) result.set(row.email.toLowerCase(), row);
+  }
+  return result;
+}
+
+async function createMissingUsuarios(
+  sb: SupabaseClient,
+  guests: ParsedLumaGuest[],
+  usersByEmail: Map<string, UsuarioMini>,
+): Promise<number> {
+  const missing = guests.filter(guest => !usersByEmail.has(guest.email));
+  for (const batch of chunks(missing)) {
+    const { data, error } = await sb
+      .from('usuarios')
+      .insert(batch.map(guest => ({
+        nombre: guest.nombre.trim() || defaultNombreFromEmail(guest.email),
+        email: guest.email,
+        es_alumno_cema: false,
+        carrera: null,
+        suscrito_newsletter: true,
+      })))
+      .select('id, email');
+    if (error) throw new BadRequestError(error.message);
+    for (const row of (data as UsuarioMini[] | null) ?? []) usersByEmail.set(row.email.toLowerCase(), row);
+  }
+  const unresolved = missing.find(guest => !usersByEmail.has(guest.email));
+  if (unresolved) throw new BadRequestError(`No se pudo crear el usuario ${unresolved.email}.`);
+  return missing.length;
+}
+
+async function fetchEventRegistrations(
+  sb: SupabaseClient,
+  eventoId: string,
+): Promise<Map<string, InscripcionMini>> {
+  const result = new Map<string, InscripcionMini>();
+  let offset = 0;
+  for (;;) {
+    const { data, error } = await sb
+      .from('inscripciones_evento')
+      .select('id, usuario_id, asistio, asistio_at, registered_at')
+      .eq('evento_id', eventoId)
+      .range(offset, offset + IMPORT_CHUNK_SIZE - 1);
+    if (error) throw new BadRequestError(error.message);
+    const batch = (data as InscripcionMini[] | null) ?? [];
+    for (const row of batch) result.set(row.usuario_id, row);
+    if (batch.length < IMPORT_CHUNK_SIZE) return result;
+    offset += IMPORT_CHUNK_SIZE;
+  }
+}
+
+async function syncEventRegistrations(
+  sb: SupabaseClient,
+  eventoId: string,
+  guests: ParsedLumaGuest[],
+  usersByEmail: Map<string, UsuarioMini>,
+): Promise<void> {
+  const previousByUser = await fetchEventRegistrations(sb, eventoId);
+  const nowIso = new Date().toISOString();
+  const missing: Record<string, unknown>[] = [];
+  const markAttended: string[] = [];
+  const restoreMissingAttendanceTimestamp: string[] = [];
+  const clearAttendanceTimestamp: string[] = [];
+
+  for (const guest of guests) {
+    const user = usersByEmail.get(guest.email);
+    if (!user) throw new BadRequestError(`No se encontró el usuario ${guest.email}.`);
+    const previous = previousByUser.get(user.id);
+    const attended = guest.kind === 'checked_in';
+    if (!previous) {
+      missing.push({
+        usuario_id: user.id,
+        evento_id: eventoId,
+        registered_at: nowIso,
+        asistio: attended,
+        asistio_at: attended ? nowIso : null,
+      });
+    } else if (attended && !previous.asistio) {
+      markAttended.push(user.id);
+    } else if (attended && !previous.asistio_at) {
+      restoreMissingAttendanceTimestamp.push(user.id);
+    } else if (!attended && !previous.asistio && previous.asistio_at) {
+      clearAttendanceTimestamp.push(user.id);
+    }
+  }
+
+  for (const batch of chunks(missing)) {
+    const { error } = await sb.from('inscripciones_evento').insert(batch);
+    if (error) throw new BadRequestError(error.message);
+  }
+  for (const batch of chunks(markAttended)) {
+    const { error } = await sb.from('inscripciones_evento')
+      .update({ asistio: true, asistio_at: nowIso })
+      .eq('evento_id', eventoId)
+      .eq('asistio', false)
+      .in('usuario_id', batch);
+    if (error) throw new BadRequestError(error.message);
+  }
+  for (const batch of chunks(restoreMissingAttendanceTimestamp)) {
+    const { error } = await sb.from('inscripciones_evento')
+      .update({ asistio_at: nowIso })
+      .eq('evento_id', eventoId)
+      .in('usuario_id', batch);
+    if (error) throw new BadRequestError(error.message);
+  }
+  for (const batch of chunks(clearAttendanceTimestamp)) {
+    const { error } = await sb.from('inscripciones_evento')
+      .update({ asistio_at: null })
+      .eq('evento_id', eventoId)
+      .eq('asistio', false)
+      .in('usuario_id', batch);
     if (error) throw new BadRequestError(error.message);
   }
 }
+
 
 export function createAdminLumaCsvImportHandler(config: AppConfig): RequestHandler {
   return asyncHandler(async (req, res) => {
@@ -118,16 +189,11 @@ export function createAdminLumaCsvImportHandler(config: AppConfig): RequestHandl
     }
 
     const merged = mergeGuestsByEmail(parsed.guests);
-    let nuevos = 0;
-    let existentes = 0;
-
-    for (const row of merged.values()) {
-      const { id: uid, created } = await ensureUsuarioId(sb, row);
-      if (created) nuevos += 1;
-      else existentes += 1;
-      const asistio = row.kind === 'checked_in';
-      await upsertInscripcion(sb, uid, eventoId, asistio);
-    }
+    const guests = [...merged.values()];
+    const usersByEmail = await fetchUsuariosByEmail(sb, guests.map(guest => guest.email));
+    const nuevos = await createMissingUsuarios(sb, guests, usersByEmail);
+    const existentes = guests.length - nuevos;
+    await syncEventRegistrations(sb, eventoId, guests, usersByEmail);
 
     // A new file may contain only part of the event; keep totals based on all saved registrations.
     const [registered, attended] = await Promise.all([
