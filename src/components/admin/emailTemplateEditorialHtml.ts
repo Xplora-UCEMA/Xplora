@@ -42,7 +42,7 @@ export function buildEditorialEventHtml(input: EmailTemplateBuildInput): string 
       </td></tr>`;
 
   const ctaHref = escapeHtml(input.ctaUrl.trim() || '#');
-  const unsubHref = '#';
+  const unsubHref = '{{UNSUBSCRIBE_URL}}';
 
   const subject = escapeHtml(input.asunto.trim() || 'Xplora UCEMA');
 

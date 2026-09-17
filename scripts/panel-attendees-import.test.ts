@@ -43,12 +43,23 @@ test('multipart event import keeps existing attendance and totals when importing
       return;
     }
     if (table === 'usuarios') {
-      if (req.method === 'POST') { const row = { ...req.body, id: 'bruno' }; users.push(row); res.json(row); }
-      else res.json(users.filter(row => !req.query.email || `eq.${row.email}` === req.query.email));
+      if (req.method === 'POST') {
+        const inserted = (Array.isArray(req.body) ? req.body : [req.body]).map((row: { email: string }) => ({ ...row, id: row.email === 'bruno@example.com' ? 'bruno' : `user-${users.length}` }));
+        users.push(...inserted);
+        res.json(inserted);
+      } else {
+        const filter = String(req.query.email ?? '');
+        res.json(filter.startsWith('eq.') ? users.filter(row => `eq.${row.email}` === filter) : users);
+      }
       return;
     }
     if (table === 'inscripciones_evento') {
-      if (req.method === 'POST') { registrations.push({ ...req.body, id: 'new' }); res.status(201).end(); return; }
+      if (req.method === 'POST') {
+        const inserted = (Array.isArray(req.body) ? req.body : [req.body]).map((row: Record<string, unknown>, index: number) => ({ ...row, id: `new-${index}` }));
+        registrations.push(...inserted);
+        res.status(201).json(inserted);
+        return;
+      }
       if (req.method === 'PATCH') { Object.assign(registrations.find(row => `eq.${row.id}` === req.query.id)!, req.body); res.status(204).end(); return; }
       const rows = registrations.filter(row => (!req.query.usuario_id || `eq.${row.usuario_id}` === req.query.usuario_id) && (!req.query.asistio || `eq.${row.asistio}` === req.query.asistio));
       res.set('Content-Range', `0-${Math.max(0, rows.length - 1)}/${rows.length}`);
@@ -132,4 +143,60 @@ test('imports ordinary Excel workbooks with a title row, Spanish columns and exp
     const usuarios = parseUsuariosFileBuffer(buffer, { filename: `participantes.${bookType}` });
     assert.deepEqual(usuarios.rows.map(r => r.nombre), ['Ana Pérez', 'Bruno Díaz']);
   }
+});
+
+test('imports a large event roster without making one database round trip per attendee', async t => {
+  const roster = Array.from({ length: 300 }, (_, index) => ({
+    id: `user-${index}`,
+    email: `participant-${index}@example.com`,
+  }));
+  const registrations: Record<string, unknown>[] = [];
+  let databaseCalls = 0;
+  const database = express();
+  database.use(express.json());
+  database.all('/rest/v1/:table', (req, res) => {
+    databaseCalls += 1;
+    const table = req.params.table;
+    if (table === 'eventos') {
+      if (req.method === 'PATCH') return res.status(204).end();
+      return res.json([{ id: 'startup-day' }]);
+    }
+    if (table === 'usuarios') {
+      if (req.method === 'POST') return res.status(201).json(req.body);
+      const emailFilter = String(req.query.email ?? '');
+      const single = emailFilter.startsWith('eq.') ? roster.filter(row => row.email === emailFilter.slice(3)) : roster;
+      return res.json(single);
+    }
+    if (table === 'inscripciones_evento') {
+      if (req.method === 'POST') {
+        const inserted = Array.isArray(req.body) ? req.body : [req.body];
+        registrations.push(...inserted);
+        return res.status(201).json(inserted);
+      }
+      if (req.method === 'HEAD') {
+        const attended = String(req.query.asistio ?? '') === 'eq.true';
+        const count = attended ? registrations.filter(row => row.asistio === true).length : registrations.length;
+        res.set('Content-Range', `0-${Math.max(0, count - 1)}/${count}`);
+        return res.status(200).end();
+      }
+      return res.json([]);
+    }
+    return res.status(404).json({ error: 'Unexpected test table.' });
+  });
+  const dbServer = database.listen(0, '127.0.0.1');
+  await new Promise<void>(resolve => dbServer.once('listening', resolve));
+  t.after(() => { dbServer.closeAllConnections(); dbServer.close(); });
+  const config = { supabaseUrl: `http://127.0.0.1:${(dbServer.address() as AddressInfo).port}`, supabaseAnonKey: 'test-only' } as AppConfig;
+  const api = express();
+  api.post('/import/:eventoId', uploadSingleSpreadsheet, createAdminLumaCsvImportHandler(config));
+  api.use((error: { statusCode?: number; message: string }, _req: express.Request, res: express.Response, _next: express.NextFunction) => res.status(error.statusCode ?? 500).json({ error: error.message }));
+  const apiServer = api.listen(0, '127.0.0.1');
+  await new Promise<void>(resolve => apiServer.once('listening', resolve));
+  t.after(() => { apiServer.closeAllConnections(); apiServer.close(); });
+  const csv = ['Email,Nombre', ...roster.map((row, index) => `${row.email},Participante ${index}`)].join('\n');
+  const form = new FormData();
+  form.append('csv', new Blob([csv]), 'asistentes.csv');
+  const response = await fetch(`http://127.0.0.1:${(apiServer.address() as AddressInfo).port}/import/startup-day`, { method: 'POST', headers: { Authorization: 'Bearer test-only' }, body: form });
+  assert.equal(response.status, 200, await response.text());
+  assert.ok(databaseCalls < 30, `La importación hizo ${databaseCalls} llamadas a la base para 300 asistentes.`);
 });

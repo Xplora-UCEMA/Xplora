@@ -71,6 +71,10 @@ export function buildMinimalNoticeHtml(input: EmailTemplateBuildInput): string {
       <tr><td style="padding:0 32px 28px;">
         <p style="margin:0;font-size:14px;color:#57534e;">Un abrazo,<br><strong>Equipo Xplora</strong></p>
       </td></tr>
+
+      <tr><td align="center" style="padding:0 32px 22px;border-top:1px solid #f0ebe3;">
+        <p style="margin:16px 0 0;font-size:11px;color:#a8a29e;">¿No querés recibir más emails? <a href="{{UNSUBSCRIBE_URL}}" style="color:#603ef9;text-decoration:none;">Desuscribite acá</a></p>
+      </td></tr>
     </table>
   </td></tr>
 </table>

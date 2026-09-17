@@ -257,6 +257,11 @@ export function createEmailCampaignDispatchStartHandler(config: AppConfig): Requ
         'Envío de campañas: falta RESEND_API_KEY (o RESEND_KEY). En local: archivo `.env` en la raíz del repo (junto a package.json), sin espacios alrededor del =. Si el panel llama a un API en producción (Railway, etc.), definí la misma variable allí. Remitente: MAIL_FROM o RESEND_FROM.',
       );
     }
+    if (!live.unsubscribeTokenSecret) {
+      throw new BadRequestError(
+        'Falta UNSUBSCRIBE_TOKEN_SECRET (o MEMBER_JWT_SECRET) en la configuración del servidor. No se pueden enviar campañas sin un enlace seguro de baja.',
+      );
+    }
 
     const campaignId = parseCampaignRouteId(req);
     const body = req.body as Record<string, unknown>;
@@ -319,6 +324,10 @@ export function createEmailCampaignDispatchStartHandler(config: AppConfig): Requ
       skipped_already_sent,
       resend: live.resend,
       sb,
+      unsubscribe: {
+        siteUrl: live.publicSiteUrl,
+        tokenSecret: live.unsubscribeTokenSecret,
+      },
     });
 
     startDispatchJobRunner(jobId);
