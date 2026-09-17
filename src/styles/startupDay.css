@@ -1051,37 +1051,14 @@ html.sd-coming-soon body {
   bottom: calc(var(--sd-cruz-aire) * -1);
   left: calc(var(--sd-rejilla-x) - var(--sd-cruz-aire));
   right: calc(var(--sd-rejilla-x) - var(--sd-cruz-aire));
-  background-image: var(--sd-rejilla-cruz), var(--sd-rejilla-cruz), var(--sd-rejilla-cruz);
-  background-repeat: no-repeat;
-  /* Las dos de las esquinas más una en el medio del tramo. La del medio no marca un cruce de
-     líneas sino el eje del marco: es el marcador que evita que la regla se lea como un trazo
-     suelto de punta a punta. */
-  background-position:
-    left var(--sd-cruz-offset) top var(--sd-cruz-offset),
-    right var(--sd-cruz-offset) top var(--sd-cruz-offset),
-    center top var(--sd-cruz-offset);
-}
-
-/* Los pies de riel. El marco no lleva borde inferior —el degradado del hero se continúa en "Nos
-   apoyan" y una línea ahí lo corta—, así que estas dos cruces son las que cierran la composición:
-   marcan dónde terminan las verticales sin cruzar nada por el medio. */
-.sd-hero__pies {
-  position: absolute;
-  z-index: 1;
-  /* Adentro del hero y no a caballo del borde: el hero mide `100dvh` clavados y tiene
-     `overflow: hidden`, así que una cruz centrada en su borde inferior queda partida al medio —
-     la mitad de abajo cae fuera del recorte Y fuera de la ventana. Apoyadas contra el pie por
-     dentro se ven enteras y siguen leyéndose como el final de cada riel. */
-  bottom: 0;
-  height: calc(var(--sd-cruz-aire) * 2);
-  left: calc(var(--sd-rejilla-x) - var(--sd-cruz-aire));
-  right: calc(var(--sd-rejilla-x) - var(--sd-cruz-aire));
-  pointer-events: none;
   background-image: var(--sd-rejilla-cruz), var(--sd-rejilla-cruz);
   background-repeat: no-repeat;
+  /* Sólo las dos de las esquinas. Hubo una tercera en el medio del tramo: ahí no se cruza nada
+     —es el medio de una línea recta— así que en vez de leerse como marca de registro quedaba como
+     un signo suelto flotando en el header. Las cruces marcan intersecciones o no marcan nada. */
   background-position:
-    left var(--sd-cruz-offset) bottom var(--sd-cruz-offset),
-    right var(--sd-cruz-offset) bottom var(--sd-cruz-offset);
+    left var(--sd-cruz-offset) top var(--sd-cruz-offset),
+    right var(--sd-cruz-offset) top var(--sd-cruz-offset);
 }
 
 /* ── La cinta ASCII del hero ──
@@ -5011,8 +4988,7 @@ a.sd-partner__name:hover {
 
   /* La del hero, por el mismo motivo: sin verticales no hay intersección que marcar y las cruces
      quedarían flotando solas sobre la regla. */
-  .sd-hero__regla::after,
-  .sd-hero__pies {
+  .sd-hero__regla::after {
     display: none;
   }
 }

@@ -157,10 +157,6 @@ function StartupDayContent() {
             borde. */}
         <span className="sd-hero__regla" aria-hidden />
 
-        {/* Los pies de riel: las cruces que marcan dónde terminan las verticales. El marco no
-            lleva borde inferior, así que son ellas las que cierran la composición. */}
-        <span className="sd-hero__pies" aria-hidden />
-
         <div className="sd-hero__grid">
           <div className="sd-hero__content">
             {/* Píldora de contexto arriba del wordmark. El dato sale de `SD_RECAP.kicker`, que ya
