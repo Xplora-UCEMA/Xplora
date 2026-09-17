@@ -49,13 +49,16 @@ export function SdExperiencia() {
               className="sd-exp__campo"
               patron={CAMPOS[i] ?? 'flujo'}
               animado={false}
-              opacity={0.26}
-              celda={10}
+              opacity={0.32}
+              /* Misma celda chica que las tiras del hero: a 10px la trama se leía como bloques.
+                 Todo el ASCII de fondo de la página está en este orden de tamaño. */
+              celda={5}
               /* Fases distintas: con la misma, cuatro campos estáticos del mismo patrón saldrían
                  calcados. Acá además cambia el patrón, pero `disperso` y `malla` son sensibles a
                  la fase y conviene que no arranquen todos en cero. */
               fase={i * 7}
               corte={0.3}
+              pico={4}
             />
 
             <div className="sd-exp__celda-cuerpo">

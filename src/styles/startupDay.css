@@ -758,6 +758,8 @@ html.sd-coming-soon body {
 
 .sd-top {
   pointer-events: auto;
+  /* Ancla de la regla al pie de la banda (`::after`, más abajo en el bloque del header). */
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -789,7 +791,11 @@ html.sd-coming-soon body {
 }
 
 .sd-nav-shell.is-island .sd-top {
-  max-width: 720px;
+  /* 1080 y no 720: el racimo de la derecha pasó de un botón a cuatro piezas (dos íconos, el
+     secundario y el principal) y a 720 el nav no tenía aire — "Startup Day" se partía en dos
+     renglones. La isla de la referencia también es ancha: es una barra que se despega del borde,
+     no una pastilla. */
+  max-width: 1080px;
   border-radius: var(--sd-radius);
   padding: 8px 14px 8px 12px;
   background: rgb(var(--sd-void-rgb) / 0.92);
@@ -876,6 +882,61 @@ html.sd-coming-soon body {
 .sd-tabs button:hover,
 .sd-tabs a:hover {
   color: #fff;
+}
+
+/* El racimo de la derecha: íconos, secundario y principal. Es uno de los tres bloques que reparte
+   el `space-between` del header, así que va agrupado y no como tres hijos sueltos. */
+.sd-top__acciones {
+  display: flex;
+  align-items: center;
+  gap: clamp(10px, 1.1vw, 18px);
+  flex-shrink: 0;
+}
+
+.sd-top__redes {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.sd-top__red {
+  display: flex;
+  color: rgb(var(--sd-cream-rgb) / 0.5);
+  transition: color 0.2s ease;
+}
+
+.sd-top__red svg {
+  width: 17px;
+  height: 17px;
+}
+
+.sd-top__red:hover,
+.sd-top__red:focus-visible {
+  color: #fff;
+}
+
+/* El secundario del header. El relleno y la tipografía son los del principal para que los dos
+   midan igual; el marco lo pone `.sd-btn--esquinas`, que es la misma pieza que usa la referencia
+   en su botón de documentación. */
+.sd-top__cta2 {
+  display: inline-flex;
+  align-items: center;
+  /* Más aire que el principal: las escuadras se apoyan en las cuatro esquinas de la caja, así que
+     con el relleno justo quedan pegadas a las letras y el botón se lee apretado. */
+  padding: 9px 18px;
+  font-family: var(--sd-font-body);
+  font-size: 0.78rem;
+  font-weight: 500;
+  text-decoration: none;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+@media (max-width: 1080px) {
+  .sd-top__redes,
+  .sd-top__cta2 {
+    display: none;
+  }
 }
 
 .sd-top__cta-spacer {
@@ -1017,42 +1078,57 @@ html.sd-coming-soon body {
   justify-self: end;
 }
 
-/* ── El barrido ASCII del hero ──
-   Un solo campo a sangre sobre el hero entero. Eran DOS manchas de esquina y no funcionaba: dos
-   rectángulos de canvas con celda gorda se leen como parches pegados, no como atmósfera.
+/* ── Las dos tiras ASCII del hero ──
+   Una contra cada borde de la pantalla, del alto del hero y arrancando por debajo del header.
 
-   `z-index: 0` lo deja debajo de `.sd-hero__grid` (que está en 3), así que nunca compite con el
-   wordmark. Lo que lo vuelve atmósfera es la máscara: una diagonal que lo enciende arriba a la
-   izquierda y lo apaga antes de llegar a la esquina opuesta, más un corte suave contra el borde
-   derecho para que no choque de plano con el disco. Sin máscara el rectángulo del canvas se nota.
+   El ancho no es decorativo: a 1440 `clamp(70px, 8vw, 130px)` da 115px, o sea que la izquierda
+   termina justo donde arranca el texto (x=116) y la derecha justo donde termina el disco (x=1324).
+   Es la única franja del hero que no pertenece ni al bloque tipográfico ni a la brújula.
+
+   `z-index: 0` las deja debajo de `.sd-hero__grid` (que está en 3). La máscara las apaga hacia
+   adentro —y contra el borde de arriba, donde está el header— así que aunque la caja llegue a
+   rozar algo, ahí ya no hay tinta. Sin máscara el rectángulo del canvas se nota.
 
    Selector compuesto, y no `.sd-hero__campo` a secas: el componente pone `sd-ascii` en el MISMO
    div, y `.sd-ascii { position: relative }` se declara más abajo con la misma especificidad, así
-   que le ganaba y el campo terminaba como item del flex del hero, achatado y fuera de lugar. Con
-   las dos clases juntas el modificador pesa más que la base, que es lo que corresponde. */
+   que le ganaba y los campos terminaban como items del flex del hero, achatados y fuera de lugar.
+   Con las dos clases juntas el modificador pesa más que la base, que es lo que corresponde. */
 .sd-ascii.sd-hero__campo {
   position: absolute;
   z-index: 0;
-  inset: 0;
+  top: 0;
+  bottom: 0;
+  width: clamp(70px, 8vw, 130px);
   pointer-events: none;
-  /* Tres capas que se intersecan: la diagonal que define el barrido, un retiro contra el borde
-     derecho para no chocar de plano con el disco, y un arranque por debajo del header —cruzándolo,
-     los caracteres se mezclaban con el logo y el menú—. */
-  -webkit-mask-image:
-    linear-gradient(to bottom right, #000 2%, rgb(0 0 0 / 0.55) 38%, transparent 76%),
-    linear-gradient(to left, transparent 0, #000 26%),
-    linear-gradient(to bottom, transparent 0, #000 clamp(88px, 12vh, 132px));
-  mask-image:
-    linear-gradient(to bottom right, #000 2%, rgb(0 0 0 / 0.55) 38%, transparent 76%),
-    linear-gradient(to left, transparent 0, #000 26%),
-    linear-gradient(to bottom, transparent 0, #000 clamp(88px, 12vh, 132px));
-  -webkit-mask-composite: source-in, source-in;
-  mask-composite: intersect, intersect;
 }
 
-/* En pantallas angostas el hero ya está apretado —wordmark, lede, dos botones y la tarjeta en
-   100dvh— y una capa más lo ensucia en vez de darle aire. */
-@media (max-width: 720px) {
+.sd-hero__campo--izq {
+  left: 0;
+  -webkit-mask-image:
+    linear-gradient(to right, #000 0, transparent 92%),
+    linear-gradient(to bottom, transparent 0, #000 clamp(88px, 12vh, 132px));
+  mask-image:
+    linear-gradient(to right, #000 0, transparent 92%),
+    linear-gradient(to bottom, transparent 0, #000 clamp(88px, 12vh, 132px));
+  -webkit-mask-composite: source-in;
+  mask-composite: intersect;
+}
+
+.sd-hero__campo--der {
+  right: 0;
+  -webkit-mask-image:
+    linear-gradient(to left, #000 0, transparent 92%),
+    linear-gradient(to bottom, transparent 0, #000 clamp(88px, 12vh, 132px));
+  mask-image:
+    linear-gradient(to left, #000 0, transparent 92%),
+    linear-gradient(to bottom, transparent 0, #000 clamp(88px, 12vh, 132px));
+  -webkit-mask-composite: source-in;
+  mask-composite: intersect;
+}
+
+/* En pantallas angostas no hay costado que llenar: el hero pasa a una columna y las tiras caerían
+   encima del texto. */
+@media (max-width: 900px) {
   .sd-ascii.sd-hero__campo {
     display: none;
   }
@@ -2155,7 +2231,12 @@ a.sd-marcas__logo:focus-visible {
 /* 1. El disuelto. Una trama de puntos del color de ESTA sección que se come el final de la
       anterior: arranca invisible arriba y llega opaca a la costura, donde el degradado del fondo
       la releva. El efecto es el de un dithering —la misma familia que el ASCII del hero— y no
-      cuesta nada: son dos gradientes de CSS. */
+      cuesta nada: son dos gradientes de CSS.
+
+      Convive con el divisor de la rejilla, que sigue ahí: la línea marca DÓNDE termina una sección
+      —y es lo que hace que esta costura se lea igual que las otras cinco— y el disuelto se ocupa
+      del salto de tono, que es otra cosa. Hubo un momento en que le apagué el divisor a esta
+      sección y era la única sin línea: se notaba. */
 .sd-media__disuelto {
   left: 0;
   right: 0;
@@ -4878,20 +4959,6 @@ a.sd-partner__name:hover {
   border-top: 0;
 }
 
-/* "Cómo se contó" tampoco: esa costura la resuelven el degradado y el disuelto de trama
-   (`.sd-media__disuelto`), y encima de eso la línea volvía a cortar lo que se estaba fundiendo.
-
-   Esta excepción existía desde antes, pero vivía allá arriba con el resto de `.sd-media`, o sea
-   ANTES de la regla general y con la misma especificidad: la pisaba la general y el divisor se
-   dibujaba igual. Va acá, junto a las otras dos, que es donde se lee que son tres y no una. */
-.sd-media::after {
-  border-top: 0;
-}
-
-.sd-media::before {
-  background-image: none;
-}
-
 /* La última sección cierra la rejilla: borde inferior y las cuatro cruces. */
 .sd-cd::after {
   border-bottom: 1px solid var(--sd-rejilla);
@@ -4971,22 +5038,46 @@ a.sd-partner__name:hover {
    pill blanco.
    ═══════════════════════════════════════════════════════════════════════════════════════════ */
 
-/* Sin línea propia abajo. La tuvo un momento y quedaba flotando: con el header transparente
-   arriba de todo, los rieles de la rejilla se ven desde el borde superior y eso ya encuadra. */
 .sd-root--startupday .sd-top {
   border-radius: 0;
+  padding-top: clamp(18px, 2.4vh, 26px);
+  padding-bottom: clamp(18px, 2.4vh, 26px);
+}
+
+/* La regla al pie de la banda, arriba de todo. La tuvo, la sacamos y vuelve — pero el motivo por
+   el que molestaba ya no está. Entonces el header llevaba fondo opaco permanente, así que tapaba
+   el arranque de los rieles: la línea quedaba flotando sobre una grilla que empezaba más abajo.
+   Ahora arriba de todo el header es transparente y las verticales llegan a `y=0`, así que esta
+   horizontal las CRUZA y cierra la banda, que es lo que hace la referencia.
+
+   Va en la isla apagada (`:not(.is-island)`): al scrollear el header se despega del borde y pasa a
+   ser una caja con su propio borde, donde una línea suelta al pie no tiene nada que cerrar. */
+.sd-root--startupday .sd-nav-shell:not(.is-island) .sd-top::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 1px;
+  background: var(--sd-rejilla);
+  pointer-events: none;
 }
 
 /* La isla al scrollear: sigue siendo una barra, no una cápsula. Mantiene el fondo translúcido y
    el desenfoque —que son los que la despegan del contenido— pero sin esquinas ni sombra. */
+/* Caja baja y sin tracking, como la referencia. Estuvo un tiempo en MAYÚSCULAS espaciadas y ahí el
+   nav pesaba más que la marca: con tres ítems de una palabra, el tracking los estira hasta ocupar
+   el ancho de un titular. */
 .sd-root--startupday .sd-tabs a,
 .sd-root--startupday .sd-tabs button {
   border-radius: 0;
   font-family: var(--sd-font-body);
-  font-weight: 400;
-  font-size: 0.72rem;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
+  font-weight: 500;
+  font-size: 0.88rem;
+  /* Nombres de dos palabras: sin esto "Startup Day" se parte cuando la barra se angosta. */
+  white-space: nowrap;
+  letter-spacing: 0;
+  text-transform: none;
   background: transparent;
 }
 
@@ -4999,22 +5090,25 @@ a.sd-partner__name:hover {
   box-shadow: inset 0 -1px 0 0 var(--sd-purple);
 }
 
-/* Mismo botón que `.sd-btn--primary` de la página: violeta, canto vivo, Poppins regular. */
+/* Relleno claro con texto oscuro, como el botón de sesión de la referencia. Era violeta, igual que
+   `.sd-btn--primary` de la página, y arriba de todo eso no terminaba de funcionar: el violeta es el
+   color del llamado DENTRO del contenido, y repetido en la barra competía con cada sección que lo
+   usaba. En claro, el header tiene un solo punto de atención y no discute con nada. */
 .sd-root--startupday .sd-top__cta {
   border-radius: 0;
-  border: 1px solid var(--sd-purple);
-  background: var(--sd-purple);
-  color: #fff;
+  border: 1px solid var(--sd-cream);
+  background: var(--sd-cream);
+  color: var(--sd-void);
   font-family: var(--sd-font-body);
-  font-weight: 400;
+  font-weight: 500;
   font-size: 0.78rem;
   letter-spacing: 0.02em;
 }
 
 .sd-root--startupday .sd-top__cta:hover {
-  background: rgb(var(--sd-purple-rgb) / 0.82);
-  border-color: var(--sd-purple);
-  color: #fff;
+  background: #fff;
+  border-color: #fff;
+  color: var(--sd-void);
 }
 
 /* El nombre de marca, en la misma familia display que los titulares pero a escala de barra. */

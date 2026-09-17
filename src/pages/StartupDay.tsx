@@ -113,6 +113,8 @@ export default function StartupDay() {
       showLoader
       loaderDone={loaderDone}
       cta={{ label: 'Avisame de la próxima', href: '#proxima' }}
+      ctaSecundario={{ label: 'Ver el recap', href: '#recap' }}
+      redesEnHeader
     >
       <StartupDayContent />
     </SdShell>
@@ -123,22 +125,33 @@ function StartupDayContent() {
   return (
     <>
       <section className="sd-hero">
-        {/* Un solo barrido de ASCII cruzando el hero entero, detrás de todo.
+        {/* Dos tiras de ASCII, una contra cada borde de la pantalla.
 
-            Eran dos manchas en las esquinas, con la celda en 11-12px: a ese tamaño los caracteres
-            se leen como dos parches pegados y no como atmósfera. Ahora es un campo a sangre con la
-            celda a la mitad —textura fina en vez de bloques— y el piso de densidad bien alto, así
-            que sólo sobreviven las crestas del patrón y entre glifo y glifo se ve el fondo.
+            Antes era un barrido a sangre sobre todo el hero, y cruzaba por el medio pisándose con
+            el disco: dos campos de caracteres encimados no se leen como dos capas, se leen como
+            ruido. Medido a 1440, lo único libre de las dos cosas son los bordes —el texto va de
+            x=116 a 720 y el disco de 778 a 1324—, así que las tiras van ahí y se desvanecen hacia
+            adentro antes de tocar nada.
 
-            `flujo` porque es el único de los cinco que da bandas largas en diagonal, que es la
-            forma que tiene el barrido de la referencia. El disco no se toca: es otra cosa. */}
+            Celda de 4px y `pico` en 2: sólo los dos glifos más livianos de la rampa. A ese tamaño
+            es grano, que es lo que tiene que ser el fondo. El disco no se toca: ese SÍ es la
+            pieza. */}
         <SdAsciiCampo
-          className="sd-hero__campo"
+          className="sd-hero__campo sd-hero__campo--izq"
           patron="flujo"
-          opacity={0.75}
-          celda={5}
-          corte={0.66}
+          opacity={1}
+          celda={4}
+          corte={0.55}
           pico={3}
+        />
+        <SdAsciiCampo
+          className="sd-hero__campo sd-hero__campo--der"
+          patron="onda"
+          opacity={1}
+          celda={4}
+          corte={0.55}
+          pico={3}
+          fase={13}
         />
 
         <div className="sd-hero__grid">
@@ -170,10 +183,8 @@ function StartupDayContent() {
               <a className="sd-btn sd-btn--primary" href="#recap">
                 Ver el recap
               </a>
-              {/* Marcas de esquina en vez de borde completo: mismo tratamiento que el secundario
-                  de la referencia, y el mismo lenguaje que las cruces de registro de la rejilla. */}
-              <a className="sd-btn sd-btn--esquinas" href="#charlas">
-                De qué se habló
+              <a className="sd-btn sd-btn--ghost" href="#proxima">
+                Avisame de la próxima
               </a>
             </div>
 
