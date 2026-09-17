@@ -135,7 +135,7 @@
   --sd-rejilla-fuerte: rgb(var(--sd-cream-rgb) / 0.4);
   /* La rejilla, reforzada para sobrevivir a un fondo claro. La usa el extremo inferior de los
      rieles del hero, que es donde el wash violeta se enciende y se come la línea. */
-  --sd-rejilla-lavada: rgb(var(--sd-cream-rgb) / 0.3);
+  --sd-rejilla-lavada: rgb(var(--sd-cream-rgb) / 0.24);
   /* Las verticales van POR FUERA del contenido, no encima. Colgaban de `--sd-pad-x`, que es justo
      donde arranca el texto, así que quedaban pegadas a las letras. El colchón va explícito y no
      "lo que sobre de ancho": `--sd-pad-x` colapsa al gutter por debajo de `--sd-shell` y ahí no
@@ -4936,20 +4936,27 @@ a.sd-partner__name:hover {
 .sd-hero::after {
   border-left: 0;
   border-right: 0;
-  /* Se queda en el valor de la rejilla hasta pasada la mitad —ahí el fondo todavía es oscuro y el
-     riel tiene que verse igual que el de cualquier otra sección— y recién después se refuerza,
-     que es donde el wash sube. Sin esa parada, arriba quedaba más brillante que el resto. */
+  /* Las paradas siguen la curva del fondo, que NO se aclara monótonamente hacia abajo: sube, hace
+     pico cerca del 85% y vuelve a bajar, porque el propio degradado de la sección cierra hacia
+     `--sd-void` para coser con la banda de sponsors. Medido: 12 → 31 → 66 → 73 → 49.
+
+     De ahí las cuatro paradas. La última —la vuelta al valor base en el borde de abajo— es la que
+     importa: los rieles se leen como UNA línea a lo largo de toda la página, así que terminar el
+     degradado en su punto más fuerte justo donde arranca otra sección deja un escalón. Lo tuvo:
+     el riel caía de Δ58 a Δ21 de un píxel al otro, y se veía como un corte en la costura. */
   background-image: linear-gradient(
       to bottom,
       var(--sd-rejilla) 0,
-      var(--sd-rejilla) 46%,
-      var(--sd-rejilla-lavada) 100%
+      var(--sd-rejilla) 42%,
+      var(--sd-rejilla-lavada) 86%,
+      var(--sd-rejilla) 100%
     ),
     linear-gradient(
       to bottom,
       var(--sd-rejilla) 0,
-      var(--sd-rejilla) 46%,
-      var(--sd-rejilla-lavada) 100%
+      var(--sd-rejilla) 42%,
+      var(--sd-rejilla-lavada) 86%,
+      var(--sd-rejilla) 100%
     );
   background-size: 1px 100%;
   background-repeat: no-repeat;
