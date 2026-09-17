@@ -113,8 +113,6 @@ export default function StartupDay() {
       showLoader
       loaderDone={loaderDone}
       cta={{ label: 'Avisame de la próxima', href: '#proxima' }}
-      ctaSecundario={{ label: 'Ver el recap', href: '#recap' }}
-      redesEnHeader
     >
       <StartupDayContent />
     </SdShell>
@@ -125,33 +123,33 @@ function StartupDayContent() {
   return (
     <>
       <section className="sd-hero">
-        {/* Dos tiras de ASCII, una contra cada borde de la pantalla.
+        {/* Dos bandas de ASCII en diagonal, detrás de todo.
 
-            Antes era un barrido a sangre sobre todo el hero, y cruzaba por el medio pisándose con
-            el disco: dos campos de caracteres encimados no se leen como dos capas, se leen como
-            ruido. Medido a 1440, lo único libre de las dos cosas son los bordes —el texto va de
-            x=116 a 720 y el disco de 778 a 1324—, así que las tiras van ahí y se desvanecen hacia
-            adentro antes de tocar nada.
+            Fueron dos tiras de 115px pegadas a los bordes y casi no se veían: por esquivar el
+            disco terminaron en el margen, donde no interpelan nada. Ahora la principal cruza desde
+            la esquina superior izquierda hasta media página, por detrás del kicker y del wordmark
+            —están en `z-index: 3` y esto en 0—, y muere justo donde arranca la brújula. La segunda
+            es la contradiagonal de la esquina inferior derecha, para que la composición no quede
+            coja; es más corta porque arriba de ella está el disco.
 
-            Celda de 4px y `pico` en 2: sólo los dos glifos más livianos de la rampa. A ese tamaño
-            es grano, que es lo que tiene que ser el fondo. El disco no se toca: ese SÍ es la
-            pieza. */}
+            `patron="disco"` y no `flujo`: es la misma fórmula que dibuja la brújula, así que el
+            fondo y la pieza se leen como la misma familia. */}
         <SdAsciiCampo
-          className="sd-hero__campo sd-hero__campo--izq"
-          patron="flujo"
-          opacity={1}
-          celda={4}
-          corte={0.55}
-          pico={3}
+          className="sd-hero__campo sd-hero__campo--diag"
+          patron="disco"
+          opacity={0.9}
+          celda={5}
+          corte={0.5}
+          pico={6}
         />
         <SdAsciiCampo
-          className="sd-hero__campo sd-hero__campo--der"
-          patron="onda"
-          opacity={1}
-          celda={4}
-          corte={0.55}
-          pico={3}
-          fase={13}
+          className="sd-hero__campo sd-hero__campo--contra"
+          patron="disco"
+          opacity={0.8}
+          celda={5}
+          corte={0.54}
+          pico={6}
+          fase={17}
         />
 
         <div className="sd-hero__grid">

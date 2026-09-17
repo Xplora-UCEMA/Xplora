@@ -35,16 +35,6 @@ type Props = {
   /** Cursor custom (caro en CPU). Default: solo Startup Day. */
   showCursor?: boolean;
   cta?: SdShellCta;
-  /**
-   * Segundo llamado del header, a la izquierda del principal y con marcas de esquina en vez de
-   * borde entero.
-   *
-   * Opcional y cableado sólo por Startup Day: este shell lo comparten Xplora y Sponsors, que no
-   * tienen a dónde apuntar un botón que lleva a una sección de esta landing.
-   */
-  ctaSecundario?: SdShellCta;
-  /** Íconos de red a la derecha del nav. Mismo motivo que `ctaSecundario` para que sea opcional. */
-  redesEnHeader?: boolean;
   brandBlurb?: string;
 };
 
@@ -59,8 +49,6 @@ export function SdShell({
   loaderDone = true,
   showCursor = active === 'startupday',
   cta,
-  ctaSecundario,
-  redesEnHeader = false,
   brandBlurb = 'Club de emprendedores. Startup Day fue la primera edición del evento más importante del año.',
 }: Props) {
   const { logoUrl } = useSiteMedia();
@@ -156,66 +144,25 @@ export function SdShell({
               </a>
             </nav>
 
-            {/* El racimo de la derecha, con las mismas tres partes que la referencia: íconos,
-                un secundario de canto marcado y el principal relleno. Va en su propio contenedor
-                para que el `justify-content: space-between` del header reparta tres bloques
-                (marca / nav / racimo) y no cinco sueltos. */}
-            <div className="sd-top__acciones">
-              {redesEnHeader ? (
-                <span className="sd-top__redes">
-                  <a
-                    className="sd-top__red"
-                    href={SD_XPLORA_SOCIALS.instagram}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    aria-label="Instagram de Xplora"
-                  >
-                    <svg viewBox="0 0 24 24" fill="none" aria-hidden focusable="false">
-                      <rect x="3" y="3" width="18" height="18" rx="5" stroke="currentColor" strokeWidth="1.7" />
-                      <circle cx="12" cy="12" r="4" stroke="currentColor" strokeWidth="1.7" />
-                      <circle cx="17.2" cy="6.8" r="1.2" fill="currentColor" />
-                    </svg>
-                  </a>
-                  <a
-                    className="sd-top__red"
-                    href={SD_XPLORA_SOCIALS.linkedin}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    aria-label="LinkedIn de Xplora"
-                  >
-                    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden focusable="false">
-                      <path d="M4.98 3.5a2.5 2.5 0 1 1 0 5 2.5 2.5 0 0 1 0-5ZM3 9h4v12H3V9Zm7 0h3.8v1.7h.05c.53-1 1.82-2.05 3.75-2.05 4 0 4.4 2.5 4.4 5.75V21h-4v-5.7c0-1.36-.02-3.1-1.9-3.1-1.9 0-2.2 1.48-2.2 3v5.8h-4V9Z" />
-                    </svg>
-                  </a>
-                </span>
-              ) : null}
-
-              {ctaSecundario?.href ? (
-                <a className="sd-top__cta2 sd-btn--esquinas" href={ctaSecundario.href}>
-                  {ctaSecundario.label}
+            {cta ? (
+              cta.href ? (
+                <a
+                  className="sd-top__cta"
+                  href={cta.href}
+                  {...(cta.href.startsWith('http')
+                    ? { target: '_blank', rel: 'noopener noreferrer' }
+                    : {})}
+                >
+                  {cta.label}
                 </a>
-              ) : null}
-
-              {cta ? (
-                cta.href ? (
-                  <a
-                    className="sd-top__cta"
-                    href={cta.href}
-                    {...(cta.href.startsWith('http')
-                      ? { target: '_blank', rel: 'noopener noreferrer' }
-                      : {})}
-                  >
-                    {cta.label}
-                  </a>
-                ) : (
-                  <button type="button" className="sd-top__cta" onClick={cta.onClick}>
-                    {cta.label}
-                  </button>
-                )
               ) : (
-                <span className="sd-top__cta-spacer" aria-hidden />
-              )}
-            </div>
+                <button type="button" className="sd-top__cta" onClick={cta.onClick}>
+                  {cta.label}
+                </button>
+              )
+            ) : (
+              <span className="sd-top__cta-spacer" aria-hidden />
+            )}
           </header>
         </div>
 

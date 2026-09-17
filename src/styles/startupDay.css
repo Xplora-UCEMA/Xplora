@@ -791,11 +791,10 @@ html.sd-coming-soon body {
 }
 
 .sd-nav-shell.is-island .sd-top {
-  /* 1080 y no 720: el racimo de la derecha pasó de un botón a cuatro piezas (dos íconos, el
-     secundario y el principal) y a 720 el nav no tenía aire — "Startup Day" se partía en dos
-     renglones. La isla de la referencia también es ancha: es una barra que se despega del borde,
-     no una pastilla. */
-  max-width: 1080px;
+  /* Llegó a 1080 cuando el header tenía además dos íconos de red y un segundo botón; con marca,
+     nav y un solo CTA vuelve a entrar holgado en 820. Tampoco es una pastilla: la referencia
+     también usa una barra ancha que se despega del borde. */
+  max-width: 820px;
   border-radius: var(--sd-radius);
   padding: 8px 14px 8px 12px;
   background: rgb(var(--sd-void-rgb) / 0.92);
@@ -882,61 +881,6 @@ html.sd-coming-soon body {
 .sd-tabs button:hover,
 .sd-tabs a:hover {
   color: #fff;
-}
-
-/* El racimo de la derecha: íconos, secundario y principal. Es uno de los tres bloques que reparte
-   el `space-between` del header, así que va agrupado y no como tres hijos sueltos. */
-.sd-top__acciones {
-  display: flex;
-  align-items: center;
-  gap: clamp(10px, 1.1vw, 18px);
-  flex-shrink: 0;
-}
-
-.sd-top__redes {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.sd-top__red {
-  display: flex;
-  color: rgb(var(--sd-cream-rgb) / 0.5);
-  transition: color 0.2s ease;
-}
-
-.sd-top__red svg {
-  width: 17px;
-  height: 17px;
-}
-
-.sd-top__red:hover,
-.sd-top__red:focus-visible {
-  color: #fff;
-}
-
-/* El secundario del header. El relleno y la tipografía son los del principal para que los dos
-   midan igual; el marco lo pone `.sd-btn--esquinas`, que es la misma pieza que usa la referencia
-   en su botón de documentación. */
-.sd-top__cta2 {
-  display: inline-flex;
-  align-items: center;
-  /* Más aire que el principal: las escuadras se apoyan en las cuatro esquinas de la caja, así que
-     con el relleno justo quedan pegadas a las letras y el botón se lee apretado. */
-  padding: 9px 18px;
-  font-family: var(--sd-font-body);
-  font-size: 0.78rem;
-  font-weight: 500;
-  text-decoration: none;
-  white-space: nowrap;
-  flex-shrink: 0;
-}
-
-@media (max-width: 1080px) {
-  .sd-top__redes,
-  .sd-top__cta2 {
-    display: none;
-  }
 }
 
 .sd-top__cta-spacer {
@@ -1078,16 +1022,13 @@ html.sd-coming-soon body {
   justify-self: end;
 }
 
-/* ── Las dos tiras ASCII del hero ──
-   Una contra cada borde de la pantalla, del alto del hero y arrancando por debajo del header.
+/* ── Las dos bandas ASCII del hero ──
+   Fueron dos tiras de 115px contra los bordes de la pantalla y no se veían: por esquivar el disco
+   quedaron en el margen. Ahora cruzan.
 
-   El ancho no es decorativo: a 1440 `clamp(70px, 8vw, 130px)` da 115px, o sea que la izquierda
-   termina justo donde arranca el texto (x=116) y la derecha justo donde termina el disco (x=1324).
-   Es la única franja del hero que no pertenece ni al bloque tipográfico ni a la brújula.
-
-   `z-index: 0` las deja debajo de `.sd-hero__grid` (que está en 3). La máscara las apaga hacia
-   adentro —y contra el borde de arriba, donde está el header— así que aunque la caja llegue a
-   rozar algo, ahí ya no hay tinta. Sin máscara el rectángulo del canvas se nota.
+   La geometría no es decorativa. Medido a 1440×900, la brújula ocupa x=778→1324 e y=181→727, y es
+   lo único que estas capas no pueden tocar —el texto sí, va por encima en `z-index: 3`—. Por eso
+   la principal termina justo antes de 778 y la contradiagonal justo después de 727.
 
    Selector compuesto, y no `.sd-hero__campo` a secas: el componente pone `sd-ascii` en el MISMO
    div, y `.sd-ascii { position: relative }` se declara más abajo con la misma especificidad, así
@@ -1096,38 +1037,40 @@ html.sd-coming-soon body {
 .sd-ascii.sd-hero__campo {
   position: absolute;
   z-index: 0;
-  top: 0;
-  bottom: 0;
-  width: clamp(70px, 8vw, 130px);
   pointer-events: none;
 }
 
-.sd-hero__campo--izq {
+/* La principal: esquina superior izquierda → media página. La máscara la enciende en la esquina y
+   la apaga en diagonal, más un arranque por debajo del header —cruzándolo, los caracteres se
+   mezclaban con el logo y el menú—. */
+.sd-hero__campo--diag {
+  top: 0;
   left: 0;
+  width: clamp(360px, 54vw, 780px);
+  height: clamp(280px, 62vh, 560px);
   -webkit-mask-image:
-    linear-gradient(to right, #000 0, transparent 92%),
-    linear-gradient(to bottom, transparent 0, #000 clamp(88px, 12vh, 132px));
+    linear-gradient(to bottom right, #000 0, rgb(0 0 0 / 0.5) 42%, transparent 82%),
+    linear-gradient(to bottom, transparent 0, #000 var(--sd-banda-h));
   mask-image:
-    linear-gradient(to right, #000 0, transparent 92%),
-    linear-gradient(to bottom, transparent 0, #000 clamp(88px, 12vh, 132px));
+    linear-gradient(to bottom right, #000 0, rgb(0 0 0 / 0.5) 42%, transparent 82%),
+    linear-gradient(to bottom, transparent 0, #000 var(--sd-banda-h));
   -webkit-mask-composite: source-in;
   mask-composite: intersect;
 }
 
-.sd-hero__campo--der {
+/* La contradiagonal: esquina inferior derecha hacia adentro. Baja de alto para pasar por DEBAJO
+   del disco en vez de meterse en su caja. */
+.sd-hero__campo--contra {
   right: 0;
-  -webkit-mask-image:
-    linear-gradient(to left, #000 0, transparent 92%),
-    linear-gradient(to bottom, transparent 0, #000 clamp(88px, 12vh, 132px));
-  mask-image:
-    linear-gradient(to left, #000 0, transparent 92%),
-    linear-gradient(to bottom, transparent 0, #000 clamp(88px, 12vh, 132px));
-  -webkit-mask-composite: source-in;
-  mask-composite: intersect;
+  bottom: 0;
+  width: clamp(300px, 44vw, 620px);
+  height: clamp(140px, 20vh, 200px);
+  -webkit-mask-image: linear-gradient(to top left, #000 0, rgb(0 0 0 / 0.45) 45%, transparent 85%);
+  mask-image: linear-gradient(to top left, #000 0, rgb(0 0 0 / 0.45) 45%, transparent 85%);
 }
 
-/* En pantallas angostas no hay costado que llenar: el hero pasa a una columna y las tiras caerían
-   encima del texto. */
+/* En pantallas angostas el hero pasa a una columna y las bandas caerían encima del texto sin nada
+   que las separe del contenido. */
 @media (max-width: 900px) {
   .sd-ascii.sd-hero__campo {
     display: none;
@@ -5019,6 +4962,12 @@ a.sd-partner__name:hover {
   .sd-quien::before {
     display: none;
   }
+
+  /* Las del header, por el mismo motivo: sin verticales no hay intersección que marcar y la cruz
+     queda flotando sola sobre la regla. */
+  .sd-root--startupday .sd-nav-shell::before {
+    display: none;
+  }
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════════════════════
@@ -5038,29 +4987,65 @@ a.sd-partner__name:hover {
    pill blanco.
    ═══════════════════════════════════════════════════════════════════════════════════════════ */
 
-.sd-root--startupday .sd-top {
-  border-radius: 0;
-  padding-top: clamp(18px, 2.4vh, 26px);
-  padding-bottom: clamp(18px, 2.4vh, 26px);
+/* El alto de la banda, en un solo lugar. Lo toma `.sd-top` como `min-height` —antes eran dos
+   `padding` sueltos, así que el número real había que deducirlo— y lo toma la regla de abajo para
+   saber dónde pararse. Si los dos no salen de la misma variable, la línea deja de caer sobre el
+   borde de la banda apenas cambie el relleno. */
+.sd-root--startupday {
+  --sd-banda-h: clamp(64px, 9vh, 84px);
 }
 
-/* La regla al pie de la banda, arriba de todo. La tuvo, la sacamos y vuelve — pero el motivo por
-   el que molestaba ya no está. Entonces el header llevaba fondo opaco permanente, así que tapaba
-   el arranque de los rieles: la línea quedaba flotando sobre una grilla que empezaba más abajo.
-   Ahora arriba de todo el header es transparente y las verticales llegan a `y=0`, así que esta
-   horizontal las CRUZA y cierra la banda, que es lo que hace la referencia.
+.sd-root--startupday .sd-top {
+  border-radius: 0;
+}
 
-   Va en la isla apagada (`:not(.is-island)`): al scrollear el header se despega del borde y pasa a
-   ser una caja con su propio borde, donde una línea suelta al pie no tiene nada que cerrar. */
-.sd-root--startupday .sd-nav-shell:not(.is-island) .sd-top::after {
+.sd-root--startupday .sd-nav-shell:not(.is-island) .sd-top {
+  min-height: var(--sd-banda-h);
+}
+
+/* ── El marco del header ──
+   Dos marcos distintos, y esto es lo importante: **el de la página no se mueve**. La regla al pie
+   de la banda y sus dos cruces se quedan clavadas donde están, se scrollee o no; lo que aparece
+   con el scroll es OTRO marco, el borde de la isla, que entra por encima.
+
+   Por eso cuelgan de `.sd-nav-shell` y no de `.sd-top`. `.sd-top` cambia de ancho, de relleno y de
+   fondo al volverse isla, así que cualquier cosa anclada a él se mueve con la animación. El shell
+   es `fixed` en `top: 0`, y sus pseudos absolutos se posicionan contra su CAJA DE PADDING, que
+   arranca en `y=0` pase lo que pase — incluso cuando la isla le mete `padding: 14px 24px 0`.
+
+   Estaban además atadas a `:not(.is-island)`, o sea que se apagaban apenas arrancabas a bajar. */
+.sd-root--startupday .sd-nav-shell::after {
   content: '';
   position: absolute;
+  z-index: 0;
+  top: var(--sd-banda-h);
   left: 0;
   right: 0;
-  bottom: 0;
   height: 1px;
   background: var(--sd-rejilla);
   pointer-events: none;
+}
+
+/* Las dos cruces, donde la regla corta los rieles. Mismo mecanismo que las de la rejilla: la caja
+   se infla `--sd-cruz-aire` en las cuatro direcciones respecto del punto de cruce, así la marca
+   —que se centra en la esquina de esa caja— entra entera sin que el recorte le coma la mitad.
+
+   `--sd-rejilla-x` es donde caen los rieles, y acá resuelve bien porque el shell ocupa el ancho de
+   la ventana: esa variable lleva un `100%` adentro y se resuelve contra la caja donde se usa. */
+.sd-root--startupday .sd-nav-shell::before {
+  content: '';
+  position: absolute;
+  z-index: 0;
+  top: calc(var(--sd-banda-h) - var(--sd-cruz-aire));
+  height: calc(var(--sd-cruz-aire) * 2);
+  left: calc(var(--sd-rejilla-x) - var(--sd-cruz-aire));
+  right: calc(var(--sd-rejilla-x) - var(--sd-cruz-aire));
+  pointer-events: none;
+  background-image: var(--sd-rejilla-cruz), var(--sd-rejilla-cruz);
+  background-repeat: no-repeat;
+  background-position:
+    left var(--sd-cruz-offset) top var(--sd-cruz-offset),
+    right var(--sd-cruz-offset) top var(--sd-cruz-offset);
 }
 
 /* La isla al scrollear: sigue siendo una barra, no una cápsula. Mantiene el fondo translúcido y

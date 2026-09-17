@@ -90,7 +90,7 @@ export function construirAtlas(cellW: number, cellH: number): HTMLCanvasElement 
  * como plano de piso, una dispersión como gente suelta— y esa intención se pierde si queda como
  * un puñado de números sueltos en el JSX.
  */
-export type PatronAscii = 'flujo' | 'onda' | 'malla' | 'disperso' | 'espiral';
+export type PatronAscii = 'flujo' | 'onda' | 'malla' | 'disperso' | 'espiral' | 'disco';
 
 export const PATRONES: Record<PatronAscii, (u: number, v: number, t: number) => number> = {
   /* Corriente diagonal: bandas largas que cruzan la caja. Es el más neutro de los cinco, el que
@@ -124,7 +124,33 @@ export const PATRONES: Record<PatronAscii, (u: number, v: number, t: number) => 
     return azar > 0.82 ? 0.45 + 0.55 * pulso : 0;
   },
 
-  /* Brazos en espiral desde el centro. El mismo gesto que el disco del hero, sin el calado. */
+  /**
+   * El dibujo de la brújula, tal cual.
+   *
+   * Es la misma fórmula que `SdAsciiDisc`: los brazos en espiral —el `r * 7.5` es lo que los curva
+   * en vez de dejarlos como un molinete— más el ruido barato de tres senos cruzados y una onda
+   * concéntrica. Lo que NO se trae es lo que hace del disco una pieza y no una textura: el calado
+   * del mark de Xplora y el recorte circular del borde. Acá la forma la da la máscara de CSS.
+   *
+   * Existe para que el ASCII de fondo del hero y la brújula se lean como la misma familia. Con
+   * `espiral` —que es una versión simplificada— se notaba que eran dos dibujos distintos.
+   */
+  disco: (u, v, t) => {
+    const dx = (u - 0.5) * 2;
+    const dy = (v - 0.5) * 2;
+    const r = Math.hypot(dx, dy);
+    const a = Math.atan2(dy, dx);
+    const espiral = Math.sin(3 * (a + 0.055 * t) + r * 7.5 - t * 0.9);
+    const ruido =
+      (Math.sin(dx * 5.1 + t * 0.61) +
+        Math.cos(dy * 4.3 - t * 0.47) +
+        Math.sin((dx + dy) * 3.2 + t * 0.33) +
+        0.6 * Math.sin((dx * dx + dy * dy) * 9 - t * 1.1)) *
+      0.27;
+    return 0.5 + 0.34 * espiral + 0.3 * ruido;
+  },
+
+  /* Brazos en espiral desde el centro, versión corta. La larga es `disco`. */
   espiral: (u, v, t) => {
     const dx = u - 0.5;
     const dy = v - 0.5;
