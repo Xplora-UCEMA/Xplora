@@ -21,7 +21,6 @@ import { SD_RECAP } from '../data/startupDayRecap';
 import { StartupDayComingSoon } from '../components/startup-day/StartupDayComingSoon';
 import { StartupDayCursor } from '../components/startup-day/StartupDayCursor';
 import { SdAsciiDisc } from '../components/startup-day/SdAsciiDisc';
-import { SdAsciiCampo } from '../components/startup-day/SdAsciiCampo';
 import { SdSponsorStrip } from '../components/startup-day/SdSponsorStrip';
 import '../styles/startupDay.css';
 
@@ -123,30 +122,6 @@ function StartupDayContent() {
   return (
     <>
       <section className="sd-hero">
-        {/* La cinta: una sola forma ASCII enorme cruzando el hero en diagonal, detrás de todo.
-
-            Reemplaza a dos campos con el patrón de la brújula enmascarados en diagonal. Eso daba
-            textura y no forma: un patrón que se evalúa igual en todo el plano nunca produce una
-            silueta, y el único contorno terminaba siendo el rectángulo del canvas. `cinta` tiene
-            geometría propia —una trayectoria y un ancho— y la densidad sale de la distancia a esa
-            trayectoria. Ver `ascii.ts`.
-
-            `pico={7}` recorta la rampa a `. : - + * #` y deja afuera `%` y `@`, los dos más
-            pesados. `corte` casi en cero porque acá el vacío lo define la forma, no un piso.
-
-            La caja es más grande que el hero y está corrida hacia arriba y a la izquierda: la
-            forma entra y sale cortada por los bordes, que es lo que la hace leer como parte de
-            algo mucho más grande. El `overflow: hidden` del hero recorta. */}
-        <SdAsciiCampo
-          className="sd-hero__cinta"
-          patron="cinta"
-          opacity={0.5}
-          celda={7}
-          corte={0.03}
-          pico={7}
-          techoCeldas={26000}
-        />
-
         {/* El borde de arriba del marco del hero: la regla al pie de la banda del header, con sus
             dos cruces sobre los rieles.
 

@@ -67,14 +67,6 @@ type Props = {
    * como textura fina. Alto = la rampa completa, para cuando el campo es el motivo y no el fondo.
    */
   pico?: number;
-  /**
-   * Tope de celdas de la grilla. Pasado el tope el componente agranda la celda hasta entrar.
-   *
-   * El default es para las cajas chicas —las del bento—, donde una celda fina sobre un panel de
-   * 300px ya son miles de `drawImage` por nada. Una forma grande necesita muchas más: si el tope
-   * la alcanza, le sube el lado de la celda y le deshace el dibujo.
-   */
-  techoCeldas?: number;
 };
 
 export function SdAsciiCampo({
@@ -86,7 +78,6 @@ export function SdAsciiCampo({
   fase = 0,
   corte = 0.05,
   pico,
-  techoCeldas = 4200,
 }: Props) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -140,10 +131,10 @@ export function SdAsciiCampo({
       cols = Math.ceil(W / cellW);
       rows = Math.ceil(H / cellH);
 
-      /* Techo de celdas. Una caja grande con celda chica se dispara y este componente es
-         decoración: nunca puede costar más que el contenido que decora. Ver `techoCeldas`. */
+      /* Techo duro de celdas. Una caja grande con celda chica se dispara y este componente es
+         decoración: nunca puede costar más que el contenido que decora. */
       let lado = celda;
-      while (cols * rows > techoCeldas && lado < 30) {
+      while (cols * rows > 4200 && lado < 30) {
         lado *= 1.15;
         cellW = Math.max(2, Math.round(lado * dpr));
         cellH = Math.max(3, Math.round(lado * 1.9 * dpr));
@@ -266,7 +257,7 @@ export function SdAsciiCampo({
       document.removeEventListener('visibilitychange', sincronizar);
       motionMq.removeEventListener('change', onMotionChange);
     };
-  }, [patron, opacity, animado, celda, fase, corte, pico, techoCeldas]);
+  }, [patron, opacity, animado, celda, fase, corte, pico]);
 
   return (
     <div ref={wrapRef} className={`sd-ascii${className ? ` ${className}` : ''}`} aria-hidden>

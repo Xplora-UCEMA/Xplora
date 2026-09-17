@@ -90,7 +90,7 @@ export function construirAtlas(cellW: number, cellH: number): HTMLCanvasElement 
  * como plano de piso, una dispersión como gente suelta— y esa intención se pierde si queda como
  * un puñado de números sueltos en el JSX.
  */
-export type PatronAscii = 'flujo' | 'onda' | 'malla' | 'disperso' | 'espiral' | 'disco' | 'cinta';
+export type PatronAscii = 'flujo' | 'onda' | 'malla' | 'disperso' | 'espiral' | 'disco';
 
 /** Ruido por celda, en 0..1. Determinista: la misma celda devuelve siempre lo mismo. */
 const azarDe = (u: number, v: number) => {
@@ -99,67 +99,6 @@ const azarDe = (u: number, v: number) => {
 };
 
 export const PATRONES: Record<PatronAscii, (u: number, v: number, t: number) => number> = {
-  /**
-   * La cinta: una forma diagonal enorme que cruza la caja y sigue fuera de ella.
-   *
-   * Es el único de los patrones que tiene GEOMETRÍA. Los otros evalúan la misma fórmula en todo el
-   * plano, y por eso dan textura: ruido repartido dentro de un rectángulo, con el borde del canvas
-   * como único contorno. Acá primero se define una trayectoria y después la densidad sale de la
-   * distancia a esa trayectoria, que es lo que produce una silueta reconocible.
-   *
-   * ## Los dos ejes
-   *
-   * `p` avanza sobre la diagonal —0 en la esquina superior izquierda, 1 en la inferior derecha— y
-   * `q` es la distancia perpendicular a ella. Toda la forma se describe en estos dos, así que sale
-   * diagonal por construcción y no por haberla rotado.
-   *
-   * ## Por qué cada término
-   *
-   * - **`curva`**: dos senos de periodo largo, uno amplio y lento y otro corto y chico. Con uno
-   *   solo la cinta se lee como una onda regular; el segundo le rompe la periodicidad y la deja
-   *   como una curva ancha y suave.
-   * - **`ancho`**: se abre en el medio del recorrido y se cierra en las puntas. Una banda de ancho
-   *   constante se lee como una franja; que respire es lo que la vuelve una forma.
-   * - **`porFila`**: depende SÓLO de `v`, o sea que es constante dentro de una fila de la grilla —
-   *   y cada fila es una línea de caracteres. Así las líneas tienen largos distintos, que es de lo
-   *   que está hecha la cinta. El término de tiempo las alarga y acorta despacio.
-   * - **el hash**: resta densidad, y resta más cuanto más lejos del eje. Es lo que convierte el
-   *   fundido del borde en caracteres sueltos en vez de un degradado parejo.
-   * - **`eco`**: una segunda pasada angosta y tenue, corrida del eje, para que algo de la forma
-   *   reaparezca fuera del cuerpo principal.
-   *
-   * La geometría (`curva`, `ancho`) NO depende del tiempo: la silueta se queda quieta y lo que se
-   * mueve es la composición interna. Ese es el efecto buscado — el dibujo parece estar
-   * generándose todo el tiempo sin desplazarse ni rotar.
-   */
-  cinta: (u, v, t) => {
-    const p = (u + v) * 0.5;
-    const q = (v - u) * 0.5;
-
-    const curva = 0.155 * Math.sin(p * 3.2 - 0.75) + 0.052 * Math.sin(p * 7.1 + 1.9);
-
-    /* `p` se sale de 0..1 en las esquinas; el clamp evita que el seno del ancho se dé vuelta y la
-       cinta se abra de nuevo fuera del recorrido. */
-    const pc = Math.min(1, Math.max(0, p));
-    const porFila = 0.8 + 0.34 * Math.sin(v * 167.3 + t * 0.11);
-    const ancho = (0.026 + 0.052 * Math.sin(Math.PI * pc)) * porFila;
-
-    const off = Math.abs(q - curva) / Math.max(0.012, ancho);
-    let d = 1 - smoothstep(0.3, 1.12, off);
-
-    /* El eco, antes del desarmado: también tiene que perder densidad hacia su propio borde. */
-    const offEco = Math.abs(q - curva - 0.235) / Math.max(0.012, ancho * 0.42);
-    d = Math.max(d, 0.5 * (1 - smoothstep(0.25, 1.05, offEco)));
-
-    const azar = azarDe(u, v);
-    const lejos = smoothstep(0.18, 1.0, Math.min(off, offEco));
-    /* Parpadeo lento por celda: cada una tiene su propia fase, así no respiran todas juntas. */
-    const parpadeo = 0.5 + 0.5 * Math.sin(t * 0.55 + azar * 6.283);
-    d -= lejos * (azar * 0.62 + parpadeo * 0.24);
-
-    return d;
-  },
-
   /* Corriente diagonal: bandas largas que cruzan la caja. Es el más neutro de los cinco, el que
      se usa cuando el ASCII tiene que ser atmósfera y nada más. */
   flujo: (u, v, t) =>

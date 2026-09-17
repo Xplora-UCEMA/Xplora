@@ -1064,45 +1064,6 @@ html.sd-coming-soon body {
     right var(--sd-cruz-offset) top var(--sd-cruz-offset);
 }
 
-/* ── La cinta ASCII del hero ──
-   Fueron dos campos con el patrón de la brújula, enmascarados en diagonal. Daban textura y no
-   forma: un patrón que se evalúa igual en todo el plano no produce silueta, y lo único que
-   recortaba el dibujo era la máscara — o sea que el contorno lo ponía el CSS, no el ASCII.
-
-   Ahora es una sola capa con `patron="cinta"`, que trae su propia geometría (ver `ascii.ts`), y
-   acá no hay máscara: la forma se desvanece sola en sus bordes, así que no hay rectángulo de
-   canvas que disimular.
-
-   La caja es más grande que el hero y está corrida hacia arriba y a la izquierda a propósito: la
-   cinta tiene que entrar cortada por una esquina y salir cortada por la otra, para que se lea como
-   un pedazo de algo mucho mayor. Lo recorta el `overflow: hidden` del hero.
-
-   Selector compuesto, y no `.sd-hero__cinta` a secas: el componente pone `sd-ascii` en el MISMO
-   div, y `.sd-ascii { position: relative }` se declara más abajo con la misma especificidad, así
-   que le ganaba y el campo terminaba como item del flex del hero, achatado y fuera de lugar. */
-.sd-ascii.sd-hero__cinta {
-  position: absolute;
-  z-index: 0;
-  top: -14%;
-  left: -12%;
-  width: 130%;
-  height: 128%;
-  pointer-events: none;
-  /* Lo único que se enmascara es la franja del header: la cinta cruzándolo mezclaba caracteres con
-     el logo y el menú. La forma en sí no lleva máscara — se desvanece sola. El `14%` compensa el
-     `top: -14%` de la caja, así el fundido cae sobre la banda y no más arriba. */
-  -webkit-mask-image: linear-gradient(to bottom, transparent 14%, #000 calc(14% + var(--sd-banda-h)));
-  mask-image: linear-gradient(to bottom, transparent 14%, #000 calc(14% + var(--sd-banda-h)));
-}
-
-/* En pantallas angostas el hero pasa a una columna: la cinta caería justo detrás del texto, sin
-   ancho libre por ningún lado, y la única forma de que no moleste es no dibujarla. */
-@media (max-width: 900px) {
-  .sd-ascii.sd-hero__cinta {
-    display: none;
-  }
-}
-
 /* `SdAsciiDisc` pone `sd-ascii` y la clase de sitio en el MISMO div, así que acá no se declara
    ni ancho ni alto: la caja la define quien lo usa (`.sd-hero__disc`, `.sd-soon__disc`). */
 .sd-ascii {
