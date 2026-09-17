@@ -133,6 +133,9 @@
      SON marca de registro y no línea de fondo, como las esquinas de `.sd-btn--esquinas`. A 0,11
      una escuadra de 9px directamente no se ve. */
   --sd-rejilla-fuerte: rgb(var(--sd-cream-rgb) / 0.4);
+  /* La rejilla, reforzada para sobrevivir a un fondo claro. La usa el extremo inferior de los
+     rieles del hero, que es donde el wash violeta se enciende y se come la línea. */
+  --sd-rejilla-lavada: rgb(var(--sd-cream-rgb) / 0.3);
   /* Las verticales van POR FUERA del contenido, no encima. Colgaban de `--sd-pad-x`, que es justo
      donde arranca el texto, así que quedaban pegadas a las letras. El colchón va explícito y no
      "lo que sobre de ancho": `--sd-pad-x` colapsa al gutter por debajo de `--sd-shell` y ahí no
@@ -4917,6 +4920,40 @@ a.sd-partner__name:hover {
 /* El hero abre la página: sin divisor arriba y sin cruces, que no tienen con qué cruzarse. */
 .sd-hero::after {
   border-top: 0;
+}
+
+/* ── Los rieles del hero, en degradado ──
+   El hero es la única sección con un fondo que cambia de luminancia: arranca casi negro y abajo a
+   la izquierda tiene el wash violeta encendido. Con el mismo `--sd-rejilla` que el resto —blanco
+   al 11%— el riel se despega 24 sobre un fondo de 27 arriba (casi 90% de contraste relativo) pero
+   sólo 19 sobre un fondo de 73 abajo (26%): la línea sigue dibujándose, pero el ojo la pierde
+   justo donde el glow es más fuerte, y se lee como si estuviera cortada.
+
+   La solución no es subirle el alfa a todo el riel —arriba quedaría al doble de intensidad que los
+   de las demás secciones— sino que ACOMPAÑE al fondo. Por eso los rieles del hero dejan de ser un
+   `border` (que no admite degradado) y pasan a ser dos tiras de 1px pintadas como `background`,
+   con un degradado vertical que sale del mismo gris de la rejilla y se refuerza hacia abajo. */
+.sd-hero::after {
+  border-left: 0;
+  border-right: 0;
+  /* Se queda en el valor de la rejilla hasta pasada la mitad —ahí el fondo todavía es oscuro y el
+     riel tiene que verse igual que el de cualquier otra sección— y recién después se refuerza,
+     que es donde el wash sube. Sin esa parada, arriba quedaba más brillante que el resto. */
+  background-image: linear-gradient(
+      to bottom,
+      var(--sd-rejilla) 0,
+      var(--sd-rejilla) 46%,
+      var(--sd-rejilla-lavada) 100%
+    ),
+    linear-gradient(
+      to bottom,
+      var(--sd-rejilla) 0,
+      var(--sd-rejilla) 46%,
+      var(--sd-rejilla-lavada) 100%
+    );
+  background-size: 1px 100%;
+  background-repeat: no-repeat;
+  background-position: left top, right top;
 }
 
 /* La banda de sponsors tampoco: su borde superior es la costura con el hero, donde el wash tiene
