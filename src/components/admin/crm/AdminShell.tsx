@@ -6,6 +6,7 @@ import { crm } from './crmTheme';
 
 /** Identificador de pestaña; debe coincidir con las rutas internas en `Admin.tsx`. */
 export type AdminSectionId =
+  | 'points'
   | 'inicio'
   | 'sitio'
   | 'data'
@@ -23,6 +24,7 @@ export type AdminSectionId =
 
 /** Secciones que viven dentro del hub Data. */
 export type AdminDataTabId =
+  | 'points'
   | 'eventos'
   | 'comunidad'
   | 'campanas_email'

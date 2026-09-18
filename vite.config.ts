@@ -52,6 +52,10 @@ export default defineConfig({
   publicDir: 'src/public',
   server: {
     proxy: {
+      '/api/admin/points/google': {
+        target: process.env.GOOGLE_FORMS_API_ORIGIN || `http://127.0.0.1:${apiPort}`,
+        changeOrigin: true,
+      },
       '/api': {
         target: `http://127.0.0.1:${apiPort}`,
         changeOrigin: true,

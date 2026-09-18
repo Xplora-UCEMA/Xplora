@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState, type MouseEvent, type ReactNode } from 'react';
 import { useSiteMedia } from '../../context/SiteMediaContext';
+import { useMemberAuth } from '../../context/MemberAuthContext';
 import { DEFAULT_LOGO_URL } from '../../lib/defaultsMedia';
+import { publicFeatures } from '../../lib/publicFeatures';
 import {
   mainSiteUrl,
   startupDayUrl,
@@ -49,6 +51,7 @@ export function SdShell({
   brandBlurb = 'Organización estudiantil de la Universidad del CEMA. Por y para emprendedores.',
 }: Props) {
   const { logoUrl } = useSiteMedia();
+  const { account } = useMemberAuth();
   const brandLogo = logoUrl || DEFAULT_LOGO_URL;
   const [island, setIsland] = useState(false);
   /** El nodo que barre `SdPixelWave` al terminar la carga. */
@@ -141,25 +144,28 @@ export function SdShell({
               </a>
             </nav>
 
-            {cta ? (
-              cta.href ? (
-                <a
-                  className="sd-top__cta"
-                  href={cta.href}
-                  {...(cta.href.startsWith('http')
-                    ? { target: '_blank', rel: 'noopener noreferrer' }
-                    : {})}
-                >
-                  {cta.label}
-                </a>
-              ) : (
-                <button type="button" className="sd-top__cta" onClick={cta.onClick}>
-                  {cta.label}
-                </button>
-              )
-            ) : (
-              <span className="sd-top__cta-spacer" aria-hidden />
-            )}
+            <div className="sd-top__actions">
+              {cta ? (
+                cta.href ? (
+                  <a
+                    className="sd-top__cta"
+                    href={cta.href}
+                    {...(cta.href.startsWith('http')
+                      ? { target: '_blank', rel: 'noopener noreferrer' }
+                      : {})}
+                  >
+                    {cta.label}
+                  </a>
+                ) : (
+                  <button type="button" className="sd-top__cta" onClick={cta.onClick}>
+                    {cta.label}
+                  </button>
+                )
+              ) : null}
+              {publicFeatures.memberAccountEntry ? <a className="sd-top__cta sd-top__account" href={`${xpHref.replace(/\/$/, '')}/cuenta`}>
+                {account ? 'Mi cuenta' : 'Iniciar sesión'}
+              </a> : null}
+            </div>
           </header>
         </div>
 

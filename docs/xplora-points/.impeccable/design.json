@@ -1,0 +1,299 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-09-17T23:40:14.529Z",
+  "title": "Design System: Xplora Points — Member account",
+  "extensions": {
+    "colorMeta": {
+      "purple": {
+        "role": "primary",
+        "displayName": "Xplora purple",
+        "tonalRamp": [
+          "oklch(15.00% 0.2577 281.40)",
+          "oklch(26.43% 0.2577 281.40)",
+          "oklch(37.86% 0.2577 281.40)",
+          "oklch(49.29% 0.2577 281.40)",
+          "oklch(60.71% 0.2577 281.40)",
+          "oklch(72.14% 0.2577 281.40)",
+          "oklch(83.57% 0.2577 281.40)",
+          "oklch(95.00% 0.2577 281.40)"
+        ]
+      },
+      "lilac": {
+        "role": "secondary",
+        "displayName": "Lilac",
+        "tonalRamp": [
+          "oklch(15.00% 0.1040 293.24)",
+          "oklch(26.43% 0.1040 293.24)",
+          "oklch(37.86% 0.1040 293.24)",
+          "oklch(49.29% 0.1040 293.24)",
+          "oklch(60.71% 0.1040 293.24)",
+          "oklch(72.14% 0.1040 293.24)",
+          "oklch(83.57% 0.1040 293.24)",
+          "oklch(95.00% 0.1040 293.24)"
+        ]
+      },
+      "paper": {
+        "role": "neutral",
+        "displayName": "Cream paper",
+        "tonalRamp": [
+          "oklch(15.00% 0.0045 78.30)",
+          "oklch(26.43% 0.0045 78.30)",
+          "oklch(37.86% 0.0045 78.30)",
+          "oklch(49.29% 0.0045 78.30)",
+          "oklch(60.71% 0.0045 78.30)",
+          "oklch(72.14% 0.0045 78.30)",
+          "oklch(83.57% 0.0045 78.30)",
+          "oklch(95.00% 0.0045 78.30)"
+        ]
+      },
+      "ink": {
+        "role": "neutral",
+        "displayName": "Ink",
+        "tonalRamp": [
+          "oklch(15.00% 0.0480 301.44)",
+          "oklch(26.43% 0.0480 301.44)",
+          "oklch(37.86% 0.0480 301.44)",
+          "oklch(49.29% 0.0480 301.44)",
+          "oklch(60.71% 0.0480 301.44)",
+          "oklch(72.14% 0.0480 301.44)",
+          "oklch(83.57% 0.0480 301.44)",
+          "oklch(95.00% 0.0480 301.44)"
+        ]
+      },
+      "muted-ink": {
+        "role": "neutral",
+        "displayName": "Muted ink",
+        "tonalRamp": [
+          "oklch(15.00% 0.0384 306.67)",
+          "oklch(26.43% 0.0384 306.67)",
+          "oklch(37.86% 0.0384 306.67)",
+          "oklch(49.29% 0.0384 306.67)",
+          "oklch(60.71% 0.0384 306.67)",
+          "oklch(72.14% 0.0384 306.67)",
+          "oklch(83.57% 0.0384 306.67)",
+          "oklch(95.00% 0.0384 306.67)"
+        ]
+      },
+      "line": {
+        "role": "neutral",
+        "displayName": "Pale divider",
+        "tonalRamp": [
+          "oklch(15.00% 0.0157 306.40)",
+          "oklch(26.43% 0.0157 306.40)",
+          "oklch(37.86% 0.0157 306.40)",
+          "oklch(49.29% 0.0157 306.40)",
+          "oklch(60.71% 0.0157 306.40)",
+          "oklch(72.14% 0.0157 306.40)",
+          "oklch(83.57% 0.0157 306.40)",
+          "oklch(95.00% 0.0157 306.40)"
+        ]
+      },
+      "white": {
+        "role": "neutral",
+        "displayName": "Field white",
+        "tonalRamp": [
+          "oklch(15.00% 0.0000 89.88)",
+          "oklch(26.43% 0.0000 89.88)",
+          "oklch(37.86% 0.0000 89.88)",
+          "oklch(49.29% 0.0000 89.88)",
+          "oklch(60.71% 0.0000 89.88)",
+          "oklch(72.14% 0.0000 89.88)",
+          "oklch(83.57% 0.0000 89.88)",
+          "oklch(95.00% 0.0000 89.88)"
+        ]
+      },
+      "notice": {
+        "role": "secondary",
+        "displayName": "Notice lilac",
+        "tonalRamp": [
+          "oklch(15.00% 0.0314 297.72)",
+          "oklch(26.43% 0.0314 297.72)",
+          "oklch(37.86% 0.0314 297.72)",
+          "oklch(49.29% 0.0314 297.72)",
+          "oklch(60.71% 0.0314 297.72)",
+          "oklch(72.14% 0.0314 297.72)",
+          "oklch(83.57% 0.0314 297.72)",
+          "oklch(95.00% 0.0314 297.72)"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Access statement",
+        "purpose": "Regular introductory heading; 42px at the mobile breakpoint."
+      },
+      "headline": {
+        "displayName": "Account greeting",
+        "purpose": "Compact greeting heading; 28px at the mobile breakpoint."
+      },
+      "title": {
+        "displayName": "Section heading",
+        "purpose": "Points section headings; 27px at the mobile breakpoint."
+      },
+      "body": {
+        "displayName": "Interface reading text",
+        "purpose": "Poppins explanatory text; smaller existing metadata is not a body default."
+      },
+      "label": {
+        "displayName": "Form label",
+        "purpose": "Visible labels for member and Points admin controls."
+      },
+      "empty-title": {
+        "displayName": "Shared empty-state heading",
+        "purpose": "Regular 22px heading on both desktop and mobile; h2 for page-level states and h3 within an already labelled section."
+      }
+    },
+    "shadows": [],
+    "motion": [
+      {
+        "name": "points-ease",
+        "value": "cubic-bezier(0.16, 1, 0.3, 1)",
+        "purpose": "Button transform easing."
+      },
+      {
+        "name": "compass-float",
+        "value": "3.2–5.2s randomized segments; ease-in-out; endless; perspective 560px; large depth 28px",
+        "purpose": "The shared Points coin moves independently through random poses: X ±20deg, alternating Y ±18–38deg, Z ±12deg, lift 1–8%. Each segment starts at the prior endpoint; Web Animations API changes only transform and discards completed effects. The original face and eighteen statically shaded edge copies remain unchanged. Offscreen and hidden pages pause; reduced motion retains the static 3D pose."
+      },
+      {
+        "name": "button-state",
+        "value": "180ms; hover translateY(-2px); active translateY(0) scale(0.98)",
+        "purpose": "Primary and light action feedback."
+      },
+      {
+        "name": "reduced-motion",
+        "value": "static compass pose; transition: none; hover transform: none",
+        "purpose": "PointMark respects the reduced-motion preference in its Web Animations lifecycle; the CSS media query disables button transitions and hover movement."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "compact-header",
+        "value": "900px"
+      },
+      {
+        "name": "stacked-layout",
+        "value": "640px"
+      },
+      {
+        "name": "narrow-brand",
+        "value": "360px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary action",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Enabled action; disabled state carries a specific reason.",
+      "html": "<button class=\"ds-primary\">Continuar con email<svg width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\" focusable=\"false\"><path d=\"M4 12h16m-6-6 6 6-6 6\"/></svg></button>",
+      "css": ".ds-primary{border:0;border-radius:10px;display:inline-flex;align-items:center;justify-content:center;gap:20px;min-height:48px;padding:13px 21px;font:14px/1.65 var(--ma-font-body, Poppins, sans-serif);text-decoration:none;cursor:pointer;transition:background 180ms,transform 180ms cubic-bezier(0.16,1,0.3,1);background:#603ef9;color:#fff;}.ds-primary:hover:not(:disabled){background:#4c2cda;transform:translateY(-2px);}.ds-primary:active:not(:disabled){transform:translateY(0) scale(.98);}.ds-primary:focus-visible{outline:3px solid #9075ff;outline-offset:4px;}.ds-primary:disabled{background:#e5e0eb;color:#675b76;cursor:not-allowed;}@media(prefers-reduced-motion:reduce){.ds-primary{transition:none;}.ds-primary:hover:not(:disabled){transform:none;}}"
+    },
+    {
+      "name": "Text action",
+      "kind": "button",
+      "refersTo": "button-text",
+      "description": "Secondary action for cancellation, resend, or disclosure.",
+      "html": "<button class=\"ds-text\">Ahora no</button>",
+      "css": ".ds-text{background:none;border:0;min-height:44px;font:13px/1.65 var(--ma-font-body, Poppins, sans-serif);color:#4a3196;text-decoration:underline;text-underline-offset:4px;cursor:pointer;padding:8px 0;}.ds-text:focus-visible{outline:3px solid #9075ff;outline-offset:4px;}"
+    },
+    {
+      "name": "Email field",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Visible label and 48px minimum field height; the verification version uses six numeric digits.",
+      "html": "<label class=\"ds-field\">Email<input type=\"email\" autocomplete=\"email\" placeholder=\"vos@email.com\" required></label>",
+      "css": ".ds-field{display:flex;flex-direction:column;gap:9px;font:14px/1.65 var(--ma-font-body, Poppins, sans-serif);color:var(--ma-ink,#1a1028);margin-bottom:20px;}.ds-field input{width:100%;min-width:0;border:1px solid #cfc6dc;border-radius:10px;padding:14px 15px;background:#fff;color:var(--ma-ink,#1a1028);font:inherit;min-height:48px;box-sizing:border-box;caret-color:#603ef9;}.ds-field input::placeholder{color:#776a85;}.ds-field input:focus-visible{outline:3px solid #9075ff;outline-offset:4px;}"
+    },
+    {
+      "name": "Account navigation",
+      "kind": "nav",
+      "description": "Current-page underline on the ink header; at 900px and below a native details menu opens vertically. The original brand image remains when its wordmark hides at 360px.",
+      "html": "<div class=\"ds-account-nav\"><nav class=\"ds-nav ds-desktop\" aria-label=\"Cuenta\"><a href=\"/cuenta\" aria-current=\"page\">Mis Points</a><a href=\"/cuenta/perfil\">Mi perfil</a><a href=\"/empleo\">Bolsa de empleo</a><a href=\"/cuenta/eventos\">Eventos</a><a href=\"/cuenta/propuestas\">Propuestas</a></nav><details class=\"ds-menu\"><summary>Menú</summary><nav class=\"ds-nav\" aria-label=\"Cuenta\"><a href=\"/cuenta\" aria-current=\"page\">Mis Points</a><a href=\"/cuenta/perfil\">Mi perfil</a><a href=\"/empleo\">Bolsa de empleo</a><a href=\"/cuenta/eventos\">Eventos</a><a href=\"/cuenta/propuestas\">Propuestas</a></nav></details></div>",
+      "css": ".ds-account-nav{background:#1a1028;color:#faf8f5;font-family:var(--ma-font-body,Poppins,sans-serif);}.ds-nav{display:flex;gap:20px;padding:12px 24px;}.ds-nav a{white-space:nowrap;font-size:13px;font-weight:600;color:#d3c7e4;text-decoration:none;padding:12px 0;border-bottom:2px solid transparent;}.ds-nav a:hover,.ds-nav a[aria-current=\"page\"]{color:#fff;border-bottom-color:#c4b5ff;}.ds-nav a:focus-visible,.ds-menu summary:focus-visible{outline:3px solid #9075ff;outline-offset:4px;}.ds-menu{display:none;}@media(max-width:900px){.ds-desktop{display:none;}.ds-menu{display:block;padding:0 24px;}.ds-menu summary{cursor:pointer;min-height:44px;padding:12px 0;font-size:13px;}.ds-menu .ds-nav{flex-direction:column;gap:0;padding:12px 0 24px;}}"
+    },
+    {
+      "name": "Access panel",
+      "kind": "card",
+      "refersTo": "access-panel",
+      "description": "Cream form container on the access page; an abbreviated copy preview preserves its implemented typography and spacing.",
+      "html": "<section class=\"ds-access\" aria-labelledby=\"ds-access-title\"><h2 id=\"ds-access-title\">Tu lugar en Xplora.</h2><p>Creá tu cuenta o iniciá sesión con tu email. Sin contraseña.</p></section>",
+      "css": ".ds-access{background:#faf8f5;color:#1a1028;border-radius:16px;padding:42px 36px;font:14px/1.65 var(--ma-font-body, Poppins, sans-serif);}.ds-access h2{font:400 36px/1.15 var(--ma-font-display, 'Glacial Indifference', sans-serif);letter-spacing:-.025em;margin:0 0 16px;text-wrap:balance;}.ds-access p{color:#685d74;margin-bottom:28px;overflow-wrap:anywhere;}@media(max-width:900px){.ds-access{padding:32px 24px;}}@media(max-width:640px){.ds-access{padding:28px 24px;}.ds-access h2{font-size:30px;}}"
+    },
+    {
+      "name": "Points views",
+      "kind": "nav",
+      "description": "Four query-linked views with a selected underline; the original coin appears only in the Tasks wallet.",
+      "html": "<nav class=\"ds-views\" aria-label=\"Xplora Points\"><a href=\"/cuenta\" aria-current=\"page\">Tasks</a><a href=\"/cuenta?vista=recompensas\">Recompensas</a><a href=\"/cuenta?vista=rachas\">Rachas</a><a href=\"/cuenta?vista=movimientos\">Movimientos</a></nav>",
+      "css": ".ds-views{display:flex;gap:30px;border-bottom:1px solid #e4dfea;margin:0 0 28px;font-family:Poppins,sans-serif;}.ds-views a{min-height:48px;display:flex;align-items:center;padding:8px 0 12px;border-bottom:2px solid transparent;color:#685d74;text-decoration:none;font-size:14px;}.ds-views a[aria-current=\"page\"]{color:#5130c2;border-bottom-color:#603ef9;font-weight:600;}.ds-views a:hover{color:#5130c2;}.ds-views a:focus-visible{outline:3px solid #9075ff;outline-offset:4px;}@media(max-width:640px){.ds-views{gap:0;justify-content:space-between;margin-bottom:24px;}.ds-views a{font-size:12px;}}"
+    },
+    {
+      "name": "Shared account empty state",
+      "kind": "custom",
+      "refersTo": "empty-state",
+      "description": "Plain left-aligned copy with an optional contextual action; no icon, coin, colored panel, or reserved illustration column.",
+      "html": "<section class=\"ds-empty\" aria-labelledby=\"ds-empty-title\"><h3 id=\"ds-empty-title\">Todavía no hiciste canjes</h3><p>Tus beneficios canjeados van a quedar acá.</p></section>",
+      "css": ".ds-empty{margin:0;padding:24px 0;border-radius:0;background:transparent;color:var(--ma-ink,#1a1028);text-align:left;font:14px/1.65 var(--ma-font-body,Poppins,sans-serif);}.ds-empty h3{font:400 22px/1.25 var(--ma-font-display,'Glacial Indifference',sans-serif);letter-spacing:-.02em;margin:0 0 8px;}.ds-empty p{font-size:14px;line-height:1.7;color:#685d74;max-width:62ch;margin:0;}@media(max-width:640px){.ds-empty{padding:20px 0;}}"
+    },
+    {
+      "name": "Program notice",
+      "kind": "custom",
+      "refersTo": "notice",
+      "description": "Closed-program message accompanies the disabled reward action, which separately reads Programa finalizado.",
+      "html": "<aside class=\"ds-notice\"><p>El programa finalizó. Los canjes están cerrados.</p></aside>",
+      "css": ".ds-notice{background:#eee8ff;color:#1a1028;padding:20px;border-radius:10px;margin-bottom:20px;font-family:var(--ma-font-body, Poppins, sans-serif);line-height:1.65;}"
+    },
+    {
+      "name": "Points admin sections",
+      "kind": "nav",
+      "description": "Pressed-state section controls within the Points panel; Tasks is first and selected initially. These are buttons rather than ARIA tabs. Task creation defaults to Google Forms, exposes its edit-link field only for that type, and collapses its native disclosure after creation. Connection setup distinguishes unconnected, connected/paused, and enabled states, then collapses into a native recovery disclosure when enabled. The labelled HTTPS backend-origin field has associated help and inline errors; the private script download warns about its key. Enablement remains disabled until connected, and replacing a connection requires confirmation.",
+      "html": "<div class=\"ds-sections\" aria-label=\"Secciones de Points\"><button type=\"button\" aria-pressed=\"true\">Tasks</button><button type=\"button\" aria-pressed=\"false\">Eventos y rachas</button><button type=\"button\" aria-pressed=\"false\">Recompensas</button></div>",
+      "css": ".ds-sections{display:flex;gap:10px;flex-wrap:wrap;margin:24px 0;font-family:var(--ma-font-body, Poppins, sans-serif);}.ds-sections button{border:1px solid #cfc6dc;border-radius:10px;background:#fff;color:#3e286b;padding:12px 20px;cursor:pointer;font:13px/1.65 var(--ma-font-body, Poppins, sans-serif);min-height:44px;}.ds-sections button[aria-pressed=\"true\"]{background:#603ef9;color:#fff;border-color:#603ef9;}.ds-sections button:focus-visible{outline:3px solid #9075ff;outline-offset:4px;}@media(max-width:640px){.ds-sections button{flex:1 1 130px;padding:12px;white-space:nowrap;}}"
+    },
+    {
+      "name": "Email verification code",
+      "kind": "custom",
+      "description": "Static six-digit code with system-font fallback; sample digits are illustrative.",
+      "html": "<p class=\"ds-email-code\">123456</p>",
+      "css": ".ds-email-code{background:#f3efff;border-radius:10px;padding:20px 12px;margin:0;text-align:center;font:700 32px Arial,Helvetica,sans-serif;letter-spacing:8px;color:#3e24aa;}"
+    }
+  ],
+  "narrative": {
+    "northStar": "Experiencias que suman.",
+    "overview": "Xplora Points extends the existing cream, ink, purple, Glacial, and Poppins identity into four focused member views: Tasks, Recompensas, Rachas, and Movimientos. Tasks pairs the actual balance with available tasks; the other views retain a quiet text balance. Plain, left-aligned empty states use concise copy and a relevant action when one exists. The original Xplora compass artwork remains unchanged, with CSS 3D depth and randomized infinite floating motion; inside Points it appears only beside the Tasks balance.\n\nThis document records the implemented Points boundary: member access and confirmation, account overview and shell, the shared open account panels and empty states used by profile, events, proposals, and jobs, access email, and the Points section inside the existing admin. This is a narrow refinement grounded in the existing code and reviewed local captures, without an approved visual comp. The root Startup Day document is not the visual authority for member composition; unrelated page content and administrative surfaces retain their existing direction.",
+    "keyCharacteristics": [
+      "Regular Glacial headings and Poppins interface text.",
+      "Cream reading surfaces, dark balance/access areas, and purple actions.",
+      "Open lists and dividers around a small number of rounded panels.",
+      "Four query-linked views, a compact Tasks balance, and native disclosures for secondary detail.",
+      "Plain left-aligned empty states with concise copy, contextual actions, and no icons.",
+      "The original compass face, a shaded 3D edge, and a smooth infinite floating motion.",
+      "Explicit loading, eligibility, confirmation, delivery, and failure states."
+    ],
+    "rules": [
+      {
+        "name": "The State Label Rule",
+        "body": "Explain unavailable actions in their labels; color alone does not communicate eligibility.",
+        "section": "colors"
+      }
+    ],
+    "dos": [
+      "Do preserve regular Glacial headings, Poppins UI text, and the shared compass asset.",
+      "Do retain mobile stacking, the native account menu, query-linked Points views, and visible keyboard focus.",
+      "Do show eligibility, closure, confirmation, and delivery in readable text.",
+      "Do keep the balance and available tasks in Tasks, and older movements and multiplier details behind native disclosures in their own views.",
+      "Do distinguish Google Forms connection from task enablement, keep private setup behind native disclosures once active, and explain the matching account email beside the member task link.",
+      "Do use the shared compact empty state with meaningful copy and a next action where one exists.",
+      "Do keep the email usable with inline styles, presentation tables, and system fonts."
+    ],
+    "donts": [
+      "Don't turn this account's composition into rules for the Startup Day recap or unrelated admin screens.",
+      "Don't invent stock, balances, rewards, or decorative status badges.",
+      "Don't add a main reward, forced points goal, progress bar, generic registration iframe, or repeated coins to the Points views.",
+      "Don't redraw the logo or add cardinal lines; preserve the original artwork, 3D depth, infinite float, and reduced-motion support.",
+      "Don't rely on motion, color, or remote fonts to explain an account state.",
+      "Don't show a failed proposal request as an empty history or wrap open account panels in extra cards."
+    ]
+  }
+}

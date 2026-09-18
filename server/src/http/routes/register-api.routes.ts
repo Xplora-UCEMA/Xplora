@@ -5,6 +5,7 @@
  * Los handlers de admin reciben el JWT ya validado por `requireAuth`.
  */
 import type { Express } from 'express';
+import { registerPointsRoutes } from '../controllers/points.controller.js';
 import rateLimit from 'express-rate-limit';
 import type { AppConfig } from '../../config/env.js';
 import type { IAuthService } from '../../services/contracts/auth.interface.js';
@@ -239,6 +240,7 @@ export function registerApiRoutes(app: Express, deps: ApiRoutesDeps): void {
   const requireMember = createRequireMemberAuthMiddleware(deps.config);
 
   app.use('/api/member', memberGlobalLimiter, memberNoStoreHeaders, memberJsonGuard);
+  registerPointsRoutes(app, deps.config, [requireAuth, loadStaff, perm(['points_manage'])]);
 
   app.post('/api/member/register', memberRegisterLimiter, createMemberRegisterHandler(deps.config));
   app.post('/api/member/confirm', memberConfirmLimiter, createMemberConfirmHandler(deps.config));

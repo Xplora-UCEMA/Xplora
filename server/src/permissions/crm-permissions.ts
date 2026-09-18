@@ -2,6 +2,7 @@
  * Permisos del panel CRM (strings estables). `access_total` implica todos los demás.
  */
 export const CRM_PERMISSION_KEYS = [
+  'points_manage',
   'site_edit',
   'events_create',
   'past_events_create',

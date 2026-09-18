@@ -4,7 +4,7 @@ import { createServiceSupabase } from '../../infra/supabase-clients.js';
 import {
   fetchMemberEventHistory,
   findMemberById,
-  linkOrCreateUsuario,
+  linkExistingUsuario,
   toPublicProfile,
   type MemberJob,
   type MemberLanguage,
@@ -89,7 +89,7 @@ export function createMemberMeHandler(config: AppConfig): RequestHandler {
     if (!account) throw new UnauthorizedError('Cuenta no encontrada.');
 
     // Cruza con `usuarios` / inscripciones por email (historial de eventos previos)
-    const usuarioId = await linkOrCreateUsuario(sb, account);
+    const usuarioId = await linkExistingUsuario(sb, account);
     if (usuarioId && account.usuario_id !== usuarioId) {
       account = (await findMemberById(sb, auth.accountId)) ?? account;
     }
@@ -111,6 +111,9 @@ export function createMemberPatchMeHandler(config: AppConfig): RequestHandler {
     const patch: Record<string, unknown> = { updated_at: new Date().toISOString() };
 
     if ('displayName' in body) patch.display_name = cleanStr(body.displayName);
+    if ('firstName' in body) patch.first_name = cleanStr(body.firstName, 80);
+    if ('lastName' in body) patch.last_name = cleanStr(body.lastName, 80);
+    if ('firstName' in body && 'lastName' in body) patch.display_name = `${cleanStr(body.firstName,80)} ${cleanStr(body.lastName,80)}`.trim();
     if ('phone' in body) patch.phone = cleanStr(body.phone, 64);
     if ('studies' in body) patch.studies = parseStudies(body.studies);
     if ('jobs' in body) patch.jobs = parseJobs(body.jobs);

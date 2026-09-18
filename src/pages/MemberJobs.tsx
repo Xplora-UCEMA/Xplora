@@ -8,6 +8,7 @@ import { useMemberAuth } from '../context/MemberAuthContext';
 import { memberFetch } from '../lib/memberAuth';
 import { normalizePath } from '../lib/routes';
 import '../styles/memberAccount.css';
+import '../styles/points.css';
 
 type Job = {
   id: string;
@@ -80,7 +81,6 @@ export default function MemberJobs() {
     <MemberShell active="empleo">
       <div className="ma-panel">
         <header className="ma-panel__head">
-          <p className="ma-kicker">Comunidad</p>
           <h1 className="ma-title">Bolsa de empleo</h1>
           <p className="ma-sub">Ofertas para miembros de Xplora.</p>
         </header>

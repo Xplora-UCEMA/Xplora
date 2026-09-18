@@ -1,77 +1,64 @@
-import { useEffect, useState } from 'react';
-import { useMemberAuth } from '../context/MemberAuthContext';
-import { useSiteMedia } from '../context/SiteMediaContext';
-import { DEFAULT_LOGO_URL } from '../lib/defaultsMedia';
-import { memberConfirm } from '../lib/memberAuth';
-import '../styles/memberAccount.css';
+import { useEffect, useState } from "react";
+import { useMemberAuth } from "../context/MemberAuthContext";
+import { memberConfirm } from "../lib/memberAuth";
+import { messageOf, verifyAccess } from "../lib/points";
+import { PointMark } from "../components/member/PointMark";
+import "../styles/memberAccount.css";
+import "../styles/points.css";
 
 export default function MemberConfirm() {
-  const { logoUrl } = useSiteMedia();
-  const brandLogo = logoUrl || DEFAULT_LOGO_URL;
   const { signInWithToken } = useMemberAuth();
-  const [status, setStatus] = useState<'loading' | 'ok' | 'error'>('loading');
-  const [error, setError] = useState('');
-
+  const [link] = useState(() => {
+    const hash = new URLSearchParams(window.location.hash.slice(1));
+    return {
+      challenge: hash.get("challenge") ?? "",
+      token:
+        hash.get("token") ??
+        new URLSearchParams(window.location.search).get("token") ??
+        "",
+    };
+  });
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  // Scrub credentials before outbound navigation. Only a deliberate POST consumes the link.
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const token = params.get('token')?.trim() || '';
-    if (!token) {
-      setStatus('error');
-      setError('Falta el token de confirmación.');
-      return;
-    }
-    void (async () => {
-      const r = await memberConfirm(token);
-      if ('error' in r) {
-        setStatus('error');
-        setError(r.error);
-        return;
-      }
+    window.history.replaceState(null, "", "/cuenta/confirmar");
+  }, []);
+  async function confirm() {
+    setBusy(true);
+    setError("");
+    try {
+      const r = link.challenge
+        ? await verifyAccess(link.challenge, { token: link.token })
+        : await memberConfirm(link.token);
+      if ("error" in r) throw new Error(r.error);
       signInWithToken(r.accessToken, r.account);
-      setStatus('ok');
-      window.setTimeout(() => {
-        window.history.replaceState({}, '', '/cuenta');
-        window.dispatchEvent(new PopStateEvent('popstate'));
-      }, 900);
-    })();
-  }, [signInWithToken]);
-
+      window.history.replaceState(null, "", "/cuenta");
+      window.dispatchEvent(new PopStateEvent("popstate"));
+    } catch (e) {
+      setError(messageOf(e));
+    } finally {
+      setBusy(false);
+    }
+  }
   return (
-    <div className="ma-page ma-page--gate">
-      <div className="ma-fx" aria-hidden>
-        <div className="ma-fx__aurora ma-fx__aurora--a" />
-        <div className="ma-fx__aurora ma-fx__aurora--b" />
-        <div className="ma-fx__grain" />
-      </div>
-
-      <header className="ma-top">
-        <a className="ma-brand" href="/" aria-label="Xplora">
-          <img className="ma-brand__logo" src={brandLogo} alt="Xplora" />
-        </a>
-      </header>
-
-      <main className="ma-main ma-main--gate">
-        <div className="ma-gate">
-          <section className="ma-card ma-card--gate">
-            <h1 className="ma-h1">Confirmación</h1>
-            {status === 'loading' ? <p className="ma-muted">Confirmando tu email…</p> : null}
-            {status === 'ok' ? (
-              <p className="ma-ok">Listo. Tu cuenta quedó activa. Te llevamos a tu perfil…</p>
-            ) : null}
-            {status === 'error' ? (
-              <>
-                <p className="ma-err">{error}</p>
-                <a className="ma-btn" href="/cuenta" style={{ marginTop: 12 }}>
-                  Ir a cuenta
-                </a>
-              </>
-            ) : null}
-          </section>
-          <a className="ma-home-link" href="/">
-            ← Inicio
-          </a>
-        </div>
-      </main>
-    </div>
+    <main className="xp-confirm">
+      <section>
+        <PointMark large />
+        <h1>Estás a un paso.</h1>
+        <p>Confirmá tu acceso para entrar a tu comunidad.</p>
+        <p className="xp-error" role="alert">
+          {error}
+        </p>
+        <button
+          className="xp-button"
+          disabled={busy || !link.token}
+          onClick={() => void confirm()}
+        >
+          {busy ? "Verificando…" : "Entrar a Xplora"}
+        </button>
+        <a href="/cuenta">Pedir un nuevo enlace</a>
+      </section>
+    </main>
   );
 }

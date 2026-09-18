@@ -5,8 +5,8 @@
 import type { RequestHandler } from 'express';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { AppConfig } from '../../config/env.js';
-import { createUserSupabase } from '../../infra/supabase-clients.js';
-import { BadRequestError } from '../errors/http-error.js';
+import { createServiceSupabase } from '../../infra/supabase-clients.js';
+import { BadRequestError, InternalError } from '../errors/http-error.js';
 import { asyncHandler } from '../middleware/async-handler.js';
 import {
   mergeGuestsByEmail,
@@ -171,7 +171,8 @@ export function createAdminLumaCsvImportHandler(config: AppConfig): RequestHandl
       throw new BadRequestError('Subí un archivo CSV, XLSX o XLS.');
     }
 
-    const sb = createUserSupabase(config, req.headers.authorization);
+    const sb = createServiceSupabase(config);
+    if (!sb) throw new InternalError('La importación requiere acceso de servidor.');
 
     const { data: evento, error: evErr } = await sb
       .from('eventos')

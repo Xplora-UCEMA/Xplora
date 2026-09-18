@@ -19,6 +19,8 @@ import StaffAccountsPanel from '../components/admin/StaffAccountsPanel';
 import CandidatesPanel from '../components/admin/CandidatesPanel';
 import SponsorsPanel from '../components/admin/SponsorsPanel';
 import AdminHome from '../components/admin/AdminHome';
+import PointsPanel, { EventPointsFields, emptyEventPoints, loadEventPoints, saveEventPoints, validateEventPoints } from '../components/admin/PointsPanel';
+import { EventAttendanceImport } from '../components/admin/EventAttendanceImport';
 import AdminShell, {
   type AdminSectionId,
   type AdminNavItem,
@@ -49,6 +51,7 @@ const NAV_ITEMS: AdminNavItem[] = [
 ];
 
 const DATA_TABS: Array<{ id: AdminDataTabId; label: string }> = [
+  { id: 'points', label: 'Xplora Points' },
   { id: 'eventos', label: 'Eventos' },
   { id: 'comunidad', label: 'Comunidad' },
   { id: 'campanas_email', label: 'Email' },
@@ -218,6 +221,7 @@ function DataHub({
       </div>
 
       {tab === 'eventos' && <EventosSection />}
+      {tab === 'points' && <PointsPanel />}
       {tab === 'comunidad' && <DatabasePanel />}
       {tab === 'campanas_email' && <EmailCampaignsHub />}
       {tab === 'sponsors' && <SponsorsPanel />}
@@ -259,6 +263,12 @@ const EVENTO_EMPTY: Omit<DbEvento, 'id' | 'created_at'> = {
 };
 
 function EventosSection() {
+  const { permissions } = useStaffPermissions();
+  const canPoints = hasAnyPermission(permissions, ['points_manage']);
+  const [pointsDraft, setPointsDraft] = useState({ ...emptyEventPoints });
+  const [savedPoints, setSavedPoints] = useState({ ...emptyEventPoints });
+  const [attendanceBusy, setAttendanceBusy] = useState(false);
+  const [pointsReady, setPointsReady] = useState(true);
   const toast = useToast();
   const confirm = useConfirm();
   const [rows, setRows] = useState<DbEvento[]>([]);
@@ -280,23 +290,34 @@ function EventosSection() {
   }, []);
 
   const openCreate = () => {
+    setPointsDraft({ ...emptyEventPoints });
+    setPointsReady(true);
     setForm(EVENTO_EMPTY);
     setEditRow(null);
     setFormOpen(true);
     setError('');
   };
   const openEdit = (r: DbEvento) => {
+    setPointsDraft({ ...emptyEventPoints });
+    if (canPoints) {
+      setPointsReady(false);
+      void loadEventPoints(r.id).then(value => {setPointsDraft(value);setSavedPoints(value);setPointsReady(true);})
+        .catch(e => setError(e instanceof Error ? e.message : 'No se pudo cargar Points.'));
+    }
     setForm({ ...EVENTO_EMPTY, ...r });
     setEditRow(r);
     setFormOpen(true);
     setError('');
   };
   const closeForm = () => {
+    if (attendanceBusy) return;
     setFormOpen(false);
     setEditRow(null);
   };
 
   const save = async () => {
+    if (!pointsReady || attendanceBusy) return;
+    try { if (canPoints) validateEventPoints(pointsDraft); } catch (e) { setError(e instanceof Error ? e.message : 'Revisá Points.'); return; }
     if (!form.title.trim()) {
       setError('El título es obligatorio');
       return;
@@ -325,6 +346,11 @@ function EventosSection() {
     const flyer = (form.home_poster_url || form.thumbnail_url || '').trim() || null;
     const payload = {
       ...form,
+      // Attendance totals belong to the importer, not the event content editor.
+      // Omitting them on PATCH also preserves imports from another staff session.
+      total_inscriptos: editRow ? undefined : form.total_inscriptos,
+      total_asistieron: editRow ? undefined : form.total_asistieron,
+      luma_csv_imported_at: editRow ? undefined : form.luma_csv_imported_at,
       speakers,
       speaker_name: name,
       speaker_role: role,
@@ -355,6 +381,16 @@ function EventosSection() {
       setError(await readApiError(res));
       setSaving(false);
       return;
+    }
+    if (canPoints && pointsDraft.enabled && !pointsDraft.closed) {
+      const saved = await res.json() as DbEvento;
+      setEditRow(saved);
+      try { await saveEventPoints(saved.id, pointsDraft); }
+      catch (e) {
+        setError(`El evento quedó guardado, pero Points no: ${e instanceof Error ? e.message : 'Reintentá.'}`);
+        setSaving(false);
+        return;
+      }
     }
     setSaving(false);
     closeForm();
@@ -464,12 +500,20 @@ function EventosSection() {
       {formOpen && (
         <FormScreen
           title={editRow ? 'Editar evento' : 'Nuevo evento'}
-          subtitle="Solo lo que se muestra en la home. * obligatorio."
+          subtitle="Contenido, puntos y asistencia del evento. * obligatorio."
           onClose={closeForm}
           onSave={save}
-          saving={saving}
+          saving={saving || attendanceBusy}
           error={error}
         >
+          {canPoints ? <FormSection title="Xplora Points">{pointsReady ? <EventPointsFields value={pointsDraft} onChange={setPointsDraft} /> : <p>Cargando política de puntos…</p>}</FormSection> : null}
+          {editRow && hasAnyPermission(permissions, ['events_edit_delete']) ? <EventAttendanceImport
+            key={editRow.id} eventId={editRow.id} onBusy={setAttendanceBusy} onImported={() => {void load();}}
+            basePoints={canPoints && savedPoints.enabled ? savedPoints.points : undefined}
+            pointsEnabled={canPoints && pointsReady ? savedPoints.enabled : undefined}
+            blockedReason={saving ? 'Guardando evento…' : !pointsReady ? 'Esperá a que se cargue la configuración de Points.'
+              : canPoints && JSON.stringify(pointsDraft)!==JSON.stringify(savedPoints) ? 'Guardá los cambios de Points y volvé a editar el evento antes de importar.'
+              : canPoints && savedPoints.closed ? 'La asistencia de este evento ya está cerrada.' : undefined} /> : null}
           <FormSection title="Evento">
             <Field
               label="Título *"

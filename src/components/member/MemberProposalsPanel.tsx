@@ -44,17 +44,21 @@ export function MemberProposalsPanel() {
   const [msg, setMsg] = useState('');
   const [list, setList] = useState<Proposal[]>([]);
   const [loadingList, setLoadingList] = useState(true);
+  const [listError, setListError] = useState('');
 
   const load = async () => {
     setLoadingList(true);
-    const res = await memberFetch('/api/member/proposals');
-    setLoadingList(false);
-    if (!res.ok) {
-      setList([]);
-      return;
+    setListError('');
+    try {
+      const res = await memberFetch('/api/member/proposals');
+      if (!res.ok) throw new Error('No pudimos cargar tus propuestas. Tu historial no se perdió.');
+      const data = (await res.json()) as { proposals: Proposal[] };
+      setList(data.proposals ?? []);
+    } catch {
+      setListError('No pudimos cargar tus propuestas. Revisá la conexión y reintentá.');
+    } finally {
+      setLoadingList(false);
     }
-    const data = (await res.json()) as { proposals: Proposal[] };
-    setList(data.proposals ?? []);
   };
 
   useEffect(() => {
@@ -84,9 +88,8 @@ export function MemberProposalsPanel() {
   };
 
   return (
-    <div className="ma-panel">
+    <div className="ma-panel ma-proposals">
       <header className="ma-panel__head">
-        <p className="ma-kicker">Comunidad</p>
         <h1 className="ma-title">Propuestas</h1>
         <p className="ma-sub">
           Contanos ideas de eventos, temas que te interesan o feedback para mejorar Xplora.
@@ -108,6 +111,7 @@ export function MemberProposalsPanel() {
         <label>
           Título
           <input
+            id="propuesta-title"
             required
             maxLength={160}
             value={title}
@@ -138,11 +142,17 @@ export function MemberProposalsPanel() {
 
       <section className="ma-proposals-list">
         <h2 className="ma-block__title">Tus envíos</h2>
-        {loadingList ? <p className="ma-empty">Cargando…</p> : null}
-        {!loadingList && list.length === 0 ? (
+        {loadingList ? <p className="ma-empty" role="status">Buscando tus propuestas…</p> : null}
+        {listError ? <div>
+          <p className="ma-err" role="alert">{listError}</p>
+          <button className="xp-text-button" onClick={() => void load()}>Reintentar propuestas</button>
+        </div> : null}
+        {!loadingList && !listError && list.length === 0 ? (
           <MemberEmptyState
-            title="Todavía no enviaste nada"
-            copy="Cuando mandes una propuesta, va a quedar listada acá."
+            headingLevel={3}
+            title="La próxima idea puede ser tuya"
+            copy="Tus propuestas enviadas van a quedar acá."
+            action={<a className="xp-text-button" href="#propuesta-title">Escribir una propuesta</a>}
           />
         ) : null}
         {!loadingList && list.length > 0 ? (
