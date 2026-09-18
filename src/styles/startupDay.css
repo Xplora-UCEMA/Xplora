@@ -851,11 +851,11 @@ html.sd-coming-soon body {
   color: #fff;
 }
 
-.sd-top__cta-spacer {
-  width: 1px;
-  height: 1px;
+.sd-top__actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
   flex-shrink: 0;
-  visibility: hidden;
 }
 
 .sd-top__cta {
@@ -889,6 +889,17 @@ html.sd-coming-soon body {
   color: #fff;
 }
 
+.sd-top__account {
+  min-height: 44px;
+  justify-content: center;
+  white-space: nowrap;
+}
+
+.sd-top__cta:focus-visible {
+  outline: 3px solid #c4b5ff;
+  outline-offset: 4px;
+}
+
 @media (max-width: 720px) {
   .sd-nav-shell {
     padding: 0;
@@ -904,6 +915,7 @@ html.sd-coming-soon body {
     padding: 12px 14px;
     max-width: 100%;
     gap: 8px 10px;
+    flex-wrap: wrap;
   }
   .sd-nav-shell.is-island .sd-top {
     max-width: 100%;
@@ -913,11 +925,15 @@ html.sd-coming-soon body {
   .sd-top__cta {
     display: none;
   }
+  .sd-top__account {
+    display: inline-flex;
+  }
   .sd-top__name {
     display: none;
   }
   .sd-tabs {
-    flex: 1 1 auto;
+    order: 3;
+    flex: 1 0 100%;
     justify-content: center;
     min-width: 0;
     gap: 0;
@@ -929,6 +945,9 @@ html.sd-coming-soon body {
     font-size: 0.74rem;
     padding: 6px 8px;
     white-space: nowrap;
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
   }
   .sd-nav-shell.is-island .sd-tabs button,
   .sd-nav-shell.is-island .sd-tabs a {

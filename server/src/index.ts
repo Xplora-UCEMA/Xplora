@@ -6,6 +6,7 @@ import fs from 'fs';
 import { Loly } from '@kyncode/sdk';
 import { loadEnvFromProjectRoot, getAppConfig } from './config/env.js';
 import { createApplication } from './composition-root.js';
+import { startGoogleWorker } from './services/google-central/worker.js';
 
 loadEnvFromProjectRoot();
 
@@ -14,6 +15,7 @@ Loly.listenToProcessEvents();
 
 const config = getAppConfig();
 const app = createApplication(config);
+startGoogleWorker(config);
 
 app.listen(config.port, () => {
   const mode =

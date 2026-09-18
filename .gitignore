@@ -1,5 +1,8 @@
 # Dependencies
 node_modules/
+test-results/
+playwright-report/
+.impeccable/review/
 
 # Build output
 dist/
@@ -31,4 +34,9 @@ Thumbs.db
 
 .claude/
 
-supabase/migrations/
+supabase/migrations/*
+!supabase/migrations/202609170000_member_access.sql
+!supabase/migrations/202609170001_xplora_points.sql
+!supabase/migrations/202609170002_points_crm_privileges.sql
+!supabase/migrations/202609170003_google_forms_tasks.sql
+!supabase/migrations/202609170004_google_forms_central.sql

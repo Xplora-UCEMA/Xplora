@@ -92,6 +92,10 @@ export async function deleteContactData(
   sb: SupabaseClient,
   usuarioId: string,
 ): Promise<'deleted' | 'already_deleted'> {
+  const erased = await sb.rpc('xp_delete_contact', { p_user: usuarioId });
+  if (!erased.error) return erased.data === 'already_deleted' ? 'already_deleted' : 'deleted';
+  // Compatibility only before the migration is installed; never fall back after a real SQL failure.
+  if (erased.error.code !== 'PGRST202' && erased.error.code !== '42883') throw new Error('No se pudo completar la baja. Reintentá.');
   const { data, error } = await sb
     .from('usuarios')
     .select('id, email')

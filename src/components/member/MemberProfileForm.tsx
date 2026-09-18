@@ -62,8 +62,8 @@ export function MemberProfileForm() {
   useEffect(() => {
     if (!account) return;
     const { firstName: f, lastName: l } = splitDisplayName(account.displayName);
-    setFirstName(f);
-    setLastName(l);
+    setFirstName(account.firstName || f);
+    setLastName(account.lastName || l);
     setPhone(account.phone);
     setSkills(account.skills);
     setStudies(account.studies.length ? account.studies.map((s) => ({ ...s })) : [emptyStudy()]);
@@ -117,6 +117,8 @@ export function MemberProfileForm() {
       method: 'PATCH',
       body: JSON.stringify({
         displayName,
+        firstName,
+        lastName,
         phone: phone.trim(),
         skills,
         studies: studies
@@ -186,9 +188,8 @@ export function MemberProfileForm() {
   return (
     <div className="ma-panel">
       <header className="ma-panel__head">
-        <p className="ma-kicker">Datos personales</p>
         <h1 className="ma-title">Mi perfil</h1>
-        <p className="ma-sub">Completá tu información. Se usa para la bolsa y la comunidad Xplora.</p>
+        <p className="ma-sub">Tu información en la comunidad.</p>
       </header>
 
       <div className="ma-profile-hero">
@@ -200,7 +201,8 @@ export function MemberProfileForm() {
             <input
               type="file"
               accept="image/*"
-              hidden
+              className="ma-file-input"
+              disabled={busy}
               onChange={(e) => void onAvatar(e.target.files?.[0] ?? null)}
             />
           </label>
@@ -271,6 +273,7 @@ export function MemberProfileForm() {
                 }
               }}
               placeholder="Buscar o agregar skill…"
+              aria-label="Buscar o agregar skill"
               list="ma-skill-pool"
             />
             <datalist id="ma-skill-pool">
@@ -563,7 +566,8 @@ export function MemberProfileForm() {
               <input
                 type="file"
                 accept=".pdf,.doc,.docx,application/pdf"
-                hidden
+                className="ma-file-input"
+                disabled={busy}
                 onChange={(e) => void onCv(e.target.files?.[0] ?? null)}
               />
             </label>

@@ -9,6 +9,7 @@ import {
 
 type MemberAuthState = {
   loading: boolean;
+  sessionError: string;
   account: MemberProfile | null;
   events: MemberEventItem[];
   refresh: () => Promise<void>;
@@ -20,10 +21,12 @@ const Ctx = createContext<MemberAuthState | null>(null);
 
 export function MemberAuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
+  const [sessionError, setSessionError] = useState('');
   const [account, setAccount] = useState<MemberProfile | null>(null);
   const [events, setEvents] = useState<MemberEventItem[]>([]);
 
   const refresh = useCallback(async () => {
+    setSessionError('');
     const token = getMemberToken();
     if (!token) {
       setAccount(null);
@@ -31,16 +34,17 @@ export function MemberAuthProvider({ children }: { children: ReactNode }) {
       setLoading(false);
       return;
     }
-    const me = await memberLoadMe();
-    if ('error' in me) {
-      setMemberToken(null);
-      setAccount(null);
-      setEvents([]);
-    } else {
-      setAccount(me.account);
-      setEvents(me.events);
-    }
-    setLoading(false);
+    try {
+      const me = await memberLoadMe();
+      if (getMemberToken() !== token) return;
+      if ('error' in me) {
+        if (me.status === 401 || me.status === 403) {
+          setMemberToken(null); setAccount(null); setEvents([]);
+        } else setSessionError('No pudimos conectar con tu cuenta. Tu sesión sigue guardada.');
+      } else { setAccount(me.account); setEvents(me.events); }
+    } catch {
+      setSessionError('No pudimos conectar con tu cuenta. Revisá tu conexión.');
+    } finally { setLoading(false); }
   }, []);
 
   useEffect(() => {
@@ -49,18 +53,20 @@ export function MemberAuthProvider({ children }: { children: ReactNode }) {
 
   const signInWithToken = useCallback((token: string, next: MemberProfile) => {
     setMemberToken(token);
+    setSessionError('');
     setAccount(next);
   }, []);
 
   const signOut = useCallback(() => {
     setMemberToken(null);
+    setSessionError('');
     setAccount(null);
     setEvents([]);
   }, []);
 
   const value = useMemo(
-    () => ({ loading, account, events, refresh, signInWithToken, signOut }),
-    [loading, account, events, refresh, signInWithToken, signOut],
+    () => ({ loading, sessionError, account, events, refresh, signInWithToken, signOut }),
+    [loading, sessionError, account, events, refresh, signInWithToken, signOut],
   );
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

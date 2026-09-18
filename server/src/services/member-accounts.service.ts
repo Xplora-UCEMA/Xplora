@@ -27,6 +27,8 @@ export type MemberAccountRow = {
   email_confirmed_at: string | null;
   usuario_id: string | null;
   display_name: string | null;
+  first_name: string;
+  last_name: string;
   phone: string | null;
   avatar_url: string | null;
   studies: MemberStudy[] | unknown;
@@ -42,6 +44,8 @@ export type MemberPublicProfile = {
   id: string;
   email: string;
   displayName: string;
+  firstName: string;
+  lastName: string;
   phone: string;
   avatarUrl: string;
   studies: MemberStudy[];
@@ -62,6 +66,8 @@ export function toPublicProfile(row: MemberAccountRow): MemberPublicProfile {
     id: row.id,
     email: row.email,
     displayName: row.display_name?.trim() || '',
+    firstName: row.first_name ?? '',
+    lastName: row.last_name ?? '',
     phone: row.phone?.trim() || '',
     avatarUrl: row.avatar_url?.trim() || '',
     studies: asArray<MemberStudy>(row.studies),
@@ -138,21 +144,40 @@ export async function findUsuarioByEmail(
 
 /**
  * Vincula la cuenta miembro con el `usuarios` del mismo email (historial de eventos).
- * Si no existe fila en usuarios, la crea.
+ * Sólo vincula contactos existentes: no crea ni modifica filas del CRM.
  */
+export async function linkExistingUsuario(
+  sb: SupabaseClient,
+  account: Pick<MemberAccountRow, 'id' | 'email' | 'usuario_id'>,
+): Promise<string | null> {
+  const existing = await findUsuarioByEmail(sb, account.email);
+  if (!existing) return null;
+  if (account.usuario_id !== existing.id) {
+    const { data, error } = await sb.from('member_accounts')
+      .update({ usuario_id: existing.id, updated_at: new Date().toISOString() })
+      .eq('id', account.id).select('id').single();
+    if (error || !data) throw new InternalError('No pudimos vincular tu historial. Contactá a Xplora.');
+  }
+  return existing.id;
+}
+
+/** Legacy registration integration. New passwordless access never creates CRM contacts. */
 export async function linkOrCreateUsuario(
   sb: SupabaseClient,
   account: MemberAccountRow,
 ): Promise<string | null> {
   const email = account.email.trim().toLowerCase();
+  const persistLink = async (usuarioId: string): Promise<void> => {
+    const { data, error } = await sb.from('member_accounts')
+      .update({ usuario_id: usuarioId, updated_at: new Date().toISOString() })
+      .eq('id', account.id).select('id').single();
+    if (error || !data) throw new InternalError('No pudimos vincular tu historial. Contactá a Xplora.');
+  };
   const existing = await findUsuarioByEmail(sb, email);
 
   if (existing?.id) {
     if (account.usuario_id !== existing.id) {
-      await sb
-        .from('member_accounts')
-        .update({ usuario_id: existing.id, updated_at: new Date().toISOString() })
-        .eq('id', account.id);
+      await persistLink(existing.id);
     }
     // Normaliza email en usuarios para futuros matches exactos
     if (String(existing.email).trim().toLowerCase() !== email) {
@@ -167,7 +192,7 @@ export async function linkOrCreateUsuario(
     .insert({
       email,
       nombre,
-      suscrito_newsletter: true,
+      suscrito_newsletter: false,
     })
     .select('id')
     .single();
@@ -175,20 +200,14 @@ export async function linkOrCreateUsuario(
     // Carrera: otro proceso creó el usuario entre el select y el insert
     const again = await findUsuarioByEmail(sb, email);
     if (again?.id) {
-      await sb
-        .from('member_accounts')
-        .update({ usuario_id: again.id, updated_at: new Date().toISOString() })
-        .eq('id', account.id);
+      await persistLink(again.id);
       return again.id;
     }
     console.warn('[member] linkOrCreateUsuario insert failed:', error?.message);
     return null;
   }
 
-  await sb
-    .from('member_accounts')
-    .update({ usuario_id: created.id, updated_at: new Date().toISOString() })
-    .eq('id', account.id);
+  await persistLink(created.id);
   return created.id as string;
 }
 

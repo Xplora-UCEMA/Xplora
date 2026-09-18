@@ -4,6 +4,7 @@
 import type { AdminSectionId } from '../components/admin/crm/AdminShell';
 
 export const CRM_PERMISSION_KEYS = [
+  'points_manage',
   'site_edit',
   'events_create',
   'past_events_create',
@@ -28,6 +29,7 @@ export const CRM_PERMISSION_KEYS = [
 export type CrmPermissionKey = (typeof CRM_PERMISSION_KEYS)[number];
 
 export const CRM_PERMISSION_LABELS: Record<CrmPermissionKey, string> = {
+  points_manage: 'Xplora Points: eventos, acciones y recompensas digitales',
   site_edit: 'Editar contenido del sitio (home, fotos, logo)',
   events_create: 'Crear eventos próximos',
   past_events_create: 'Crear contenido del Archivo (charlas)',
@@ -63,6 +65,8 @@ export function hasAnyPermission(perms: readonly CrmPermissionKey[], keys: reado
 export function canSeeAdminSection(section: AdminSectionId, perms: readonly CrmPermissionKey[]): boolean {
   if (hasPermission(perms, 'access_total')) return true;
   switch (section) {
+    case 'points':
+      return hasPermission(perms, 'points_manage');
     case 'inicio':
       // Cualquier staff con al menos un permiso ve el panorama.
       return perms.length > 0;
@@ -70,6 +74,7 @@ export function canSeeAdminSection(section: AdminSectionId, perms: readonly CrmP
       return hasPermission(perms, 'site_edit');
     case 'data':
       return (
+        canSeeAdminSection('points', perms) ||
         canSeeAdminSection('eventos', perms) ||
         canSeeAdminSection('comunidad', perms) ||
         canSeeAdminSection('campanas_email', perms) ||

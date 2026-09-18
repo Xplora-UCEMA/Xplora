@@ -7,18 +7,17 @@ export function MemberEventsPanel() {
   return (
     <div className="ma-panel ma-panel--events">
       <header className="ma-panel__head">
-        <p className="ma-kicker">Historial</p>
         <h1 className="ma-title">Eventos</h1>
         <p className="ma-sub">Inscripciones y asistencias asociadas a tu email.</p>
       </header>
 
       {events.length === 0 ? (
         <MemberEmptyState
-          title="Sin eventos todavía"
-          copy="Cuando te anotes a un evento de Xplora con este email, va a figurar acá."
+          title="Nos vemos en el próximo encuentro"
+          copy="Inscribite con el email de tu cuenta para ver tus eventos acá."
           action={
-            <a className="ma-btn ma-btn--ghost" href="/">
-              Ver sitio
+            <a className="xp-button" href="/#proximo">
+              Explorar eventos
             </a>
           }
         />

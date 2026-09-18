@@ -2,6 +2,7 @@ import { config as loadDotenv } from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import fs from 'fs';
+import type { GoogleConfig } from '../services/google-central/oauth.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -46,6 +47,7 @@ function firstNonEmpty(...keys: string[]): string {
 }
 
 export interface AppConfig {
+  readonly googleForms?: GoogleConfig | null;
   readonly nodeEnv: 'development' | 'production' | 'test';
   readonly port: number;
   readonly supabaseUrl: string;
@@ -82,6 +84,8 @@ export interface AppConfig {
   } | null;
   /** Origen público del front (links de confirmación de cuenta). */
   readonly publicSiteUrl: string;
+  /** Desactivar para probar sólo acceso antes de instalar la migración de Points. */
+  readonly pointsEnabled: boolean;
   /** Secreto HS256 para JWT de miembros (cuenta / bolsa). */
   readonly memberJwtSecret: string | null;
   /** Secreto HS256 para enlaces individuales de eliminación de contactos. */
@@ -148,6 +152,7 @@ export function getAppConfig(): AppConfig {
   const unsubscribeTokenSecret = firstNonEmpty('UNSUBSCRIBE_TOKEN_SECRET') || memberJwtSecret;
 
   return {
+    googleForms: readGoogleConfig(nodeEnv),
     nodeEnv: nodeEnv === 'production' || nodeEnv === 'test' ? nodeEnv : 'development',
     port: Number.isFinite(port) && port > 0 ? port : 8787,
     supabaseUrl,
@@ -157,8 +162,29 @@ export function getAppConfig(): AppConfig {
     resend,
     meta,
     publicSiteUrl,
+    pointsEnabled: process.env.XPLORA_POINTS_ENABLED !== 'false',
     memberJwtSecret,
     unsubscribeTokenSecret,
     paths: { webDist: resolveWebDist() },
   };
+}
+
+function readGoogleConfig(mode: string): GoogleConfig | null {
+  const clientId = firstNonEmpty('GOOGLE_FORMS_CLIENT_ID');
+  const clientSecret = firstNonEmpty('GOOGLE_FORMS_CLIENT_SECRET');
+  const redirectUri = firstNonEmpty('GOOGLE_FORMS_REDIRECT_URI');
+  const encryptionKey = firstNonEmpty('GOOGLE_FORMS_ENCRYPTION_KEY');
+  const accountEmail = firstNonEmpty('GOOGLE_FORMS_ACCOUNT_EMAIL').toLowerCase();
+  if (![clientId, clientSecret, redirectUri, encryptionKey, accountEmail].some(Boolean)) return null;
+  let validUrl = false;
+  try {
+    const url = new URL(redirectUri);
+    validUrl = !url.username && !url.password && !url.search && !url.hash &&
+      url.pathname === '/api/integrations/points/google/callback' && (url.protocol === 'https:' ||
+        (mode !== 'production' && url.protocol === 'http:' && ['127.0.0.1', 'localhost'].includes(url.hostname)));
+  } catch { /* Fail closed without printing configuration. */ }
+  if (!clientId || !clientSecret || !validUrl || Buffer.from(encryptionKey, 'base64').length !== 32 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(accountEmail))
+    throw new Error('La configuración privada de Google Forms está incompleta o no es válida.');
+  return { clientId, clientSecret, redirectUri, encryptionKey, accountEmail,
+    workerEnabled: process.env.GOOGLE_FORMS_WORKER_ENABLED === 'true' };
 }

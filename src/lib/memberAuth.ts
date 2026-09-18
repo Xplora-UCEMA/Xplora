@@ -10,6 +10,8 @@ export type MemberProfile = {
   id: string;
   email: string;
   displayName: string;
+  firstName: string;
+  lastName: string;
   phone: string;
   avatarUrl: string;
   studies: { institution: string; degree: string; year?: string }[];
@@ -120,9 +122,9 @@ export async function memberLoginVerify(
 }
 
 export async function memberLoadMe(): Promise<
-  { account: MemberProfile; events: MemberEventItem[] } | { error: string }
+  { account: MemberProfile; events: MemberEventItem[] } | { error: string; status: number }
 > {
   const res = await memberFetch('/api/member/me');
-  if (!res.ok) return { error: await readApiError(res) };
+  if (!res.ok) return { error: await readApiError(res), status: res.status };
   return (await res.json()) as { account: MemberProfile; events: MemberEventItem[] };
 }

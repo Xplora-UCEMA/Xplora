@@ -1,34 +1,23 @@
 import type { ReactNode } from 'react';
-import { useSiteMedia } from '../../context/SiteMediaContext';
-import { DEFAULT_LOGO_URL } from '../../lib/defaultsMedia';
 
 type Props = {
   title: string;
-  copy: string;
+  copy?: string;
   action?: ReactNode;
+  headingLevel?: 2 | 3;
 };
 
-/** Empty state con brújula Xplora en monocromo. */
-export function MemberEmptyState({ title, copy, action }: Props) {
-  const { logoUrl } = useSiteMedia();
-  const logo = logoUrl || DEFAULT_LOGO_URL;
+/** One calm, actionable state across the account; the original coin stays unchanged. */
+export function MemberEmptyState({ title, copy, action, headingLevel = 2 }: Props) {
+  const Heading = headingLevel === 3 ? 'h3' : 'h2';
 
   return (
     <div className="ma-empty-state">
-      <div className="ma-empty-state__illu" aria-hidden>
-        <span className="ma-empty-state__ring" />
-        <img
-          className="ma-empty-state__logo"
-          src={logo}
-          alt=""
-          onError={(e) => {
-            (e.currentTarget as HTMLImageElement).src = DEFAULT_LOGO_URL;
-          }}
-        />
+      <div className="ma-empty-state__content">
+        <Heading className="ma-empty-state__title">{title}</Heading>
+        {copy ? <p className="ma-empty-state__copy">{copy}</p> : null}
+        {action ? <div className="ma-empty-state__action">{action}</div> : null}
       </div>
-      <h2 className="ma-empty-state__title">{title}</h2>
-      <p className="ma-empty-state__copy">{copy}</p>
-      {action}
     </div>
   );
 }

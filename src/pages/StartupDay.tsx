@@ -138,7 +138,7 @@ export default function StartupDay() {
   const openPhoto = (index: number) => { const p = photos[index]; if (p) setMedia({ id: p.id, kind: 'image', src: `/recap/${p.id}-1920.webp`, alt: p.alt, caption: p.caption, credit: 'Fotografía: @ABRILMKT' }); };
   const cycle = (step: number) => { const index = photos.findIndex(p => p.id === media?.id); openPhoto((index + step + photos.length) % photos.length); };
   const scrollRail = (el: HTMLDivElement | null, dir: number) => el?.scrollBy({ left: dir * el.clientWidth * .78, behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
-  return <SdShell active="startupday" showLoader={entrance.showLoader} loaderDone={entrance.loaderDone} showCursor={false} cta={{ label: 'Sumarme', href: SD_XPLORA_SOCIALS.whatsapp }}><div className="sr-page" ref={root} aria-busy={!entrance.ready}>
+  return <SdShell active="startupday" showLoader={entrance.showLoader} loaderDone={entrance.loaderDone} showCursor={false}><div className="sr-page" ref={root} aria-busy={!entrance.ready}>
     <a href="#recap" className="sr-skip">Ir al contenido</a>
     <main id="recap">
       <section className="sr-hero" aria-labelledby="sr-title">
