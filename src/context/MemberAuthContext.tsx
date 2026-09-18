@@ -6,6 +6,7 @@ import {
   type MemberEventItem,
   type MemberProfile,
 } from '../lib/memberAuth';
+import { isMemberHubPreview, MEMBER_HUB_PREVIEW_ACCOUNT } from '../lib/memberHubPreview';
 
 type MemberAuthState = {
   loading: boolean;
@@ -20,12 +21,18 @@ type MemberAuthState = {
 const Ctx = createContext<MemberAuthState | null>(null);
 
 export function MemberAuthProvider({ children }: { children: ReactNode }) {
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!isMemberHubPreview());
   const [sessionError, setSessionError] = useState('');
-  const [account, setAccount] = useState<MemberProfile | null>(null);
+  const [account, setAccount] = useState<MemberProfile | null>(isMemberHubPreview() ? MEMBER_HUB_PREVIEW_ACCOUNT : null);
   const [events, setEvents] = useState<MemberEventItem[]>([]);
 
   const refresh = useCallback(async () => {
+    if (isMemberHubPreview()) {
+      setAccount(MEMBER_HUB_PREVIEW_ACCOUNT);
+      setEvents([]);
+      setLoading(false);
+      return;
+    }
     setSessionError('');
     const token = getMemberToken();
     if (!token) {

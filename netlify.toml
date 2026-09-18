@@ -9,6 +9,11 @@
   publish = "dist"
   command = "npm run build"
 
+# Product pause: direct /cuenta stays available, but the public header entry is hidden.
+# File-based env overrides any stale value configured in the Netlify UI.
+[context.production.environment]
+  VITE_PUBLIC_MEMBER_ENTRY_ENABLED = "false"
+
 # Misma URL que Railway → public networking (sin / final). Así /api/* en xploraucema.com llega al Node
 # aunque el bundle no tenga VITE_API_ORIGIN (el .env local no viaja con git).
 [[redirects]]

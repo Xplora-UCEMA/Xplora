@@ -1,6 +1,6 @@
-# Xplora Points — implementación local
+# Xplora Points — implementación y operación
 
-Estado al 17/09/2026: Points instalado y habilitado contra Supabase de producción, con autorización explícita. Se aplicaron `202609170000_member_access.sql`, `202609170001_xplora_points.sql` y `202609170002_points_crm_privileges.sql`. El SQL Editor confirmó éxito; la cuenta real en localhost muestra 20 puntos y un movimiento de bienvenida. La web y el nuevo panel siguen sólo en localhost: no hubo push ni deploy de frontend.
+Estado al 18/09/2026: Points está instalado y habilitado contra Supabase de producción. Las migraciones base `202609170000_member_access.sql`, `202609170001_xplora_points.sql`, `202609170002_points_crm_privileges.sql`, `202609170003_google_forms_tasks.sql` y `202609170004_google_forms_central.sql` fueron aplicadas con autorización explícita. Esta revisión incorpora al repositorio el hub de cuenta, la entrega privada de entradas QR y su cobertura; la migración `202609180005_private_qr_ticket_inventory.sql` todavía requiere aplicación explícita antes de cargar stock o desplegar el backend QR. La entrada pública “Mi cuenta” queda oculta en el build de producción, pero `/cuenta` continúa accesible por URL directa.
 La cuenta está en `/cuenta`; el panel de gestión, en Data → Xplora Points.
 
 ## Puntos por evento y CSV de asistencia
@@ -85,8 +85,8 @@ Preflight real: cero vínculos verificados duplicados y Points aún no instalado
    ```
 
    Si hay resultados, resolver la identidad de esas cuentas manualmente; no borrar ni fusionar datos automáticamente.
-4. Desplegar primero el backend compatible. Aplicar `202609170000_member_access.sql`, después `202609170001_xplora_points.sql` y por último `202609170002_points_crm_privileges.sql` desde `supabase/migrations/` a la base de pruebas. Son transaccionales, requieren los roles habituales de Supabase y no se ejecutan al iniciar el servidor. La migración principal de Points se aplica una sola vez. Las tres ya se aplicaron a producción con autorización; no volver a ejecutar la principal allí.
-5. Configurar secretos del entorno de prueba fuera del código: `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `MEMBER_JWT_SECRET` (aleatorio, al menos 32 caracteres), `RESEND_API_KEY`, `RESEND_FROM` y `PUBLIC_SITE_URL`. El remitente debe estar autorizado en Resend. Avatar/CV reutilizan la configuración Cloudinary existente. No se copiaron ni editaron archivos .env.
+4. Desplegar primero el backend compatible. Aplicar `202609170000_member_access.sql`, después `202609170001_xplora_points.sql` y `202609170002_points_crm_privileges.sql` desde `supabase/migrations/`. Para importar tickets privados aplicar además `202609180005_private_qr_ticket_inventory.sql` antes de ejecutar `commit`. Son transaccionales, requieren los roles habituales de Supabase y no se ejecutan al iniciar el servidor. La migración principal de Points se aplica una sola vez. Las tres migraciones iniciales ya se aplicaron a producción con autorización; la migración de tickets todavía debe aplicarse de forma explícita antes de cargar stock.
+5. Configurar secretos del entorno de prueba fuera del código: `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `MEMBER_JWT_SECRET` (aleatorio, al menos 32 caracteres), `POINTS_TICKET_FINGERPRINT_SECRET` (aleatorio, estable y de al menos 32 bytes), `RESEND_API_KEY`, `RESEND_FROM` y `PUBLIC_SITE_URL`. El remitente debe estar autorizado en Resend. Los tickets privados reutilizan la configuración Cloudinary existente. Nunca usar variables `VITE_*` para estas claves.
 6. Configurar el frontend para esa misma instancia de prueba y el origen local del API. No poner claves privadas en variables VITE ni NEXT_PUBLIC.
 7. `npm ci`, luego `npm run dev`. Por defecto Vite usa 5173 y el API 8787. Revisar configuración antes de iniciar: el SDK de observabilidad existente se conserva.
 8. Dar al operador de prueba `points_manage` o `access_total` mediante el mecanismo de staff existente.
@@ -111,13 +111,13 @@ La migración quita escrituras directas de `usuarios` e `inscripciones_evento` a
 2. Importar y revisar asistentes; cerrar acreditación.
 3. Crear acción de tipo encuesta por 30, con asistencia requerida a Startup Day, vencimiento futuro y cupo real.
 4. Compartir su enlace/QR. El formulario pide valoración y comentario, los guarda y acredita una sola vez.
-5. Cargar beneficios digitales reales para LaBitConf, uno por línea, en lotes de hasta 200; después habilitar recompensa.
+5. Para LaBitConf, usar el flujo de ZIP privado documentado abajo; revisar la vista previa y recién entonces importar. Habilitar la recompensa sólo después de verificar el stock.
 
 Estos valores son un ejemplo de configuración, no un objetivo del usuario. LaBitConf es una recompensa más del catálogo: no existe una recompensa principal ni una meta obligatoria de puntos.
 
-### Cuenta simplificada y Tasks (sólo localhost)
+### Cuenta simplificada y Tasks
 
-- `/cuenta`: saldo y Tasks. `/cuenta?vista=recompensas`: catálogo y Mis canjes. `?vista=rachas`: las dos rachas y sus reglas desplegables. `?vista=movimientos`: acreditaciones y canjes.
+- `/cuenta`: hub personal. `/cuenta?vista=tasks`: acciones para sumar Points. `/cuenta?vista=recompensas`: catálogo y Mis canjes. `?vista=rachas`: las dos rachas y sus reglas desplegables. `?vista=movimientos`: acreditaciones y canjes.
 - Se retiraron la meta de 150, la recompensa destacada, el progreso hacia una recompensa y el iframe genérico de inscripción. La brújula 3D aparece sólo en el saldo dentro del panel; no en recompensas ni estados vacíos.
 - `GET /api/member/points/tasks` exige una sesión verificada, usa sólo consultas de lectura y responde con `no-store`. Incluye eventos configurados en Points; sólo los futuros, abiertos y no archivados pueden tener un enlace HTTP(S) a su inscripción. Los eventos pasados del miembro mantienen su estado, sin enlace para inscribirse.
 - Las encuestas de un evento aparecen únicamente a quienes tienen asistencia verificada. Las completadas quedan en un desplegable. Encuestas sin evento, QR y premios manuales no se publican en Tasks ni pierden sus restricciones existentes.
@@ -134,6 +134,21 @@ Encuestas y QR se acreditan al completar el flujo en la cuenta. Concursos, sorte
 
 Los códigos/instrucciones digitales se entregan al confirmar el canje y permanecen en Mis canjes. No hay logística física. Una eliminación explícita de contacto borra cuenta/datos personales/puntos de forma atómica, pero NO devuelve al stock un ticket consumido.
 
+### Entradas QR privadas de LaBitConf
+
+La carga no se hace desde Ops. Se procesa localmente en dos pasos explícitos:
+
+```bash
+npm run tickets:labitconf -- preview --zip /ruta/entradas.zip --out /ruta/preview
+npm run tickets:labitconf -- commit --manifest /ruta/preview/manifest.json --reward UUID_DE_LA_RECOMPENSA
+```
+
+`preview` no toca Supabase ni Cloudinary. Inspecciona el ZIP sin extraer rutas del usuario, aplica límites de cantidad, tamaño, ratio y píxeles, y rechaza traversal, symlinks, archivos cifrados o anidados y formatos no admitidos. Normaliza las imágenes sin metadata, exige exactamente un QR decodificable mediante el decoder local Node (con helper nativo de macOS como fallback), genera una plancha visual y un manifest firmado. Detecta tanto imágenes idénticas como el mismo contenido QR en archivos distintos. El manifest guarda sólo SHA-256 de imagen y una huella HMAC del QR; nunca guarda ni imprime su contenido. La carpeta generada incluye un `.gitignore` defensivo, pero contiene entradas reales: guardarla como secreto y eliminarla después de confirmar el import.
+
+`commit` vuelve a validar firma, rutas y hashes. Acepta únicamente la recompensa inactiva titulada exactamente `Entrada a LaBitConf`, con costo 150, y rechaza stock legacy. Compara el lote contra todo el inventario, sube cada PNG como asset Cloudinary `authenticated` sin overwrite e inserta el lote con `xp_import_ticket_inventory`. La migración `202609180005_private_qr_ticket_inventory.sql` agrega unicidad global por huella y valida el descriptor completo. La inserción en PostgreSQL es atómica y el comando nunca activa la recompensa. Ante un fallo no borra assets automáticamente, porque otro import concurrente podría haberlos referenciado; se reconcilian antes de reintentar.
+
+Al canjear, `xp_redeem` conserva la asignación atómica existente. La base guarda un descriptor versionado, no una URL pública ni el payload QR. `GET /api/member/points/redemptions/:id/qr` comprueba dueño y proxyea los bytes desde una URL privada corta, con `no-store`, límite de tamaño, magic bytes y verificación SHA-256. La interfaz obtiene un blob autenticado sólo cuando el miembro abre su entrada en Mis canjes y revoca su URL local al cerrar. El email transaccional adjunta el mismo QR por CID/base64 y mantiene un enlace de respaldo a Mis canjes; si falla email o storage, el canje no se revierte.
+
 ### Acceso y privacidad
 
 Email único para crear cuenta o entrar. Magic link de alta entropía y código de seis dígitos, ambos con hash HMAC y vencimiento de 10 minutos. Comparten un único uso. Cinco intentos por código; reenvío con espera y límites por IP/email. El enlace requiere un clic de confirmación antes del POST, para no consumirlo con lectores automáticos de correo. Los tokens del enlace se limpian de la URL y no se registran.
@@ -149,8 +164,9 @@ No cambiar fechas retroactivamente. Al llegar la fecha se bloquean canjes/accion
 ## Verificaciones
 
 - `npm run typecheck:tests`: tipos de servidor y pruebas.
-- `npm test`: 40 pruebas; incluye importación CSV → acreditación, PostgreSQL local PGlite, rachas, redondeo, expiración, roles, canjes, borrado, stock de 1201 entradas, compatibilidad CRM, emails HTML, contratos del conector de Google y seguridad de Tasks (sesión, asistencia, enlaces, publicación, cupos y capacidades privadas).
-- `npm run test:browser`: 17 pruebas con API de fixtures y Chrome aislado, sin perfil personal. Incluye creación/conexión/habilitación de Tasks, descarga privada, formulario externo sin reclamo del navegador y actualización de saldo al regresar, además de las verificaciones anteriores de cuenta, navegación, canjes y acceso.
+- `npm test`: 78 pruebas; incluye importación CSV → acreditación, PostgreSQL local PGlite, rachas, redondeo, expiración, roles, canjes, borrado, inventario QR privado, deduplicación global, email idempotente, ownership del proxy, compatibilidad CRM, emails HTML, contratos del conector de Google y seguridad de Tasks.
+- `npm run test:tickets:labitconf`: 12 pruebas del ZIP local y su wrapper TypeScript, decoder QR real, fallos explícitos del decoder, duplicados exactos/semánticos, firma, límites, traversal, archivos anidados/corruptos y ausencia de payloads.
+- `npm run test:browser`: 26 pruebas con API de fixtures y Chrome aislado, sin perfil personal. Incluye creación/conexión/habilitación de Tasks, descarga privada, formulario externo sin reclamo del navegador, QR lazy en Mis canjes —también en modo read-only con Points pausado— y actualización de saldo al regresar, además de las verificaciones anteriores de cuenta, navegación, canjes y acceso.
 - `npm run build`: frontend y servidor. No existe script lint.
 - `git diff --check`: control de whitespace.
 - `npm audit --json`: reporta 13 vulnerabilidades en el árbol actual (1 baja, 4 moderadas, 6 altas, 2 críticas). No se ejecutó audit fix ni actualizaciones masivas fuera del alcance.

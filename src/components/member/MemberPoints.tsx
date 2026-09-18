@@ -11,6 +11,7 @@ import {
   pendingClaim,
   pointsLabel,
   pointsRequest,
+  type MemberRedemption,
   type PointsAction,
   type PointsSnapshot,
   type Reward,
@@ -19,6 +20,8 @@ import { MemberArrow } from "./MemberArrow";
 import { PointMark } from "./PointMark";
 import { MemberEmptyState } from "./MemberEmptyState";
 import { MemberTasks } from "./MemberTasks";
+import { RedemptionDelivery } from "./RedemptionDelivery";
+import { parseRewardDelivery } from "../../lib/rewardDelivery";
 
 const date = (value: string) =>
   new Date(value).toLocaleDateString("es-AR", {
@@ -53,7 +56,7 @@ function MemberActivity({ ledger }: { ledger: PointsSnapshot["ledger"] }) {
         <MemberEmptyState headingLevel={3}
           title="Todavía no hay movimientos"
           copy="Acá vas a ver los puntos que sumás y usás."
-          action={<a className="xp-text-button" href="/cuenta">Ver Tasks <MemberArrow /></a>}
+          action={<a className="xp-text-button" href="/cuenta?vista=tasks">Ver acciones <MemberArrow /></a>}
         />
       )}
       {ledger.length > 3 ? <details className="xp-history-more">
@@ -97,12 +100,87 @@ function Streak({
     </div>
   );
 }
+
+function MemberRedemptions({
+  redemptions,
+  loading = false,
+  error = "",
+  onRetry,
+}: {
+  redemptions: MemberRedemption[];
+  loading?: boolean;
+  error?: string;
+  onRetry?: () => void;
+}) {
+  return (
+    <section
+      id="mis-canjes"
+      className="xp-history"
+      aria-labelledby="redemptions-title"
+      aria-busy={loading || undefined}
+    >
+      <h2 id="redemptions-title">Mis canjes</h2>
+      {error ? (
+        <div className="xp-error" role="alert">
+          <p>{error}</p>
+          {onRetry ? (
+            <button type="button" className="xp-text-button" onClick={onRetry}>
+              Reintentar Mis canjes
+            </button>
+          ) : null}
+        </div>
+      ) : null}
+      {redemptions.length ? (
+        <ul>
+          {redemptions.map((redemption) => {
+            const deliveryState = parseRewardDelivery(redemption.delivery);
+            return <li className="xp-redemption" key={redemption.id}>
+              <div className="xp-redemption__main">
+                <div className="xp-redemption__heading">
+                  <div>
+                    <h3>{redemption.title}</h3>
+                    <time dateTime={redemption.created_at}>
+                      {date(redemption.created_at)} · {redemption.cost} puntos
+                    </time>
+                  </div>
+                  <span className={deliveryState.kind === "invalid" ? "xp-redemption__status--issue" : undefined}>
+                    {deliveryState.kind === "invalid" ? "Requiere ayuda" : "Listo para usar"}
+                  </span>
+                </div>
+                <RedemptionDelivery
+                  redemptionId={redemption.id}
+                  rewardTitle={redemption.title}
+                  delivery={redemption.delivery}
+                />
+              </div>
+            </li>;
+          })}
+        </ul>
+      ) : null}
+      {loading ? (
+        <p className="xp-fine" role="status">
+          {redemptions.length ? "Actualizando tus canjes…" : "Cargando tus canjes…"}
+        </p>
+      ) : null}
+      {!loading && !error && redemptions.length === 0 ? (
+        <MemberEmptyState headingLevel={3}
+          title="Todavía no hiciste canjes"
+          copy="Tus beneficios canjeados van a quedar acá."
+        />
+      ) : null}
+    </section>
+  );
+}
+
 export function MemberPoints() {
   const requestedView = new URLSearchParams(window.location.search).get("vista");
   const view = ["recompensas", "rachas", "movimientos"].includes(requestedView ?? "") ? requestedView : "tasks";
   const { account } = useMemberAuth();
   const [data, setData] = useState<PointsSnapshot | null>(null);
   const [unavailable, setUnavailable] = useState(false);
+  const [savedRedemptions, setSavedRedemptions] = useState<MemberRedemption[]>([]);
+  const [redemptionsLoading, setRedemptionsLoading] = useState(false);
+  const [redemptionsError, setRedemptionsError] = useState("");
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [loading, setLoading] = useState(true);
@@ -117,19 +195,49 @@ export function MemberPoints() {
   const [rating, setRating] = useState("");
   const [feedback, setFeedback] = useState("");
   const confirming = useRef(false);
+  const leaveClaimFlow = () => {
+    sessionStorage.removeItem("xplora-points-claim");
+    setClaimToken("");
+    setAction(null);
+    setTaskId(null);
+    setClaimError("");
+    window.location.assign("/cuenta");
+  };
+  const loadSavedRedemptions = useCallback(async () => {
+    setRedemptionsLoading(true);
+    setRedemptionsError("");
+    try {
+      const result = await pointsRequest<{ redemptions: MemberRedemption[] }>(
+        "/api/member/points/redemptions",
+      );
+      setSavedRedemptions(Array.isArray(result.redemptions) ? result.redemptions : []);
+    } catch (e) {
+      setRedemptionsError(messageOf(e));
+    } finally {
+      setRedemptionsLoading(false);
+    }
+  }, []);
   const load = useCallback(async () => {
     setError("");
     try {
       const result = await pointsRequest<PointsSnapshot | { available: false }>("/api/member/points");
       const notEnabled = "available" in result && result.available === false;
       setUnavailable(notEnabled);
-      setData("available" in result ? null : result);
+      if (notEnabled) {
+        setData(null);
+        await loadSavedRedemptions();
+      } else {
+        setData(result as PointsSnapshot);
+        setSavedRedemptions([]);
+        setRedemptionsError("");
+        setRedemptionsLoading(false);
+      }
     } catch (e) {
       setError(messageOf(e));
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [loadSavedRedemptions]);
   useEffect(() => {
     void load();
   }, [load]);
@@ -148,7 +256,7 @@ export function MemberPoints() {
     setAction(null);
     setTaskId(null);
     setClaimError("");
-    if (!claimToken) return;
+    if (!claimToken || loading || unavailable || data === null) return;
     let current = true;
     void pointsRequest<PointsAction>("/api/member/points/action", {
       token: claimToken,
@@ -162,7 +270,7 @@ export function MemberPoints() {
     return () => {
       current = false;
     };
-  }, [claimToken]);
+  }, [claimToken, loading, unavailable, data !== null]);
   async function redeem(reward: Reward) {
     if (confirming.current) return;
     confirming.current = true;
@@ -176,13 +284,18 @@ export function MemberPoints() {
         requestId = crypto.randomUUID();
         sessionStorage.setItem(key, requestId);
       }
-      await pointsRequest("/api/member/points/redeem", {
+      const result = await pointsRequest<{ emailSent?: boolean }>("/api/member/points/redeem", {
         rewardId: reward.id,
         requestId,
       });
       sessionStorage.removeItem(key);
       setConfirm(null);
-      setNotice(`¡Listo! ${reward.title} ya está en Mis canjes.`);
+      const emailNotice = result.emailSent === true
+        ? " También te enviamos un email de confirmación."
+        : result.emailSent === false
+          ? " No pudimos enviar el email de confirmación, pero tu beneficio está guardado."
+          : "";
+      setNotice(`¡Listo! ${reward.title} ya está en Mis canjes.${emailNotice}`);
       await load();
     } catch (e) {
       setError(messageOf(e));
@@ -230,12 +343,26 @@ export function MemberPoints() {
     );
   if (unavailable)
     return (
-      <section className="xp-state">
-        <MemberEmptyState title="Tu cuenta ya está lista."
-          copy="Xplora Points todavía no está habilitado."
-          action={<a className="xp-button" href="/cuenta/perfil">Completar mi perfil</a>}
+      <div className="xp-points">
+        <aside className="xp-notice">
+          <p>Xplora Points no está disponible para nuevas acciones o canjes.</p>
+          <p>Tus beneficios anteriores siguen guardados y podés usarlos desde acá.</p>
+        </aside>
+        {error ? (
+          <div className="xp-error" role="alert">
+            <p>{error}</p>
+            <button type="button" className="xp-text-button" onClick={() => void load()}>
+              Reintentar carga
+            </button>
+          </div>
+        ) : null}
+        <MemberRedemptions
+          redemptions={savedRedemptions}
+          loading={redemptionsLoading}
+          error={redemptionsError}
+          onRetry={() => void loadSavedRedemptions()}
         />
-      </section>
+      </div>
     );
   if (!data)
     return (
@@ -287,8 +414,8 @@ export function MemberPoints() {
         </section>
       </header> : null}
       <nav className={`xp-views${view === 'tasks' ? ' xp-views--home' : ''}`} aria-label="Xplora Points">
-        {([["tasks", "Tasks"], ["recompensas", "Recompensas"], ["rachas", "Rachas"], ["movimientos", "Movimientos"]] as const).map(([key, label]) => (
-          <a key={key} href={key === "tasks" ? "/cuenta" : `/cuenta?vista=${key}`} aria-current={view === key ? "page" : undefined}>{label}</a>
+        {([["tasks", "Acciones"], ["recompensas", "Beneficios"], ["rachas", "Rachas"], ["movimientos", "Movimientos"]] as const).map(([key, label]) => (
+          <a key={key} href={`/cuenta?vista=${key}`} aria-current={view === key ? "page" : undefined}>{label}</a>
         ))}
       </nav>
       {view === "tasks" ? (
@@ -341,6 +468,7 @@ export function MemberPoints() {
                   : "Acreditar puntos del QR"}
             </button>
             <button type="button" className="xp-text-button" disabled={busy} onClick={() => {
+              if (!taskId && claimToken) { leaveClaimFlow(); return; }
               setAction(null); setTaskId(null); setClaimError("");
               document.getElementById("tasks-title")?.focus();
             }}>Cancelar</button>
@@ -348,9 +476,10 @@ export function MemberPoints() {
         </section>
       ) : null}
       {claimError ? (
-        <p className="xp-error" role="alert">
-          {claimError}
-        </p>
+        <div className="xp-error" role="alert">
+          <p>{claimError}</p>
+          <button type="button" className="xp-text-button" onClick={leaveClaimFlow}>Descartar y volver al inicio</button>
+        </div>
       ) : null}
       {view === "rachas" ? <section className="xp-streaks" aria-labelledby="streaks-title">
         <header className="xp-section-head">
@@ -466,34 +595,7 @@ export function MemberPoints() {
           />
         ) : null}
       </section>
-      <section
-        id="mis-canjes"
-        className="xp-history"
-        aria-labelledby="redemptions-title"
-      >
-        <h2 id="redemptions-title">Mis canjes</h2>
-        {data.redemptions.length ? (
-          <ul>
-            {data.redemptions.map((r) => (
-              <li key={r.id}>
-                <div>
-                  <h3>{r.title}</h3>
-                  <time dateTime={r.created_at}>
-                    {date(r.created_at)} · {r.cost} puntos
-                  </time>
-                  <p className="xp-delivery">{r.delivery}</p>
-                </div>
-                <span>Entregado</span>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <MemberEmptyState headingLevel={3}
-            title="Todavía no hiciste canjes"
-            copy="Tus beneficios canjeados van a quedar acá."
-          />
-        )}
-      </section></> : null}
+      <MemberRedemptions redemptions={data.redemptions} /></> : null}
     </div>
   );
 }

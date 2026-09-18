@@ -11,6 +11,15 @@ export type Reward = {
   available: number;
   redeemed: number;
 };
+
+export type MemberRedemption = {
+  id: string;
+  title: string;
+  cost: number;
+  delivery: string;
+  created_at: string;
+};
+
 export type PointsSnapshot = {
   balance: string;
   streaks: { commitment: number; consecutive: number } | null;
@@ -23,13 +32,7 @@ export type PointsSnapshot = {
     metadata: { multiplier?: number };
     created_at: string;
   }[];
-  redemptions: {
-    id: string;
-    title: string;
-    cost: number;
-    delivery: string;
-    created_at: string;
-  }[];
+  redemptions: MemberRedemption[];
 };
 export type PointsAction = {
   id: string;

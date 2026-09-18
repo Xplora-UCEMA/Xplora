@@ -69,9 +69,9 @@ test('mobile member navigation and task filters are accessible without issuing c
     { id: 'open', title: 'Encuesta disponible', kind: 'survey', points: 30, date: '2099-01-01', status: 'available', href: null },
     { id: 'done', title: 'Encuesta completada', kind: 'survey', points: 30, date: '2099-01-01', status: 'completed', href: null },
   ] } }));
-  await page.goto('/cuenta');
+  await page.goto('/cuenta?vista=tasks');
   const navigation = page.getByRole('navigation', { name: 'Navegación principal' });
-  await expect(navigation.getByRole('link')).toHaveCount(3);
+  await expect(navigation.getByRole('link')).toHaveCount(5);
   await expect(page.getByRole('heading', { name: 'Sumá Points.' })).toBeVisible();
   await page.getByRole('button', { name: /Completadas/ }).click();
   await expect(page.getByRole('heading', { name: 'Encuesta completada' })).toBeVisible();
@@ -85,6 +85,72 @@ test('mobile member navigation and task filters are accessible without issuing c
     expect(box?.width).toBeGreaterThanOrEqual(44);
   }
 });
+
+test('member home is a personal hub across mobile and desktop', async ({ page }) => {
+  await mock(page);
+  await page.route('**/api/member/points/tasks', route => route.fulfill({ json: { tasks: [
+    { id: 'survey', title: 'Contanos cómo estuvo Startup Day', kind: 'survey', points: 30, date: '2026-09-30T23:59:00Z', status: 'available', href: null },
+  ] } }));
+  await page.route('**/api/member/jobs', route => route.fulfill({ json: { jobs: [
+    { id: 'job-1', title: 'Product Analyst', company: 'Núcleo', location: 'Buenos Aires', type: 'Híbrido', area: 'Producto' },
+    { id: 'job-2', title: 'Founders Associate', company: 'Lumen', location: 'Remoto', type: 'Full time', area: 'Estrategia' },
+  ] } }));
+  await page.route('**/api/public/eventos', route => route.fulfill({ json: [{
+    id: 'demo-event', title: 'Founder Sessions: de cero a primera venta', emoji: '✦', tag_type: 'p', tag_label: 'Founder Sessions',
+    date_display: '28 de septiembre de 2099 · 18:30', day: '28', month: 'SEP', location: 'UCEMA · Reconquista 775', modality: 'Presencial',
+    capacity: '120', cost: 'Sin cargo', registration_link: 'https://lu.ma/xplora-demo', summary: 'Una conversación honesta sobre los primeros clientes.',
+    about: '', speaker_name: 'Comunidad Xplora', speaker_role: '', speaker_initials: 'XP', speaker_bio: '', speakers: [],
+    thumbnail_url: null, home_poster_url: null, realizado: false, created_at: '2099-09-18T00:00:00Z',
+  }] }));
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/cuenta');
+  await expect(page.getByRole('heading', { name: /Alex\.$/ })).toBeVisible();
+  await expect(page.locator('.mh-balance')).toHaveAttribute('aria-label', '150 points disponibles');
+  await expect(page.getByText('Beneficio desbloqueado', { exact: true })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Explorar beneficios' }).first()).toHaveAttribute('href', '/cuenta?vista=recompensas');
+  await expect(page.getByRole('heading', { name: 'Founder Sessions: de cero a primera venta' })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Reservar mi lugar' })).toHaveAttribute('href', 'https://lu.ma/xplora-demo');
+  await expect(page.getByRole('heading', { name: 'Contanos cómo estuvo Startup Day' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Oportunidades para vos' })).toBeVisible();
+  await expect(page.getByRole('link', { name: /Product Analyst/ })).toHaveAttribute('href', '/empleo');
+  await expect(page.getByRole('heading', { name: 'Podés llegar a esto' })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Perfil completo al 13%' })).toBeVisible();
+  const mobileNav = page.getByRole('navigation', { name: 'Navegación principal' });
+  await expect(mobileNav.getByRole('link')).toHaveCount(5);
+  expect(await mobileNav.getByRole('link').allTextContents()).toEqual(['Inicio', 'Eventos', 'Points', 'Empleo', 'Perfil']);
+  await expect(page.locator('.mh-sidebar')).toBeHidden();
+  await expect(page.locator('.ma-app__top')).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await page.screenshot({ path: '.impeccable/review/hub-mobile-390.png', fullPage: true, animations: 'disabled' });
+
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await expect(page.locator('.mh-sidebar')).toBeVisible();
+  await expect(page.locator('.mh-bottom-nav')).toBeHidden();
+  await expect(page.locator('.mh-points-card')).toBeVisible();
+  await expect(page.locator('.mh-event-card')).toBeVisible();
+  const [pointsBox, eventBox] = await Promise.all([
+    page.locator('.mh-points-card').boundingBox(),
+    page.locator('.mh-event-card').boundingBox(),
+  ]);
+  expect(pointsBox?.y).toBe(eventBox?.y);
+  expect(pointsBox?.width).toBeGreaterThan(350);
+  expect(eventBox?.width).toBeGreaterThan(400);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await page.screenshot({ path: '.impeccable/review/hub-desktop-1440.png', fullPage: true, animations: 'disabled' });
+});
+
+test('member greeting never exposes the email as the name', async ({ page }) => {
+  await mock(page);
+  await page.route('**/api/member/me', route => route.fulfill({ json: {
+    account: { ...account, email: 'xplorer@example.test', displayName: '', firstName: '', lastName: '' },
+    events: [],
+  } }));
+  await page.goto('/cuenta');
+  await expect(page.getByRole('heading', { name: /Xplorer\.$/ })).toBeVisible();
+  await expect(page.getByRole('heading', { name: /xplorer@example\.test/i })).toHaveCount(0);
+});
+
 test('member web layout stays readable across phone widths and account sections', async ({ page }) => {
   await mock(page);
   const routes = ['/cuenta', '/cuenta/perfil', '/cuenta/eventos', '/cuenta/propuestas', '/empleo'];
@@ -95,7 +161,8 @@ test('member web layout stays readable across phone widths and account sections'
       await expect(page.locator('.ma-premium')).toBeVisible();
       await expect(page.locator('main h1, main h2').first()).toBeVisible();
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
-      await expect(page.locator('.ma-primary-nav')).toHaveCSS('position', 'static');
+      if (width < 1024) await expect(page.locator('.mh-bottom-nav')).toBeVisible();
+      else await expect(page.locator('.mh-sidebar')).toBeVisible();
       for (const input of await page.locator('main input:not([type="file"]):not([type="checkbox"]), main select, main textarea').all()) {
         expect(await input.evaluate(el => parseFloat(getComputedStyle(el).fontSize))).toBeGreaterThanOrEqual(16);
       }
@@ -120,7 +187,7 @@ test('Tasks opens real registration and completes an eligible survey without awa
     expect(route.request().postDataJSON()).toEqual({ rating: 5, feedback: 'Excelente experiencia' });
     return route.fulfill({ json: { points: 30, alreadyClaimed: false } });
   });
-  await page.goto('/cuenta');
+  await page.goto('/cuenta?vista=tasks');
   await expect(page.getByRole('link', { name: 'Inscribirme' })).toHaveAttribute('href', 'https://lu.ma/example');
   await expect(page.getByRole('listitem').filter({ hasText: 'Encuentro pasado' }).getByRole('link')).toHaveCount(0);
   for (const width of [1440, 390]) {
@@ -149,7 +216,7 @@ test('Google Forms opens externally without claiming and refreshes the balance o
     date: '2099-01-01', status: 'available', href: 'https://docs.google.com/forms/d/e/fixture/viewform',
   }] } }));
   await page.route('**/api/member/points/claim', route => { claims++; return route.fulfill({ json: {} }); });
-  await page.goto('/cuenta');
+  await page.goto('/cuenta?vista=tasks');
   await expect(page.getByRole('link', { name: 'Completar formulario' })).toHaveAttribute('href', 'https://docs.google.com/forms/d/e/fixture/viewform');
   await expect(page.getByText('Usá el mismo correo de tu cuenta de Xplora.')).toBeVisible();
   await page.setViewportSize({ width: 390, height: 900 });
@@ -166,7 +233,7 @@ test("empty Points panels explain the next action without invented activity", as
   await page.route("**/api/member/points", (route) => route.fulfill({
     json: { ...snapshot, balance: "0", streaks: { commitment: 0, consecutive: 0 }, ledger: [], rewards: [] },
   }));
-  await page.goto("/cuenta");
+  await page.goto("/cuenta?vista=tasks");
   await expect(page.getByText("No hay tareas disponibles por ahora.")).toBeVisible();
   await page.setViewportSize({ width: 1440, height: 1000 });
   await page.screenshot({ path: ".impeccable/review/empty-desktop.png", fullPage: true, animations: "disabled" });
@@ -175,20 +242,20 @@ test("empty Points panels explain the next action without invented activity", as
   await page.screenshot({ path: ".impeccable/review/empty-mobile.png", fullPage: true, animations: "disabled" });
   await page.getByRole('link', { name: 'Movimientos', exact: true }).click();
   await expect(page.getByRole("heading", { name: "Todavía no hay movimientos" })).toBeVisible();
-  await expect(page.getByRole("link", { name: "Ver Tasks" })).toHaveAttribute("href", "/cuenta");
-  await page.getByRole('link', { name: 'Recompensas', exact: true }).click();
+  await expect(page.getByRole("link", { name: "Ver acciones" })).toHaveAttribute("href", "/cuenta?vista=tasks");
+  await page.getByRole('link', { name: 'Beneficios', exact: true }).click();
   await expect(page.getByRole("heading", { name: "Estamos preparando las recompensas" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Todavía no hiciste canjes" })).toBeVisible();
 });
 test("Points separates tasks, rewards, streaks and movements without a featured goal", async ({ page }) => {
   await mock(page);
   await page.setViewportSize({ width: 1440, height: 1000 });
-  await page.goto("/cuenta");
+  await page.goto("/cuenta?vista=tasks");
   await expect(page.getByRole("heading", { name: "Sumá Points.", exact: true })).toBeVisible();
   await expect(page.getByText("Tu primer objetivo: 150.")).toHaveCount(0);
   await expect(page.getByText("Entrada a LaBitConf")).toHaveCount(0);
   await expect(page.locator('.xp-mark')).toHaveCount(1);
-  await page.getByRole('link', { name: 'Recompensas', exact: true }).click();
+  await page.getByRole('link', { name: 'Beneficios', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Entrada a LaBitConf' })).toBeVisible();
   await expect(page.locator('.xp-mark')).toHaveCount(0);
   for (const width of [1440, 390]) {
@@ -220,7 +287,7 @@ test("empty events link to the actual public agenda", async ({ page }) => {
 });
 test('mobile account menu exposes every account section without horizontal scrolling', async ({ page }) => {
   await mock(page); await page.setViewportSize({ width: 320, height: 844 }); await page.goto('/cuenta');
-  await expect(page.getByRole('heading', { name: 'Sumá Points.', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: /Alex\.$/ })).toBeVisible();
   await page.getByLabel('Menú de cuenta', { exact: true }).filter({ has: page.locator('span') }).first().click();
   const logout = await page.getByRole('button', { name: 'Cerrar sesión', exact: true }).boundingBox();
   expect(logout!.x + logout!.width).toBeLessThanOrEqual(300);
@@ -244,14 +311,14 @@ test("account stays usable before Points is installed", async ({ page }) => {
     route.fulfill({ json: { available: false } }),
   );
   await page.goto("/cuenta");
-  await expect(page.getByRole("heading", { name: "Tu cuenta ya está lista." })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /Alex\.$/ })).toBeVisible();
   await expect(page.getByRole("link", { name: "Completar mi perfil" })).toHaveAttribute("href", "/cuenta/perfil");
-  await expect(page.getByText("Xplora Points todavía no está habilitado.")).toBeVisible();
+  await expect(page.getByText("Points estará disponible muy pronto.")).toBeVisible();
   await expect(page.getByRole("heading", { name: "Tus Xplora Points" })).toHaveCount(0);
 });
 test("signup makes clear that the welcome bonus requires an active Points program", async ({ page }) => {
   await mock(page, false);
-  await page.goto("/cuenta");
+  await page.goto("/cuenta?vista=tasks");
   await expect(page.getByText("El bonus de bienvenida se acredita cuando Points está habilitado.")).toBeVisible();
 });
 test("closed program explains why redemption is unavailable even without a notice", async ({
@@ -266,11 +333,11 @@ test("closed program explains why redemption is unavailable even without a notic
       },
     }),
   );
-  await page.goto("/cuenta");
+  await page.goto("/cuenta?vista=tasks");
   await expect(
     page.getByText("El programa finalizó. Los canjes están cerrados."),
   ).toBeVisible();
-  await page.getByRole('link', { name: 'Recompensas', exact: true }).click();
+  await page.getByRole('link', { name: 'Beneficios', exact: true }).click();
   await expect(
     page.getByRole("button", { name: "Programa finalizado" }),
   ).toBeDisabled();
@@ -296,6 +363,10 @@ async function mock(page: Page, signedIn = true) {
           ? snapshot
           : path === "/api/member/points/tasks"
             ? { tasks: [] }
+          : path === "/api/member/jobs"
+            ? { jobs: [] }
+          : path === "/api/public/eventos"
+            ? []
           : path === "/api/public/site-media"
             ? null
             : [];
@@ -328,15 +399,15 @@ test("account is usable on desktop and mobile and only redeems after explicit co
     redemptions++;
     const body = route.request().postDataJSON() as { requestId: string };
     expect(body.requestId).toMatch(/^[0-9a-f-]{36}$/);
-    await route.fulfill({ json: { id: "demo-redemption" } });
+    await route.fulfill({ json: { id: "demo-redemption", emailSent: true } });
   });
   await page.setViewportSize({ width: 1440, height: 1050 });
   await page.goto("/cuenta");
   await expect(
-    page.getByRole("heading", { name: "Tus Xplora Points" }),
+    page.getByRole("heading", { name: /Alex\.$/ }),
   ).toBeVisible();
   await expect(
-    page.getByRole("heading", { name: "Hola, Alex." }),
+    page.getByText("150", { exact: true }),
   ).toBeVisible();
   await page.screenshot({
     path: ".impeccable/review/desktop.png",
@@ -364,15 +435,14 @@ test("account is usable on desktop and mobile and only redeems after explicit co
     fullPage: true,
     animations: "disabled",
   });
-  await page
-    .getByRole('link', { name: 'Recompensas', exact: true }).click();
+  await page.getByRole('link', { name: 'Explorar beneficios' }).first().click();
   await page
     .getByRole("button", { name: "Canjear recompensa", exact: true })
     .click();
   expect(redemptions).toBe(0);
   await page.getByRole("button", { name: "Confirmar por 150 puntos" }).click();
   await expect(
-    page.getByText("¡Listo! Entrada a LaBitConf ya está en Mis canjes."),
+    page.getByText("¡Listo! Entrada a LaBitConf ya está en Mis canjes. También te enviamos un email de confirmación."),
   ).toBeVisible();
   expect(redemptions).toBe(1);
 });
@@ -420,7 +490,7 @@ test("email login supports paste, creates a session, and the magic link waits fo
   await page.getByLabel("Código de seis dígitos").fill("123456");
   await page.getByRole("button", { name: "Entrar a mi cuenta" }).click();
   await expect(
-    page.getByRole("heading", { name: "Hola, Alex." }),
+    page.getByRole("heading", { name: /Alex\.$/ }),
   ).toBeVisible();
   expect(verifies).toBe(1);
   await page.goto(
@@ -435,7 +505,7 @@ test("email login supports paste, creates a session, and the magic link waits fo
     .getByRole("button", { name: "Entrar a Xplora", exact: true })
     .click();
   await expect(
-    page.getByRole("heading", { name: "Hola, Alex." }),
+    page.getByRole("heading", { name: /Alex\.$/ }),
   ).toBeVisible();
   expect(verifies).toBe(2);
 });

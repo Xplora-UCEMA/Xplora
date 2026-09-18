@@ -40,3 +40,4 @@ supabase/migrations/*
 !supabase/migrations/202609170002_points_crm_privileges.sql
 !supabase/migrations/202609170003_google_forms_tasks.sql
 !supabase/migrations/202609170004_google_forms_central.sql
+!supabase/migrations/202609180005_private_qr_ticket_inventory.sql

@@ -516,3 +516,82 @@ test("fractional attendance bonus rounds down without stacking", async () => {
   );
   assert.equal(result.rows[0].amount, "28");
 });
+
+test("an open absence preserves streaks and blocks later attendance until the gap is closed", async () => {
+  const uid = "a1000000-0000-4000-8000-000000000001";
+  const mid = "a1000000-0000-4000-8000-000000000002";
+  const warmup = "a1000000-0000-4000-8000-000000000003";
+  const pendingMiss = "a1000000-0000-4000-8000-000000000004";
+  const waitingAttendance = "a1000000-0000-4000-8000-000000000005";
+  await db.query("INSERT INTO usuarios(id,email) VALUES($1,'streak-gap@example.test')", [uid]);
+  await db.query(
+    "INSERT INTO member_accounts(id,email,usuario_id,email_confirmed_at) VALUES($1,'streak-gap@example.test',$2,now())",
+    [mid, uid],
+  );
+
+  const createEvent = async (id: string, title: string, age: string) => {
+    await db.query("INSERT INTO eventos(id,title) VALUES($1,$2)", [id, title]);
+    await db.query(
+      "INSERT INTO xp_events(event_id,starts_at,tier,base_points) VALUES($1,now()-$2::interval,'normal',20)",
+      [id, age],
+    );
+  };
+  const state = async () => (
+    await db.query<{ commitment: number; consecutive: number }>(
+      "SELECT commitment,consecutive FROM xp_members WHERE member_id=$1",
+      [mid],
+    )
+  ).rows[0];
+
+  await createEvent(warmup, "Warmup de racha", "50 minutes");
+  await db.query(
+    "INSERT INTO inscripciones_evento(usuario_id,evento_id,asistio) VALUES($1,$2,true)",
+    [uid, warmup],
+  );
+  await db.query("UPDATE xp_events SET closed=true WHERE event_id=$1", [warmup]);
+  assert.deepEqual(await state(), { commitment: 1, consecutive: 1 });
+
+  await createEvent(pendingMiss, "Ausencia pendiente", "30 minutes");
+  await db.query(
+    "INSERT INTO inscripciones_evento(usuario_id,evento_id,asistio) VALUES($1,$2,false)",
+    [uid, pendingMiss],
+  );
+  await createEvent(waitingAttendance, "Asistencia en espera", "10 minutes");
+  await db.query(
+    "INSERT INTO inscripciones_evento(usuario_id,evento_id,asistio) VALUES($1,$2,true)",
+    [uid, waitingAttendance],
+  );
+
+  assert.deepEqual(await state(), { commitment: 1, consecutive: 1 });
+  assert.equal(
+    (await db.query("SELECT 1 FROM xp_ledger WHERE member_id=$1 AND source=$2", [mid, `event:${waitingAttendance}`])).rows.length,
+    0,
+  );
+
+  await db.query("UPDATE xp_events SET closed=true WHERE event_id=$1", [pendingMiss]);
+  assert.deepEqual(await state(), { commitment: 1, consecutive: 1 });
+  const awarded = (
+    await db.query<{
+      amount: string;
+      metadata: { base: number; multiplier: number; commitment: number; consecutive: number };
+    }>(
+      "SELECT amount::text,metadata FROM xp_ledger WHERE member_id=$1 AND source=$2",
+      [mid, `event:${waitingAttendance}`],
+    )
+  ).rows;
+  assert.deepEqual(awarded, [{
+    amount: "20",
+    metadata: { base: 20, multiplier: 1, commitment: 1, consecutive: 1 },
+  }]);
+  assert.equal(
+    (await db.query("SELECT 1 FROM xp_ledger WHERE member_id=$1 AND source=$2", [mid, `event:${pendingMiss}`])).rows.length,
+    0,
+  );
+
+  await db.query("SELECT xp_sync_member($1)", [mid]);
+  await db.query("SELECT xp_snapshot($1)", [mid]);
+  assert.equal(
+    (await db.query("SELECT 1 FROM xp_ledger WHERE member_id=$1 AND source=$2", [mid, `event:${waitingAttendance}`])).rows.length,
+    1,
+  );
+});

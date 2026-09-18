@@ -15,6 +15,9 @@ import {
   signMemberAccessToken,
 } from "../../services/member-jwt.service.js";
 import { sendOneResendEmail } from "../../services/resend-send.service.js";
+import { sendPointsRedemptionEmail } from "../../services/points-redemption-email.js";
+import { POINTS_DELIVERY_PREFIX, parseQrTicketDelivery } from "../../domain/points-delivery.js";
+import { PointsTicketStorageService } from "../../services/points-ticket-storage.service.js";
 import { renderMemberAccessEmail } from "../../services/member-access-email.js";
 import { buildEventTasks, buildSurveyTasks, type EventTaskRow, type AttendanceRow, type SurveyTaskRow } from "../../services/points-tasks.service.js";
 import {
@@ -245,6 +248,35 @@ export function registerPointsRoutes(
       ] });
     }),
   );
+  app.get(
+    "/api/member/points/redemptions",
+    memberNoStoreHeaders,
+    memberReadLimiter,
+    member,
+    asyncHandler(async (req, res) => {
+      const result = await db()
+        .from("xp_redemptions")
+        .select("id,title,cost,delivery,created_at")
+        .eq("member_id", req.memberAuth!.accountId)
+        .order("created_at", { ascending: false })
+        .limit(50)
+        .returns<{
+          id: string;
+          title: string;
+          cost: number;
+          delivery: string;
+          created_at: string;
+        }[]>();
+      // During a rolling deployment the Points schema can still be absent. Keep
+      // the read-only history endpoint fail-closed without taking down /cuenta.
+      if (["42P01", "PGRST200", "PGRST205"].includes(result.error?.code ?? "")) {
+        res.json({ redemptions: [] });
+        return;
+      }
+      checked(result.error);
+      res.json({ redemptions: result.data ?? [] });
+    }),
+  );
   app.post(
     "/api/member/points/tasks/:id/claim",
     memberNoStoreHeaders,
@@ -279,13 +311,153 @@ export function registerPointsRoutes(
     memberWriteLimiter,
     member,
     asyncHandler(async (req, res) => {
+      if (!config.pointsEnabled)
+        throw new BadRequestError("Points no está disponible.");
       const { data, error } = await db().rpc("xp_redeem", {
         p_member: req.memberAuth!.accountId,
         p_reward: uuid(req.body?.rewardId),
         p_request: uuid(req.body?.requestId),
       });
       checked(error);
-      res.json(data);
+      const redemption = data as {
+        id: string;
+        title: string;
+        cost: number;
+        delivery: string;
+        [key: string]: unknown;
+      };
+      let emailSent = false;
+      if (
+        redemption &&
+        typeof redemption.id === "string" &&
+        typeof redemption.title === "string" &&
+        typeof redemption.cost === "number" &&
+        typeof redemption.delivery === "string"
+      ) {
+        const emailStore = db();
+        const claim = await emailStore.rpc("xp_claim_redemption_email", {
+          p_redemption: redemption.id,
+          p_member: req.memberAuth!.accountId,
+        });
+        if (claim.error) {
+          console.warn(
+            `[points/redeem] no se pudo reservar el email del canje ${redemption.id}:`,
+            claim.error.message,
+          );
+        } else if (claim.data === "sent") {
+          emailSent = true;
+        } else if (claim.data === "send") {
+          const qrDelivery = parseQrTicketDelivery(redemption.delivery);
+          let qrAttachment:
+            | { contentBase64: string; contentType: "image/png" | "image/jpeg" | "image/webp" }
+            | undefined;
+          if (qrDelivery && config.cloudinary) {
+            try {
+              const ticket = await new PointsTicketStorageService(config).read(redemption.delivery);
+              qrAttachment = {
+                contentBase64: ticket.bytes.toString("base64"),
+                contentType: ticket.contentType,
+              };
+            } catch (attachmentError) {
+              console.warn(
+                `[points/redeem] no se pudo adjuntar el QR privado al canje ${redemption.id}:`,
+                attachmentError instanceof Error ? attachmentError.message : "error desconocido",
+              );
+            }
+          }
+          const mailResult = await sendPointsRedemptionEmail(config, {
+            redemptionId: redemption.id,
+            to: req.memberAuth!.email,
+            title: redemption.title,
+            cost: redemption.cost,
+            delivery: redemption.delivery,
+            ...(qrAttachment ? { qrAttachment } : {}),
+          });
+          emailSent = mailResult.status === "sent";
+          const markAmbiguous = async () => {
+            const ambiguous = await emailStore.rpc("xp_mark_redemption_email_ambiguous", {
+              p_redemption: redemption.id,
+              p_member: req.memberAuth!.accountId,
+            });
+            if (ambiguous.error)
+              console.warn(
+                `[points/redeem] no se pudo guardar el estado ambiguo del email ${redemption.id}:`,
+                ambiguous.error.message,
+              );
+          };
+          if (mailResult.status === "sent") {
+            const finish = await emailStore.rpc("xp_finish_redemption_email", {
+              p_redemption: redemption.id,
+              p_member: req.memberAuth!.accountId,
+              p_provider_id: mailResult.providerId,
+            });
+            if (finish.error) {
+              console.warn(
+                `[points/redeem] el email salió pero no se pudo cerrar su estado ${redemption.id}:`,
+                finish.error.message,
+              );
+              // El proveedor confirmó el envío: si el cierre fue incierto, el
+              // claim debe quedar bloqueado hasta una reconciliación explícita.
+              await markAmbiguous();
+            }
+          } else if (mailResult.status === "rejected") {
+            const release = await emailStore.rpc("xp_release_redemption_email", {
+              p_redemption: redemption.id,
+              p_member: req.memberAuth!.accountId,
+            });
+            if (release.error)
+              console.warn(
+                `[points/redeem] no se pudo liberar el reintento de email ${redemption.id}:`,
+                release.error.message,
+              );
+          } else {
+            await markAmbiguous();
+          }
+          if (mailResult.status !== "sent")
+            console.warn(
+              `[points/redeem] no se pudo enviar el email del canje ${redemption.id}:`,
+              mailResult.error,
+            );
+        }
+      }
+      res.json({ ...redemption, emailSent });
+    }),
+  );
+  app.get(
+    "/api/member/points/redemptions/:id/qr",
+    memberNoStoreHeaders,
+    memberReadLimiter,
+    member,
+    asyncHandler(async (req, res) => {
+      const redemptionId = uuid(req.params.id);
+      const result = await db()
+        .from("xp_redemptions")
+        .select("id,delivery")
+        .eq("id", redemptionId)
+        .eq("member_id", req.memberAuth!.accountId)
+        .maybeSingle<{ id: string; delivery: string }>();
+      checked(result.error);
+      if (!result.data || !parseQrTicketDelivery(result.data.delivery) || !config.cloudinary) {
+        res.status(404).json({ error: "Ticket no disponible.", code: "NOT_FOUND" });
+        return;
+      }
+      try {
+        const ticket = await new PointsTicketStorageService(config).read(result.data.delivery);
+        res.set({
+          "Cache-Control": "private, no-store, max-age=0",
+          "Content-Disposition": `inline; filename="${ticket.fileName}"`,
+          "Content-Length": String(ticket.bytes.length),
+          "Content-Type": ticket.contentType,
+          "X-Content-Type-Options": "nosniff",
+        });
+        res.send(ticket.bytes);
+      } catch (error) {
+        console.warn(
+          `[points/redemptions/qr] no se pudo recuperar el ticket ${redemptionId}:`,
+          error instanceof Error ? error.message : "error desconocido",
+        );
+        res.status(503).json({ error: "No pudimos cargar el ticket. Reintentá en un momento.", code: "UNAVAILABLE" });
+      }
     }),
   );
   app.post(
@@ -453,12 +625,15 @@ export function registerPointsRoutes(
           "Cargá entre 1 y 200 códigos, uno por línea.",
         );
       const reward = uuid(req.params.id);
+      const deliveries = req.body.deliveries.map((delivery: unknown) => str(delivery, 4000));
+      if (deliveries.some((delivery: string) => delivery.startsWith(POINTS_DELIVERY_PREFIX)))
+        throw new BadRequestError("Las entradas QR privadas se cargan únicamente con el importador de ZIP.");
       const { error } = await db()
         .from("xp_inventory")
         .insert(
-          req.body?.deliveries.map((delivery: unknown) => ({
+          deliveries.map((delivery: string) => ({
             reward_id: reward,
-            delivery: str(delivery, 4000),
+            delivery,
           })),
         );
       checked(error);

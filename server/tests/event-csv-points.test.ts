@@ -99,24 +99,37 @@ test('attendance CSV awards configured event points through database triggers, n
       assert.equal(response.status, 200, JSON.stringify(body));
       return body;
     };
-    const awards = async () => (await db.query<{ amount: string }>(
-      'SELECT amount::text FROM xp_ledger WHERE member_id=$1 AND source=$2', [memberId, 'event:' + eventId])).rows;
+    const awards = async () => (await db.query<{
+      amount: string;
+      metadata: { base: number; multiplier: number; commitment: number; consecutive: number };
+    }>(
+      'SELECT amount::text,metadata FROM xp_ledger WHERE member_id=$1 AND source=$2', [memberId, 'event:' + eventId])).rows;
+    const streak = async () => (await db.query<{ commitment: number; consecutive: number }>(
+      'SELECT commitment,consecutive FROM xp_members WHERE member_id=$1', [memberId])).rows[0];
 
     await upload('email\ncsv@example.test');
     assert.deepEqual(await awards(), []);
+    assert.deepEqual(await streak(), { commitment: 0, consecutive: 0 });
     await upload('email,asistio\ncsv@example.test,no');
     assert.deepEqual(await awards(), []);
+    assert.deepEqual(await streak(), { commitment: 0, consecutive: 0 });
     const result = await upload('email,asistio\ncsv@example.test,si\nCSV@example.test,si');
     assert.equal(result.emails_procesados, 1);
     assert.equal(result.total_asistieron_evento, 1);
-    assert.deepEqual(await awards(), [{ amount: '40' }]);
+    assert.deepEqual(await awards(), [{
+      amount: '40',
+      metadata: { base: 40, multiplier: 1, commitment: 1, consecutive: 1 },
+    }]);
+    assert.deepEqual(await streak(), { commitment: 1, consecutive: 1 });
     await upload('email,asistio\ncsv@example.test,si');
     await upload('email\ncsv@example.test');
-    assert.deepEqual(await awards(), [{ amount: '40' }]);
+    assert.equal((await awards()).length, 1);
+    assert.deepEqual(await streak(), { commitment: 1, consecutive: 1 });
     // Closing finalizes absences/streaks; it does not award the same attendance twice.
     await db.query('UPDATE xp_events SET closed=true WHERE event_id=$1', [eventId]);
     await upload('email,asistio\ncsv@example.test,si');
-    assert.deepEqual(await awards(), [{ amount: '40' }]);
+    assert.equal((await awards()).length, 1);
+    assert.deepEqual(await streak(), { commitment: 1, consecutive: 1 });
     assert.equal((await db.query<{ total: number }>('SELECT total_asistieron AS total FROM eventos WHERE id=$1', [eventId])).rows[0].total, 1);
   } finally {
     globalThis.fetch = nativeFetch;

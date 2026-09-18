@@ -88,6 +88,8 @@ export interface AppConfig {
   readonly pointsEnabled: boolean;
   /** Secreto HS256 para JWT de miembros (cuenta / bolsa). */
   readonly memberJwtSecret: string | null;
+  /** Clave HMAC server-only para detectar tickets QR repetidos sin persistir su contenido. */
+  readonly pointsTicketFingerprintSecret: string | null;
   /** Secreto HS256 para enlaces individuales de eliminación de contactos. */
   readonly unsubscribeTokenSecret: string | null;
   readonly paths: {
@@ -149,6 +151,8 @@ export function getAppConfig(): AppConfig {
   const memberJwtSecret =
     firstNonEmpty('MEMBER_JWT_SECRET', 'JWT_SECRET') ||
     (nodeEnv === 'production' ? null : 'dev-member-jwt-secret-change-me');
+  const pointsTicketFingerprintSecret =
+    firstNonEmpty('POINTS_TICKET_FINGERPRINT_SECRET') || null;
   const unsubscribeTokenSecret = firstNonEmpty('UNSUBSCRIBE_TOKEN_SECRET') || memberJwtSecret;
 
   return {
@@ -164,6 +168,7 @@ export function getAppConfig(): AppConfig {
     publicSiteUrl,
     pointsEnabled: process.env.XPLORA_POINTS_ENABLED !== 'false',
     memberJwtSecret,
+    pointsTicketFingerprintSecret,
     unsubscribeTokenSecret,
     paths: { webDist: resolveWebDist() },
   };
